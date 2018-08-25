@@ -1,0 +1,27 @@
+{
+  "name": "terranova",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "parcel build ./src/index.html",
+    "dev": "parcel serve ./src/index.html"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "parcel-bundler": "^1.9.7",
+    "typescript": "^3.0.1"
+  },
+  "dependencies": {
+    "@blueprintjs/core": "2",
+    "@types/react": "^16.4.11",
+    "@types/react-dom": "^16.0.7",
+    "react": "^16.4.2",
+    "react-dom": "^16.4.2",
+    "react-transition-group": "^2.4.0"
+  },
+  "sass": {
+    "includePaths": ["./node_modules"]
+  }
+}

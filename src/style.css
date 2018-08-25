@@ -1,0 +1,14 @@
+@import 'normalize.css/normalize.css';
+@import "@blueprintjs/core/lib/css/blueprint.css";
+@import "@blueprintjs/icons/lib/css/blueprint-icons.css";
+
+
+*:focus {
+  outline: none;
+}
+
+body {
+  margin: 0;
+  background-color: rgb(39, 52, 61);
+  color: #F5F8FA;
+}

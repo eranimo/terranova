@@ -1,0 +1,46 @@
+Arguments: 
+  /Users/kaelan/.nvm/versions/node/v8.3.0/bin/node /Users/kaelan/.nvm/versions/node/v8.3.0/bin/yarn init
+
+PATH: 
+  /usr/local/opt/openssl/bin:/Users/kaelan/Downloads/google-cloud-sdk/bin:/Users/kaelan/.nvm/versions/node/v8.3.0/bin:/Library/Frameworks/Python.framework/Versions/3.5/bin:/usr/local/bin:/usr/local/opt/openssl/bin:/Users/kaelan/Downloads/google-cloud-sdk/bin:/Library/Frameworks/Python.framework/Versions/3.5/bin:/usr/local/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/X11/bin:/usr/local/git/bin:/usr/local/MacGPG2/bin:/Library/Frameworks/Mono.framework/Versions/Current/Commands:/Applications/Postgres.app/Contents/Versions/latest/bin:/usr/local/share/npm/bin/:/usr/local/opt/fzf/bin:/usr/local/share/npm/bin/
+
+Yarn version: 
+  1.7.0
+
+Node version: 
+  8.3.0
+
+Platform: 
+  darwin x64
+
+Trace: 
+  Error: canceled
+      at Interface.<anonymous> (/Users/kaelan/.nvm/versions/node/v8.3.0/lib/node_modules/yarn/lib/cli.js:131036:13)
+      at emitNone (events.js:105:13)
+      at Interface.emit (events.js:207:7)
+      at Interface._ttyWrite (readline.js:768:16)
+      at ReadStream.onkeypress (readline.js:156:10)
+      at emitTwo (events.js:125:13)
+      at ReadStream.emit (events.js:213:7)
+      at emitKeys (internal/readline.js:420:14)
+      at emitKeys.next (<anonymous>)
+      at ReadStream.onData (readline.js:1005:36)
+
+npm manifest: 
+  {
+    "name": "terranova",
+    "version": "1.0.0",
+    "description": "",
+    "main": "index.js",
+    "scripts": {
+      "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "author": "",
+    "license": "ISC"
+  }
+
+yarn manifest: 
+  No manifest
+
+Lockfile: 
+  No lockfile
