@@ -14,6 +14,7 @@ export interface IWorldgenWorkerOutput {
   options: IWorldgenOptions,
   sealevel: number,
   heightmap: ndarray.Data<number>,
+  flowDirections: ndarray.Data<number>,
   terrainTypes: ndarray.Data<number>,
 }
 

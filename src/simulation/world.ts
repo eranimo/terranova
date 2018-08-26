@@ -53,13 +53,14 @@ export default class World {
     this.size = params.options.size;
     const heightmap = ndarray(params.heightmap, [this.size.width, this.size.height]);
     const terrainTypes = ndarray(params.terrainTypes, [this.size.width, this.size.height]);
+    const flowDirections = ndarray(params.flowDirections, [this.size.width, this.size.height]);
     for (let x = 0; x < this.size.width; x++) {
       this.grid[x] = [];
       for (let y = 0; y < this.size.height; y++) {
         const cell: Cell = new Cell({
           x, y,
           height: heightmap.get(x, y),
-          flowDir: EDirection.NONE,
+          flowDir: flowDirections.get(x, y) as EDirection,
           terrainType: terrainTypes.get(x, y) as ETerrainType,
         });
         this.cells.add(cell);

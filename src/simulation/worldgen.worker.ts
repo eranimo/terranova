@@ -4,9 +4,14 @@ import SimplexNoise from 'simplex-noise';
 import fill from 'ndarray-fill';
 import ops from 'ndarray-ops';
 import { IWorldgenOptions, IWorldgenWorkerOutput } from './simulation';
-import { ETerrainType } from './world';
+import { ETerrainType, EDirection } from './world';
 import * as Collections from 'typescript-collections';
 
+
+/**
+ * Priority Flood algorithm from:
+ * https://arxiv.org/pdf/1511.04463v1.pdf
+ */
 
 function ndarrayStats(ndarray: ndarray) {
   return {
@@ -23,6 +28,25 @@ const getNeighbors = (x: number, y: number): number[][] => [
   [x, y - 1],
   [x, y + 1],
 ]
+
+const getNeighborsLabelled = (x: number, y: number): number[][] => [
+  [x - 1, y, EDirection.LEFT],
+  [x + 1, y, EDirection.RIGHT],
+  [x, y - 1, EDirection.UP],
+  [x, y + 1, EDirection.DOWN],
+]
+
+const oppositeDirections = {
+  [EDirection.NONE]: EDirection.NONE,
+  [EDirection.UP]: EDirection.DOWN,
+  [EDirection.DOWN]: EDirection.UP,
+  [EDirection.LEFT]: EDirection.RIGHT,
+  [EDirection.RIGHT]: EDirection.LEFT,
+}
+
+function isValidCell(x: number, y: number, width: number, height: number): boolean {
+  return x >= 0 && y >= 0 && x < width && y < height;
+}
 
 function generateHeightmap(options: IWorldgenOptions) {
   const { seed, size: { width, height } } = options;
@@ -122,6 +146,53 @@ function removeDepressions(options: IWorldgenOptions, heightmap: ndarray) {
   return waterheight;
 }
 
+function determineFlowDirections(options: IWorldgenOptions, waterheight: ndarray<number>) {
+  const { seed, size: { width, height } } = options;
+
+  const flowDirections = ndarray(new Uint8ClampedArray(width * height), [width, height]);
+  fill(flowDirections, () => EDirection.NONE);
+
+  const open = new Collections.PriorityQueue<number[]>((a, b) => {
+    if (a[2] < b[2]) {
+      return 1;
+    } else if (a[2] > b[2]) {
+      return -1;
+    }
+    return 0;
+  });
+  const closed = ndarray(new Uint8ClampedArray(width * height), [width, height]);
+  fill(closed, () => 0);
+
+  const cellNeighbors = [];
+  for (let x = 0; x < width; x++) {
+    cellNeighbors[x] = [];
+    for (let y = 0; y < height; y++) {
+      const allNeighbors = getNeighborsLabelled(x, y);
+      const validNeighbors = allNeighbors.filter(([nx, ny]) => isValidCell(nx, ny, width, height));
+      const invalidNeighbors = allNeighbors.filter(([nx, ny]) => !isValidCell(nx, ny, width, height));
+      cellNeighbors[x][y] = validNeighbors;
+      if (invalidNeighbors.length > 0) { // on the edge of the map
+        open.add([x, y, waterheight.get(x, y)]);
+        closed.set(x, y, 1);
+        flowDirections.set(x, y, invalidNeighbors[0][2]);
+      }
+    }
+  }
+
+  while(!open.isEmpty()) {
+    const cell = open.dequeue();
+    const [cx, cy] = cell;
+    for (const [nx, ny, ndir] of cellNeighbors[cx][cy]) {
+      if (closed.get(nx, ny) === 1) continue;
+      flowDirections.set(nx, ny, oppositeDirections[ndir]);
+      closed.set(nx, ny, 1);
+      open.add([nx, ny, waterheight.get(nx, ny)]);
+    }
+  }
+
+  return flowDirections;
+}
+
 function decideTerrainTypes(options: IWorldgenOptions, sealevel: number, heightmap: ndarray, waterheight: ndarray) {
   const { size: { width, height } } = options;
   const terrainTypes = ndarray(new Int16Array(width * height), [width, height]);
@@ -146,12 +217,14 @@ onmessage = function (event: MessageEvent) {
   const sealevel = 102;
   const heightmap = generateHeightmap(options);
   const waterheight = removeDepressions(options, heightmap);
+  const flowDirections = determineFlowDirections(options, waterheight);
   const terrainTypes = decideTerrainTypes(options, sealevel, heightmap, waterheight);
 
   const output: IWorldgenWorkerOutput = {
     options,
     sealevel,
     heightmap: heightmap.data,
+    flowDirections: flowDirections.data,
     terrainTypes: terrainTypes.data,
   };
   (postMessage as any)(output);

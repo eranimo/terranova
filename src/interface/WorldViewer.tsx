@@ -1,6 +1,6 @@
 import React, { ReactElement } from 'react';
 import * as PIXI from 'pixi.js';
-import World, { ETerrainType } from '../simulation/world';
+import World, { ETerrainType, EDirection } from '../simulation/world';
 import Viewport from 'pixi-viewport';
 import boxboxIntersection from 'intersects/box-box';
 
@@ -14,6 +14,26 @@ const terrainTextureColors = {
   [ETerrainType.LAKE]: 0xB5FADE,
 }
 
+const directionAngles = {
+  [EDirection.NONE]: 0,
+  [EDirection.RIGHT]: 90,
+  [EDirection.DOWN]: 180,
+  [EDirection.LEFT]: 270,
+  [EDirection.UP]: 0,
+}
+
+function makeArrowTexture(width: number, height: number): PIXI.Texture {
+  const g = new PIXI.Graphics();
+  g.lineColor = 0x000000;
+  g.lineWidth = 1;
+  g.moveTo(width / 2, height);
+  g.lineTo(width / 2, 0);
+  g.lineTo(0, height / 2);
+  g.moveTo(width / 2, 0);
+  g.lineTo(width, height / 2);
+  return g.generateCanvasTexture();
+}
+
 type TextureMap = { [name: string]: PIXI.Texture };
 
 function makeTerrainTexture(width: number, height: number, color: number): PIXI.Texture {
@@ -24,7 +44,13 @@ function makeTerrainTexture(width: number, height: number, color: number): PIXI.
   return g.generateCanvasTexture();
 }
 
-function createWorldViewer(world: World, textures: TextureMap): PIXI.Application {
+function createWorldViewer(
+  world: World,
+  textures: {
+    terrainTextures: TextureMap
+    arrowTexture: PIXI.Texture,
+  },
+): PIXI.Application {
   const screenWidth = window.innerWidth;
   const screenHeight = window.innerHeight - 50;
   const app = new PIXI.Application({
@@ -47,13 +73,14 @@ function createWorldViewer(world: World, textures: TextureMap): PIXI.Application
 
   const terrainLayer = new PIXI.Container();
   const textLayer = new PIXI.Container();
+  const arrowLayer = new PIXI.Container();
   viewport.addChild(terrainLayer);
   viewport.addChild(textLayer);
-  const sprites = new Set();
+  viewport.addChild(arrowLayer);
 
   const cellSpriteMap = new Map();
   for (const cell of world.cells) {
-    const terrainTexture = textures[cell.terrainType];
+    const terrainTexture = textures.terrainTextures[cell.terrainType];
     const terrainSprite = new PIXI.Sprite(terrainTexture);
     terrainSprite.width = CELL_WIDTH;
     terrainSprite.height = CELL_HEIGHT;
@@ -64,7 +91,24 @@ function createWorldViewer(world: World, textures: TextureMap): PIXI.Application
     );
     terrainLayer.addChild(terrainSprite);
 
-    cellSpriteMap.set(cell, [terrainSprite]);
+    const arrowTexture = cell.terrainType === ETerrainType.OCEAN || cell.flowDir === EDirection.NONE
+      ? PIXI.Texture.EMPTY
+      : textures.arrowTexture;
+    const arrowSprite = new PIXI.Sprite(arrowTexture);
+    arrowSprite.width = CELL_WIDTH;
+    arrowSprite.height = CELL_HEIGHT;
+    arrowSprite.interactive = false;
+    arrowSprite.position.set(
+      cell.x * CELL_WIDTH + (CELL_WIDTH / 2),
+      cell.y * CELL_HEIGHT + (CELL_HEIGHT / 2),
+    );
+    arrowSprite.anchor.set(
+      0.5, 0.5
+    )
+    arrowSprite.rotation = directionAngles[cell.flowDir] * (Math.PI / 180);
+    arrowLayer.addChild(arrowSprite);
+
+    cellSpriteMap.set(cell, [terrainSprite, arrowSprite]);
 
     // if (cell.terrainType != ETerrainType.OCEAN) {
     //   const text = new PIXI.Text(cell.height.toString(), { fontSize: 8 });
@@ -114,6 +158,7 @@ export default class WorldViewer extends React.Component<{
   app: PIXI.Application;
   root: React.RefObject<HTMLDivElement>;
   textures: TextureMap;
+  arrowTexture: PIXI.Texture;
 
   constructor(props) {
     super(props);
@@ -122,10 +167,14 @@ export default class WorldViewer extends React.Component<{
     for (const [terrainType, color] of Object.entries(terrainTextureColors)) {
       this.textures[terrainType] = makeTerrainTexture(CELL_WIDTH, CELL_HEIGHT, color);
     }
+    this.arrowTexture = makeArrowTexture(CELL_WIDTH, CELL_HEIGHT);
   }
 
   componentDidMount() {
-    this.app = createWorldViewer(this.props.world, this.textures)
+    this.app = createWorldViewer(this.props.world, {
+      terrainTextures: this.textures,
+      arrowTexture: this.arrowTexture,
+    })
     this.root.current.appendChild(this.app.view);
   }
 
