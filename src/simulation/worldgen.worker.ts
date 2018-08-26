@@ -36,6 +36,13 @@ const getNeighborsLabelled = (x: number, y: number): number[][] => [
   [x, y + 1, EDirection.DOWN],
 ]
 
+const neighborForDirection = {
+  [EDirection.UP]: (x: number, y: number) => [x, y - 1],
+  [EDirection.DOWN]: (x: number, y: number) => [x, y + 1],
+  [EDirection.LEFT]: (x: number, y: number) => [x - 1, y],
+  [EDirection.RIGHT]: (x: number, y: number) =>  [x + 1, y],
+}
+
 const oppositeDirections = {
   [EDirection.NONE]: EDirection.NONE,
   [EDirection.UP]: EDirection.DOWN,
@@ -112,7 +119,7 @@ function removeDepressions(options: IWorldgenOptions, heightmap: ndarray) {
   for (let x = 0; x < width; x++) {
     cellNeighbors[x] = [];
     for (let y = 0; y < height; y++) {
-      const neighbors = getNeighbors(x, y).filter(([nx, ny]) => nx >= 0 && ny >= 0 && nx < width && ny < height);
+      const neighbors = getNeighborsLabelled(x, y).filter(([nx, ny]) => nx >= 0 && ny >= 0 && nx < width && ny < height);
       cellNeighbors[x][y] = neighbors;
       const isEdge = neighbors.length != 4;
       if (isEdge) {
@@ -200,7 +207,8 @@ function decideTerrainTypes(
   sealevel: number,
   heightmap: ndarray,
   waterheight: ndarray,
-  cellNeighbors: [number, number][][][]
+  flowDirections: ndarray,
+  cellNeighbors: [number, number, number][][][]
 ) {
   const { size: { width, height } } = options;
 
@@ -226,6 +234,54 @@ function decideTerrainTypes(
     }
   }
 
+  const isRiver = ndarray(new Int16Array(width * height), [width, height]);
+  fill(isRiver, () => 0);
+
+  const upstreamCells = ndarray(new Int16Array(width * height), [width, height]);
+  fill(upstreamCells, () => 0);
+
+  // determine coastal cells by finding all land cells with at least one ocean neighbor
+  const coastalCells = [];
+  for (let x = 0; x < width; x++) {
+    for (let y = 0; y < height; y++) {
+      const isCoastal = isOcean.get(x, y) === 0 && cellNeighbors[x][y].some(([nx, ny]) => isOcean.get(nx, ny) === 1);
+      if (isCoastal) {
+        coastalCells.push([x, y]);
+      }
+    }
+  }
+  console.log('coastalCells', coastalCells);
+
+  // determine upstream cell count
+  function findUpstreamCount(x, y) {
+    let count = 0;
+    for (const [nx, ny, ndir] of cellNeighbors[x][y]) {
+      const neighborFlowDir: EDirection = flowDirections.get(nx, ny);
+      const isUpstream = oppositeDirections[neighborFlowDir] === ndir;
+      if (isUpstream) {
+        count += 1 + findUpstreamCount(nx, ny);
+      }
+    }
+    upstreamCells.set(x, y, upstreamCells.get(x, y) + count);
+    return count;
+  }
+
+  for (const [x, y] of coastalCells) {
+    findUpstreamCount(x, y);
+  }
+
+  for (let x = 0; x < width; x++) {
+    for (let y = 0; y < height; y++) {
+      if (upstreamCells.get(x, y) > 10) {
+        isRiver.set(x, y, 1);
+      } else if (upstreamCells.get(x, y) > 8) {
+        isRiver.set(x, y, 2);
+      }
+    }
+  }
+  console.log(ndarrayStats(upstreamCells));
+
+
   const terrainTypes = ndarray(new Int16Array(width * height), [width, height]);
   let oceanCellCount = 0;
   fill(terrainTypes, (x, y) => {
@@ -235,6 +291,12 @@ function decideTerrainTypes(
     }
     if (waterheight.get(x, y) > heightmap.get(x, y)) {
       return ETerrainType.LAKE;
+    }
+    if (isRiver.get(x, y) === 1) {
+      return ETerrainType.RIVER;
+    }
+    if (isRiver.get(x, y) === 2) {
+      return ETerrainType.STREAM;
     }
     return ETerrainType.LAND;
   });
@@ -248,7 +310,7 @@ onmessage = function (event: MessageEvent) {
   const heightmap = generateHeightmap(options);
   const { waterheight, cellNeighbors } = removeDepressions(options, heightmap);
   const flowDirections = determineFlowDirections(options, waterheight);
-  const terrainTypes = decideTerrainTypes(options, sealevel, heightmap, waterheight, cellNeighbors);
+  const terrainTypes = decideTerrainTypes(options, sealevel, heightmap, waterheight, flowDirections, cellNeighbors);
 
   const output: IWorldgenWorkerOutput = {
     options,
