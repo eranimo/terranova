@@ -24,7 +24,7 @@ export class Cell {
   terrainType: ETerrainType;
   flowDir: EDirection;
 
-  constructor({ x, y, terrainType, flowDir }: {
+  constructor({ x, y, terrainType, height, flowDir }: {
     x: number,
     y: number,
     height: number,
@@ -33,6 +33,7 @@ export class Cell {
   }) {
     this.x = x;
     this.y = y;
+    this.height = height;
     this.terrainType = terrainType;
     this.flowDir = flowDir;
   }

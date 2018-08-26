@@ -29,7 +29,9 @@ function createWorldViewer(world: World, textures: TextureMap): PIXI.Application
   const screenHeight = window.innerHeight - 50;
   const app = new PIXI.Application({
     width: screenWidth,
-    height: screenHeight
+    height: screenHeight,
+    antialias: false,
+    roundPixels: true,
   });
 
   const viewport = new Viewport({
@@ -44,7 +46,9 @@ function createWorldViewer(world: World, textures: TextureMap): PIXI.Application
     .wheel();
 
   const terrainLayer = new PIXI.Container();
+  const textLayer = new PIXI.Container();
   viewport.addChild(terrainLayer);
+  viewport.addChild(textLayer);
   const sprites = new Set();
 
   const cellSpriteMap = new Map();
@@ -58,23 +62,42 @@ function createWorldViewer(world: World, textures: TextureMap): PIXI.Application
       cell.x * CELL_WIDTH,
       cell.y * CELL_HEIGHT,
     );
-    cellSpriteMap.set(cell, terrainSprite);
     terrainLayer.addChild(terrainSprite);
+
+    cellSpriteMap.set(cell, [terrainSprite]);
+
+    // if (cell.terrainType != ETerrainType.OCEAN) {
+    //   const text = new PIXI.Text(cell.height.toString(), { fontSize: 8 });
+    //   text.x = cell.x * CELL_WIDTH;
+    //   text.y = cell.y * CELL_HEIGHT;
+    //   text.width = CELL_WIDTH;
+    //   text.height = CELL_HEIGHT;
+    //   text.cacheAsBitmap = true;
+    //   text.interactiveChildren = false;
+    //   text.interactive = false;
+    //   textLayer.addChild(text);
+
+    //   cellSpriteMap.set(cell, [terrainSprite, text]);
+    // } else {
+    //   cellSpriteMap.set(cell, [terrainSprite]);
+    // }
   }
 
   // viewport culling
   function cullOffscreenCells() {
-    for (const [cell, sprite ] of cellSpriteMap.entries()) {
-      sprite.visible = boxboxIntersection(
-        viewport.left,
-        viewport.top,
-        viewport.worldScreenWidth,
-        viewport.worldScreenHeight,
-        cell.x * CELL_WIDTH,
-        cell.y * CELL_HEIGHT,
-        CELL_WIDTH,
-        CELL_HEIGHT,
-      );
+    for (const [cell, sprites ] of cellSpriteMap.entries()) {
+      for (const sprite of sprites) {
+        sprite.visible = boxboxIntersection(
+          viewport.left,
+          viewport.top,
+          viewport.worldScreenWidth,
+          viewport.worldScreenHeight,
+          cell.x * CELL_WIDTH,
+          cell.y * CELL_HEIGHT,
+          CELL_WIDTH,
+          CELL_HEIGHT,
+        );
+      }
     }
   }
   viewport.on('moved', cullOffscreenCells);
