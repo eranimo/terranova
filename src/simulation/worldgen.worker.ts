@@ -78,5 +78,5 @@ onmessage = function (event: MessageEvent) {
     heightmap: heightmap.data,
     terrainTypes: terrainTypes.data,
   };
-  postMessage(output);
+  (postMessage as any)(output);
 }

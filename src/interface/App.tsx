@@ -1,6 +1,7 @@
 import React from 'react';
 import { Navbar, NavbarGroup, NavbarDivider, Button, NavbarHeading, Alignment } from '@blueprintjs/core';
 import { Simulation } from '../simulation';
+import WorldViewer from './WorldViewer';
 
 
 export default class App extends React.Component<{
@@ -20,7 +21,7 @@ export default class App extends React.Component<{
           </NavbarGroup>
         </Navbar>
         <main>
-          Ticks: {simulation.ticks}
+          <WorldViewer world={simulation.world} />
         </main>
       </div>
     )

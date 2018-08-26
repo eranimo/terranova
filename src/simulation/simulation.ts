@@ -47,8 +47,8 @@ export async function createSimulation(): Promise<Simulation> {
   const sim = new Simulation({
     seed: 'fuck',
     size: {
-      width: 500,
-      height: 500,
+      width: 250,
+      height: 200,
     },
   });
   await sim.init();
