@@ -64,9 +64,11 @@ function generateHeightmap(options: IWorldgenOptions) {
     const nx = x / width - 0.5;
     const ny = y / height - 0.5;
     let value = (
-      0.60 * noise(2.50 * nx, 2.50 * ny) +
-      0.20 * noise(5.00 * nx, 5.00 * ny) +
-      0.10 * noise(10.0 * nx, 10.0 * ny)
+      0.35 * noise(2.50 * nx, 2.50 * ny) +
+      0.30 * noise(5.00 * nx, 5.00 * ny) +
+      0.20 * noise(10.0 * nx, 10.0 * ny) +
+      0.10 * noise(20.0 * nx, 20.0 * ny) +
+      0.05 * noise(40.0 * nx, 40.0 * ny)
     );
     value = (value + 1) / 2;
 
@@ -143,7 +145,7 @@ function removeDepressions(options: IWorldgenOptions, heightmap: ndarray) {
   }
   console.log('lakeCount', lakeCount);
 
-  return waterheight;
+  return { waterheight, cellNeighbors };
 }
 
 function determineFlowDirections(options: IWorldgenOptions, waterheight: ndarray<number>) {
@@ -193,14 +195,42 @@ function determineFlowDirections(options: IWorldgenOptions, waterheight: ndarray
   return flowDirections;
 }
 
-function decideTerrainTypes(options: IWorldgenOptions, sealevel: number, heightmap: ndarray, waterheight: ndarray) {
+function decideTerrainTypes(
+  options: IWorldgenOptions,
+  sealevel: number,
+  heightmap: ndarray,
+  waterheight: ndarray,
+  cellNeighbors: [number, number][][][]
+) {
   const { size: { width, height } } = options;
+
+  // calculate ocean cells by flood fill from the top-left of the map
+  // cells which are below sea level and touch the edge of the map are ocean cells
+  const seenCells = ndarray(new Int16Array(width * height), [width, height]);
+  fill(seenCells, () => 0);
+
+  const isOcean = ndarray(new Int16Array(width * height), [width, height]);
+  fill(isOcean, () => 0);
+  const q = new Collections.Queue<[number, number]>();
+  isOcean.set(0, 0, 1);
+  q.add([0, 0]);
+  while (!q.isEmpty()) {
+    const [cx, cy] = q.dequeue();
+    isOcean.set(cx, cy, 1);
+
+    for (const [nx, ny] of cellNeighbors[cx][cy]) {
+      if (heightmap.get(nx, ny) <= sealevel && seenCells.get(nx, ny) === 0) {
+        seenCells.set(nx, ny, 1);
+        q.add([nx, ny]);
+      }
+    }
+  }
+
   const terrainTypes = ndarray(new Int16Array(width * height), [width, height]);
-  let oceanCells = 0;
+  let oceanCellCount = 0;
   fill(terrainTypes, (x, y) => {
-    const height = heightmap.get(x, y);
-    if (height <= sealevel) {
-      oceanCells++;
+    if (isOcean.get(x, y)) {
+      oceanCellCount++;
       return ETerrainType.OCEAN;
     }
     if (waterheight.get(x, y) > heightmap.get(x, y)) {
@@ -208,7 +238,7 @@ function decideTerrainTypes(options: IWorldgenOptions, sealevel: number, heightm
     }
     return ETerrainType.LAND;
   });
-  console.log('Ocean percent', oceanCells / (width * height));
+  console.log('Ocean percent', oceanCellCount / (width * height));
   return terrainTypes;
 }
 
@@ -216,9 +246,9 @@ onmessage = function (event: MessageEvent) {
   const options: IWorldgenOptions = event.data;
   const sealevel = 102;
   const heightmap = generateHeightmap(options);
-  const waterheight = removeDepressions(options, heightmap);
+  const { waterheight, cellNeighbors } = removeDepressions(options, heightmap);
   const flowDirections = determineFlowDirections(options, waterheight);
-  const terrainTypes = decideTerrainTypes(options, sealevel, heightmap, waterheight);
+  const terrainTypes = decideTerrainTypes(options, sealevel, heightmap, waterheight, cellNeighbors);
 
   const output: IWorldgenWorkerOutput = {
     options,
