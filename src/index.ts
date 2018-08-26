@@ -1,3 +1,7 @@
 import createApp from './interface';
+import createSimulation from './simulation';
 
-createApp();
+
+createSimulation()
+  .then((simulation) => createApp(simulation))
+
