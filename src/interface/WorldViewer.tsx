@@ -23,6 +23,17 @@ const directionAngles = {
   [EDirection.UP]: 0,
 }
 
+export interface IViewOptions {
+  showFlowArrows: boolean;
+}
+
+interface IViewState {
+  app: PIXI.Application;
+  terrainLayer: PIXI.Container;
+  textLayer: PIXI.Container;
+  arrowLayer: PIXI.Container;
+}
+
 function makeArrowTexture(width: number, height: number): PIXI.Texture {
   const g = new PIXI.Graphics();
   g.lineColor = 0x000000;
@@ -45,13 +56,16 @@ function makeTerrainTexture(width: number, height: number, color: number): PIXI.
   return g.generateCanvasTexture();
 }
 
-function createWorldViewer(
+function createWorldViewer({
+  world, textures, element,
+}: {
   world: World,
+  element: HTMLElement,
   textures: {
     terrainTextures: TextureMap
     arrowTexture: PIXI.Texture,
   },
-): PIXI.Application {
+}): IViewState {
   const screenWidth = window.innerWidth;
   const screenHeight = window.innerHeight - 50;
   const app = new PIXI.Application({
@@ -65,8 +79,13 @@ function createWorldViewer(
     screenWidth,
     screenHeight,
     worldWidth: world.size.width * CELL_WIDTH,
-    worldHeight: world.size.height * CELL_HEIGHT
+    worldHeight: world.size.height * CELL_HEIGHT,
+    divWheel: element
   });
+  window.addEventListener('resize', () => {
+    app.renderer.resize(window.innerWidth, window.innerHeight - 50);
+    (viewport.resize as any)(window.innerWidth, window.innerHeight - 50);
+  }, true);
   app.stage.addChild(viewport);
   viewport
     .drag()
@@ -149,14 +168,20 @@ function createWorldViewer(
   // viewport.zoomPercent(0.25);
   cullOffscreenCells();
 
-  return app;
+  return {
+    app,
+    terrainLayer,
+    textLayer,
+    arrowLayer,
+  };
 }
 
 
 export default class WorldViewer extends React.Component<{
   world: World,
+  viewOptions: IViewOptions;
 }> {
-  app: PIXI.Application;
+  viewState: IViewState;
   root: React.RefObject<HTMLDivElement>;
   textures: TextureMap;
   arrowTexture: PIXI.Texture;
@@ -172,15 +197,28 @@ export default class WorldViewer extends React.Component<{
   }
 
   componentDidMount() {
-    this.app = createWorldViewer(this.props.world, {
-      terrainTextures: this.textures,
-      arrowTexture: this.arrowTexture,
-    })
-    this.root.current.appendChild(this.app.view);
+    this.viewState = createWorldViewer({
+      world: this.props.world,
+      element: this.root.current,
+      textures: {
+        terrainTextures: this.textures,
+        arrowTexture: this.arrowTexture,
+      },
+    });
+    this.root.current.appendChild(this.viewState.app.view);
+    this.handleViewChanges(this.props);
+  }
+
+  componentWillReceiveProps(nextProps) {
+    this.handleViewChanges(nextProps);
+  }
+
+  handleViewChanges(props) {
+    this.viewState.arrowLayer.visible = props.viewOptions.showFlowArrows;
   }
 
   componentWillUnmount() {
-    this.app.destroy();
+    this.viewState.app.destroy();
   }
 
   render() {

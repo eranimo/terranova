@@ -12,3 +12,8 @@ body {
   background-color: rgb(39, 52, 61);
   color: #F5F8FA;
 }
+
+
+.tn-popover {
+  padding: 1rem;
+}

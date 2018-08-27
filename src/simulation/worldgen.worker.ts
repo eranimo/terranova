@@ -150,7 +150,7 @@ function removeDepressions(options: IWorldgenOptions, heightmap: ndarray) {
       }
     }
   }
-  console.log('lakeCount', lakeCount);
+  // console.log('lakeCount', lakeCount);
 
   return { waterheight, cellNeighbors };
 }
@@ -234,6 +234,9 @@ function decideTerrainTypes(
     }
   }
 
+  const isLake = ndarray(new Int16Array(width * height), [width, height]);
+  fill(isLake, (x, y) => waterheight.get(x, y) > heightmap.get(x, y));
+
   const isRiver = ndarray(new Int16Array(width * height), [width, height]);
   fill(isRiver, () => 0);
 
@@ -244,13 +247,13 @@ function decideTerrainTypes(
   const coastalCells = [];
   for (let x = 0; x < width; x++) {
     for (let y = 0; y < height; y++) {
-      const isCoastal = isOcean.get(x, y) === 0 && cellNeighbors[x][y].some(([nx, ny]) => isOcean.get(nx, ny) === 1);
-      if (isCoastal) {
+      const isCoastalOcean = isOcean.get(x, y) === 0 && cellNeighbors[x][y].some(([nx, ny]) => isOcean.get(nx, ny) === 1);
+      if (isCoastalOcean) {
         coastalCells.push([x, y]);
       }
     }
   }
-  console.log('coastalCells', coastalCells);
+  // console.log('coastalCells', coastalCells);
 
   // determine upstream cell count
   function findUpstreamCount(x, y) {
@@ -272,15 +275,13 @@ function decideTerrainTypes(
 
   for (let x = 0; x < width; x++) {
     for (let y = 0; y < height; y++) {
-      if (upstreamCells.get(x, y) > 10) {
+      if (upstreamCells.get(x, y) > 50) {
         isRiver.set(x, y, 1);
-      } else if (upstreamCells.get(x, y) > 8) {
+      } else if (upstreamCells.get(x, y) > 18) {
         isRiver.set(x, y, 2);
       }
     }
   }
-  console.log(ndarrayStats(upstreamCells));
-
 
   const terrainTypes = ndarray(new Int16Array(width * height), [width, height]);
   let oceanCellCount = 0;
@@ -289,7 +290,7 @@ function decideTerrainTypes(
       oceanCellCount++;
       return ETerrainType.OCEAN;
     }
-    if (waterheight.get(x, y) > heightmap.get(x, y)) {
+    if (isLake.get(x, y) === 1) {
       return ETerrainType.LAKE;
     }
     if (isRiver.get(x, y) === 1) {
@@ -300,7 +301,7 @@ function decideTerrainTypes(
     }
     return ETerrainType.LAND;
   });
-  console.log('Ocean percent', oceanCellCount / (width * height));
+  // console.log('Ocean percent', oceanCellCount / (width * height));
   return terrainTypes;
 }
 
