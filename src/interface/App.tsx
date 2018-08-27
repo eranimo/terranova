@@ -23,23 +23,24 @@ export default class App extends React.Component<{
 }> {
   state = {
     viewOptions: {
-      showFlowArrows: false
+      showFlowArrows: false,
+      showDrainageBasinLabels: true,
     },
     isGenerating: false,
   }
 
-  onChangeFlowArrows = (event) => {
+  onChangeField = (fieldName: keyof IViewOptions) => (event) => {
     this.setState({
       viewOptions: {
         ...this.state.viewOptions,
-        showFlowArrows: !this.state.viewOptions.showFlowArrows,
+        [fieldName]: !this.state.viewOptions[fieldName],
       }
     })
   }
 
   async onClickRegen() {
     this.setState({ isGenerating: true });
-    await this.props.simulation.init();
+    await this.props.simulation.generate();
     this.setState({ isGenerating: false });
   }
 
@@ -69,12 +70,24 @@ export default class App extends React.Component<{
                 icon={'settings'}
               />
               <div className='tn-popover'>
-                <Checkbox
-                  inline
-                  checked={this.state.viewOptions.showFlowArrows}
-                  onChange={this.onChangeFlowArrows}
-                  label='Show flow arrows'
-                />
+                <ul className="pt-list-unstyled">
+                  <li>
+                    <Checkbox
+                      inline
+                      checked={this.state.viewOptions.showFlowArrows}
+                      onChange={this.onChangeField('showFlowArrows')}
+                      label='Show flow arrows'
+                    />
+                  </li>
+                  <li>
+                    <Checkbox
+                      inline
+                      checked={this.state.viewOptions.showDrainageBasinLabels}
+                      onChange={this.onChangeField('showDrainageBasinLabels')}
+                      label='Show drainage basin overlays'
+                    />
+                  </li>
+                </ul>
               </div>
             </Popover>
           </NavbarGroup>

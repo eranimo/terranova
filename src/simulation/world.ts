@@ -2,6 +2,7 @@ import ndarray from 'ndarray';
 import { IWorldgenOptions, IWorldgenWorkerOutput } from './simulation';
 
 
+
 export enum ETerrainType {
   OCEAN,
   LAND,
@@ -24,6 +25,7 @@ export class Cell {
   height: number;
   terrainType: ETerrainType;
   flowDir: EDirection;
+  drainageBasin?: DrainageBasin;
 
   constructor({ x, y, terrainType, height, flowDir }: {
     x: number,
@@ -40,6 +42,21 @@ export class Cell {
   }
 }
 
+export class DrainageBasin {
+  id: number;
+  color: number;
+  cells: Cell[];
+
+  constructor(id: number, color, cells: Cell[]) {
+    this.id = id;
+    this.color = color;
+    this.cells = cells;
+    for (const cell of cells) {
+      cell.drainageBasin = this;
+    }
+  }
+}
+
 export default class World {
   grid: Cell[][];
   cells: Set<Cell>;
@@ -47,6 +64,7 @@ export default class World {
     width: number;
     height: number;
   };
+  drainageBasins: DrainageBasin[];
 
   constructor(params: IWorldgenWorkerOutput) {
     this.grid = [];
@@ -68,6 +86,12 @@ export default class World {
         this.grid[x][y] = cell;
       }
     }
+    this.drainageBasins = [];
+    for (const [id, { color, cells }] of Object.entries(params.drainageBasins)) {
+      this.drainageBasins.push(
+        new DrainageBasin(parseInt(id, 10), color, cells.map(([x, y]) => this.grid[x][y])
+      ));
+    };
   }
 
 }

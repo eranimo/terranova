@@ -16,6 +16,12 @@ export interface IWorldgenWorkerOutput {
   heightmap: ndarray.Data<number>,
   flowDirections: ndarray.Data<number>,
   terrainTypes: ndarray.Data<number>,
+  drainageBasins: {
+    [id: number]: {
+      color: number,
+      cells: [number, number][],
+    }
+  },
 }
 
 export class Simulation {
@@ -29,7 +35,7 @@ export class Simulation {
     this.world = null;
   }
 
-  async init() {
+  async generate() {
     // make a new World
     return new Promise(resolve => {
       const worker = new Worker('./worldgen.worker.ts');
@@ -52,6 +58,6 @@ export async function createSimulation(): Promise<Simulation> {
       height: 200,
     },
   });
-  await sim.init();
+  await sim.generate();
   return sim;
 }

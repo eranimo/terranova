@@ -92,7 +92,7 @@ function generateHeightmap(options: IWorldgenOptions) {
 }
 
 function removeDepressions(options: IWorldgenOptions, heightmap: ndarray) {
-  const { seed, size: { width, height } } = options;
+  const { size: { width, height } } = options;
 
   // copy heightmap into waterheight
   const waterheight = ndarray(new Uint8ClampedArray(width * height), [width, height]);
@@ -156,7 +156,7 @@ function removeDepressions(options: IWorldgenOptions, heightmap: ndarray) {
 }
 
 function determineFlowDirections(options: IWorldgenOptions, waterheight: ndarray<number>) {
-  const { seed, size: { width, height } } = options;
+  const { size: { width, height } } = options;
 
   const flowDirections = ndarray(new Uint8ClampedArray(width * height), [width, height]);
   fill(flowDirections, () => EDirection.NONE);
@@ -208,7 +208,7 @@ function decideTerrainTypes(
   heightmap: ndarray,
   waterheight: ndarray,
   flowDirections: ndarray,
-  cellNeighbors: [number, number, number][][][]
+  cellNeighbors: [number, number, number][][][],
 ) {
   const { size: { width, height } } = options;
 
@@ -305,6 +305,93 @@ function decideTerrainTypes(
   return terrainTypes;
 }
 
+function decideDrainageBasins(
+  options: IWorldgenOptions,
+  cellNeighbors: [number, number, number][][][],
+  waterheight: ndarray,
+  terrainTypes: ndarray,
+) {
+  const { seed, size: { width, height } } = options;
+
+  const rng = new Alea(seed);
+  const open = new Collections.PriorityQueue<number[]>((a, b) => {
+    if (a[2] < b[2]) {
+      return 1;
+    } else if (a[2] > b[2]) {
+      return -1;
+    }
+    return 0;
+  });
+  const pit = new Collections.Queue();
+  const labels = [];
+
+  let currentLabel = 1;
+
+  for (let x = 0; x < width; x++) {
+    labels[x] = [];
+    for (let y = 0; y < height; y++) {
+      labels[x][y] = undefined; // candidate
+      const isEdge = getNeighborsLabelled(x, y)
+        .some(([nx, ny]) => !isValidCell(nx, ny, width, height));
+      if (isEdge) {
+        open.add([x, y, waterheight.get(x, y)]);
+        labels[x][y] = null; // queued
+      }
+    }
+  }
+
+  while(!open.isEmpty() || !pit.isEmpty()) {
+    let cell;
+    if (!pit.isEmpty()) {
+      cell = pit.dequeue();
+    } else {
+      cell = open.dequeue();
+    }
+    const [cx, cy, z] = cell;
+    if (labels[cx][cy] === null) {
+      labels[cx][cy] = currentLabel;
+      currentLabel++;
+    }
+
+    for (const [nx, ny] of cellNeighbors[cx][cy]) {
+      if (labels[nx][ny] !== undefined) continue;
+      labels[nx][ny] = labels[cx][cy];
+      if (waterheight.get(nx, ny) <= z) {
+        pit.add([nx, ny, z]);
+      } else {
+        open.add([nx, ny, waterheight.get(nx, ny)]);
+      }
+    }
+  }
+
+  const drainageBasins: {
+    [id: number]: {
+      color: number,
+      cells: [number, number][],
+    }
+  } = {};
+  for (let x = 0; x < width; x++) {
+    for (let y = 0; y < height; y++) {
+      if (terrainTypes.get(x, y) === ETerrainType.OCEAN) continue;
+      const id: number = labels[x][y];
+      if (!(id in drainageBasins)) {
+        const red: number = Math.round(rng() * 255);
+        const green: number = Math.round(rng() * 255);
+        const blue: number = Math.round(rng() * 255);
+        drainageBasins[id] = {
+          color: (red << 16) + (green << 8) + blue,
+          cells: [],
+        };
+      }
+      drainageBasins[id].cells.push([x, y]);
+    }
+  }
+
+  console.log('labels', labels);
+  console.log('drainageBasins', drainageBasins);
+  return drainageBasins;
+}
+
 onmessage = function (event: MessageEvent) {
   const options: IWorldgenOptions = event.data;
   const sealevel = 102;
@@ -313,12 +400,15 @@ onmessage = function (event: MessageEvent) {
   const flowDirections = determineFlowDirections(options, waterheight);
   const terrainTypes = decideTerrainTypes(options, sealevel, heightmap, waterheight, flowDirections, cellNeighbors);
 
+  const drainageBasins = decideDrainageBasins(options, cellNeighbors, waterheight, terrainTypes);
+
   const output: IWorldgenWorkerOutput = {
     options,
     sealevel,
     heightmap: heightmap.data,
     flowDirections: flowDirections.data,
     terrainTypes: terrainTypes.data,
+    drainageBasins,
   };
   (postMessage as any)(output);
 }

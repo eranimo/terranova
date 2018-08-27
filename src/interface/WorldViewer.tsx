@@ -25,6 +25,7 @@ const directionAngles = {
 
 export interface IViewOptions {
   showFlowArrows: boolean;
+  showDrainageBasinLabels: boolean;
 }
 
 interface IViewState {
@@ -32,6 +33,7 @@ interface IViewState {
   terrainLayer: PIXI.Container;
   textLayer: PIXI.Container;
   arrowLayer: PIXI.Container;
+  overlayLayer: PIXI.Container;
 }
 
 function makeArrowTexture(width: number, height: number): PIXI.Texture {
@@ -47,6 +49,7 @@ function makeArrowTexture(width: number, height: number): PIXI.Texture {
 }
 
 type TextureMap = { [name: string]: PIXI.Texture };
+let drainageTextureCache = {};
 
 function makeTerrainTexture(width: number, height: number, color: number): PIXI.Texture {
   const g = new PIXI.Graphics();
@@ -90,16 +93,20 @@ function createWorldViewer({
   viewport
     .drag()
     .wheel();
+  viewport.fitWorld();
 
   const terrainLayer = new PIXI.Container();
   const textLayer = new PIXI.Container();
   const arrowLayer = new PIXI.Container();
+  const overlayLayer = new PIXI.Container();
   viewport.addChild(terrainLayer);
   viewport.addChild(textLayer);
+  viewport.addChild(overlayLayer);
   viewport.addChild(arrowLayer);
 
   const cellSpriteMap = new Map();
   for (const cell of world.cells) {
+    // terrain
     const terrainTexture = textures.terrainTextures[cell.terrainType];
     const terrainSprite = new PIXI.Sprite(terrainTexture);
     terrainSprite.width = CELL_WIDTH;
@@ -111,6 +118,7 @@ function createWorldViewer({
     );
     terrainLayer.addChild(terrainSprite);
 
+    // arrows
     const arrowTexture = cell.terrainType === ETerrainType.OCEAN || cell.flowDir === EDirection.NONE
       ? PIXI.Texture.EMPTY
       : textures.arrowTexture;
@@ -127,6 +135,33 @@ function createWorldViewer({
     )
     arrowSprite.rotation = directionAngles[cell.flowDir] * (Math.PI / 180);
     arrowLayer.addChild(arrowSprite);
+
+    // drainage basin overlay
+    let overlayT;
+    if (cell.drainageBasin) {
+      if (cell.drainageBasin.id in drainageTextureCache) {
+        overlayT = drainageTextureCache[cell.drainageBasin.id];
+      } else {
+        const overlayG = new PIXI.Graphics();
+        overlayG.beginFill(cell.drainageBasin.color);
+        overlayG.drawRect(0, 0, CELL_WIDTH, CELL_HEIGHT);
+        overlayG.endFill();
+        overlayT = overlayG.generateCanvasTexture();
+        drainageTextureCache[cell.drainageBasin.id] = overlayT;
+      }
+    } else {
+      overlayT = PIXI.Texture.EMPTY;
+    }
+    const overlay = new PIXI.Sprite(overlayT);
+    overlay.width = CELL_WIDTH;
+    overlay.height = CELL_HEIGHT;
+    overlay.interactive = false;
+    overlay.position.set(
+      cell.x * CELL_WIDTH,
+      cell.y * CELL_HEIGHT,
+    );
+    overlayLayer.addChild(overlay);
+
 
     cellSpriteMap.set(cell, [terrainSprite, arrowSprite]);
 
@@ -173,6 +208,7 @@ function createWorldViewer({
     terrainLayer,
     textLayer,
     arrowLayer,
+    overlayLayer,
   };
 }
 
@@ -215,6 +251,7 @@ export default class WorldViewer extends React.Component<{
 
   handleViewChanges(props) {
     this.viewState.arrowLayer.visible = props.viewOptions.showFlowArrows;
+    this.viewState.overlayLayer.visible = props.viewOptions.showDrainageBasinLabels;
   }
 
   componentWillUnmount() {
