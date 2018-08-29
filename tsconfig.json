@@ -1,9 +1,10 @@
 {
   "compilerOptions": {
+    "rootDir": "src",
     "module": "esnext",
     "target": "es2015",
     "moduleResolution": "node",
-    "outDir": "./dist/",
+    "outDir": "dist",
     "lib": ["esnext", "es2017", "dom"],
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,

@@ -6,6 +6,7 @@ import ops from 'ndarray-ops';
 import { IWorldgenOptions, IWorldgenWorkerOutput } from './simulation';
 import { ETerrainType, EDirection } from './world';
 import * as Collections from 'typescript-collections';
+import * as Stats from 'simple-statistics';
 
 
 /**
@@ -273,11 +274,17 @@ function decideTerrainTypes(
     findUpstreamCount(x, y);
   }
 
+  const data = Array.from(upstreamCells.data).filter(i => i > 0);
+  const riverThreshold = Stats.quantile(data, 0.95);
+  const streamThreshold = Stats.quantile(data, 0.92);
+  console.log('riverThreshold', riverThreshold);
+  console.log('streamThreshold', streamThreshold);
+
   for (let x = 0; x < width; x++) {
     for (let y = 0; y < height; y++) {
-      if (upstreamCells.get(x, y) > 50) {
+      if (upstreamCells.get(x, y) > riverThreshold) {
         isRiver.set(x, y, 1);
-      } else if (upstreamCells.get(x, y) > 18) {
+      } else if (upstreamCells.get(x, y) > streamThreshold) {
         isRiver.set(x, y, 2);
       }
     }
@@ -387,8 +394,6 @@ function decideDrainageBasins(
     }
   }
 
-  console.log('labels', labels);
-  console.log('drainageBasins', drainageBasins);
   return drainageBasins;
 }
 
