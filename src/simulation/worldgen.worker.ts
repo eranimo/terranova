@@ -396,6 +396,15 @@ function decideDrainageBasins(
   return drainageBasins;
 }
 
+/**
+ * Decide temperature of each cell
+ *
+ * Considerations:
+ *    - warmer near the equator
+ *    - colder near the poles
+ *    - colder at higher elevations
+ *    - warmer near shallow waters
+ */
 function decideTemperature(
   options: IWorldgenOptions,
   sealevel: number,
@@ -403,7 +412,6 @@ function decideTemperature(
 ): ndarray {
   const { size: { width, height } } = options;
   const AVG_TEMP = 14; // average global temperature in celcius
-  const BASE_TEMP = -19.5; // lowest global temperature
   const VOLITILITY = 0; // higher number means greater variation
   const MIN_TEMP = -50; // Math.max(AVG_TEMP - VOLITILITY, BASE_TEMP);
 
