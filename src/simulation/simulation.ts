@@ -22,6 +22,7 @@ export interface IWorldgenWorkerOutput {
       cells: [number, number][],
     }
   },
+  temperatures: ndarray.Data<number>;
 }
 
 export class Simulation {

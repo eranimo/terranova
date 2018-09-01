@@ -25,6 +25,7 @@ export default class App extends React.Component<{
     viewOptions: {
       showFlowArrows: false,
       showDrainageBasinLabels: false,
+      showTemperatures: false,
     },
     isGenerating: false,
   }
@@ -85,6 +86,14 @@ export default class App extends React.Component<{
                       checked={this.state.viewOptions.showDrainageBasinLabels}
                       onChange={this.onChangeField('showDrainageBasinLabels')}
                       label='Show drainage basin overlays'
+                    />
+                  </li>
+                  <li>
+                    <Checkbox
+                      inline
+                      checked={this.state.viewOptions.showTemperatures}
+                      onChange={this.onChangeField('showTemperatures')}
+                      label='Show temperatures'
                     />
                   </li>
                 </ul>

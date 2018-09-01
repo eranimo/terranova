@@ -23,6 +23,7 @@
     "@types/react": "^16.4.11",
     "@types/react-dom": "^16.0.7",
     "alea": "^0.0.9",
+    "colormap": "^2.3.0",
     "intersects": "^2.2.0",
     "lodash": "^4.17.10",
     "ndarray": "^1.0.18",

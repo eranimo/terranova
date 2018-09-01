@@ -3,6 +3,8 @@ import * as PIXI from 'pixi.js';
 import World, { ETerrainType, EDirection } from '../simulation/world';
 import Viewport from 'pixi-viewport';
 import boxboxIntersection from 'intersects/box-box';
+import colormap from 'colormap';
+
 
 const CELL_WIDTH = 10;
 const CELL_HEIGHT = 10;
@@ -25,6 +27,7 @@ const directionAngles = {
 export interface IViewOptions {
   showFlowArrows: boolean;
   showDrainageBasinLabels: boolean;
+  showTemperatures: boolean;
 }
 
 interface IViewState {
@@ -33,6 +36,11 @@ interface IViewState {
   textLayer: PIXI.Container;
   arrowLayer: PIXI.Container;
   overlayLayer: PIXI.Container;
+  temperatureOverlay: PIXI.Sprite;
+}
+
+function rgbToNumber(r: number, g: number, b: number): number {
+  return 0x1000000 + b + 0x100 * g + 0x10000 * r;
 }
 
 function makeArrowTexture(width: number, height: number): PIXI.Texture {
@@ -102,6 +110,33 @@ function createWorldViewer({
   viewport.addChild(textLayer);
   viewport.addChild(overlayLayer);
   viewport.addChild(arrowLayer);
+
+  // temperature overlays
+  const temperatureG = new PIXI.Graphics();
+  const temperatureColors: [number, number, number, number][] = colormap({ nshades: 101, format: 'rba' });
+  const temps = Array.from(world.cells).map(cell => cell.temperature);
+  const minTemp = Math.min(...temps);
+  const maxTemp = Math.max(...temps);
+  for (const cell of world.cells) {
+    const index = Math.round(((cell.temperature - minTemp) / (maxTemp - minTemp)) * 100);
+    const color = temperatureColors[index];
+    if (!color) {
+      throw new Error(`No color for index ${index}`);
+    }
+    const colorNum = rgbToNumber(color[0], color[1], color[2]);
+    temperatureG.beginFill(colorNum);
+    temperatureG.drawRect(
+      cell.x * CELL_WIDTH,
+      cell.y * CELL_HEIGHT,
+      CELL_WIDTH,
+      CELL_HEIGHT
+    );
+    temperatureG.endFill();
+  }
+
+  const temperatureOverlay = new PIXI.Sprite(temperatureG.generateCanvasTexture());
+  // temperatureOverlay.alpha = 0.5;
+  viewport.addChild(temperatureOverlay);
 
   const cellSpriteMap = new Map();
   for (const cell of world.cells) {
@@ -208,14 +243,16 @@ function createWorldViewer({
     textLayer,
     arrowLayer,
     overlayLayer,
+    temperatureOverlay,
   };
 }
 
 
-export default class WorldViewer extends React.Component<{
+interface IWorldViewerProps {
   world: World,
   viewOptions: IViewOptions;
-}> {
+}
+export default class WorldViewer extends React.Component<IWorldViewerProps> {
   viewState: IViewState;
   root: React.RefObject<HTMLDivElement>;
   textures: TextureMap;
@@ -244,13 +281,14 @@ export default class WorldViewer extends React.Component<{
     this.handleViewChanges(this.props);
   }
 
-  componentWillReceiveProps(nextProps) {
+  componentWillReceiveProps(nextProps: IWorldViewerProps) {
     this.handleViewChanges(nextProps);
   }
 
-  handleViewChanges(props) {
+  handleViewChanges(props: IWorldViewerProps) {
     this.viewState.arrowLayer.visible = props.viewOptions.showFlowArrows;
     this.viewState.overlayLayer.visible = props.viewOptions.showDrainageBasinLabels;
+    this.viewState.temperatureOverlay.visible = props.viewOptions.showTemperatures;
   }
 
   componentWillUnmount() {

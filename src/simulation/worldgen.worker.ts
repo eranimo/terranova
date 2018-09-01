@@ -211,8 +211,7 @@ function decideTerrainTypes(
   flowDirections: ndarray,
   cellNeighbors: [number, number, number][][][],
 ) {
-  const { seed, size: { width, height } } = options;
-  const rng = new Alea(seed);
+  const { size: { width, height } } = options;
 
   // calculate ocean cells by flood fill from the top-left of the map
   // cells which are below sea level and touch the edge of the map are ocean cells
@@ -397,6 +396,49 @@ function decideDrainageBasins(
   return drainageBasins;
 }
 
+function decideTemperature(
+  options: IWorldgenOptions,
+  sealevel: number,
+  waterheight: ndarray
+): ndarray {
+  const { size: { width, height } } = options;
+  const AVG_TEMP = 14; // average global temperature in celcius
+  const BASE_TEMP = -19.5; // lowest global temperature
+  const VOLITILITY = 0; // higher number means greater variation
+  const MIN_TEMP = -50; // Math.max(AVG_TEMP - VOLITILITY, BASE_TEMP);
+
+  const latitudeRatio = ndarray(new Float32Array(width * height), [width, height]);
+  fill(latitudeRatio, (x, y) => {
+    let ratio = y / height;
+    if (ratio < 0.5) {
+      ratio /= 0.5;
+    } else {
+      ratio = (1 - ratio) / 0.5;
+    }
+    return ratio;
+  });
+
+  const temperature = ndarray(new Int16Array(width * height), [width, height]);
+  const maxAltitude = 255 - sealevel;
+  fill(temperature, (x, y) => {
+    const ratio = latitudeRatio.get(x, y);
+    // radiation is a function of latitude only
+    const radiation = (Math.abs(MIN_TEMP) + (AVG_TEMP + VOLITILITY)) * ratio + MIN_TEMP;
+    // includes heights
+    let part2 = 0;
+    const altitude = waterheight.get(x, y) - sealevel;
+    if (altitude < 0) { // ocean
+      // shallow seas are warmer than deep oceans
+      part2 = (1 - (Math.abs(altitude) / sealevel)) * 10;
+    } else {
+      part2 = 10 + (altitude / maxAltitude) * -15;
+    }
+    return radiation + part2;
+  });
+
+  return temperature;
+}
+
 onmessage = function (event: MessageEvent) {
   const options: IWorldgenOptions = event.data;
   const sealevel = 102;
@@ -405,6 +447,8 @@ onmessage = function (event: MessageEvent) {
   const flowDirections = determineFlowDirections(options, waterheight);
   const terrainTypes = decideTerrainTypes(options, sealevel, heightmap, waterheight, flowDirections, cellNeighbors);
   const drainageBasins = decideDrainageBasins(options, cellNeighbors, waterheight, terrainTypes);
+  const temperatures = decideTemperature(options, sealevel, waterheight);
+  console.log(ndarrayStats(temperatures));
 
   const output: IWorldgenWorkerOutput = {
     options,
@@ -413,6 +457,7 @@ onmessage = function (event: MessageEvent) {
     flowDirections: flowDirections.data,
     terrainTypes: terrainTypes.data,
     drainageBasins,
+    temperatures: temperatures.data,
   };
   (postMessage as any)(output);
 }
