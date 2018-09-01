@@ -7,7 +7,6 @@ export enum ETerrainType {
   OCEAN,
   LAND,
   RIVER,
-  STREAM,
   LAKE,
 }
 

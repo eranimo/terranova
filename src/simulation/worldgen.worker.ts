@@ -211,7 +211,8 @@ function decideTerrainTypes(
   flowDirections: ndarray,
   cellNeighbors: [number, number, number][][][],
 ) {
-  const { size: { width, height } } = options;
+  const { seed, size: { width, height } } = options;
+  const rng = new Alea(seed);
 
   // calculate ocean cells by flood fill from the top-left of the map
   // cells which are below sea level and touch the edge of the map are ocean cells
@@ -246,11 +247,15 @@ function decideTerrainTypes(
 
   // determine coastal cells by finding all land cells with at least one ocean neighbor
   const coastalCells = [];
+  const isCoastalCell = ndarray(new Int16Array(width * height), [width, height]);
   for (let x = 0; x < width; x++) {
     for (let y = 0; y < height; y++) {
       const isCoastalOcean = isOcean.get(x, y) === 0 && cellNeighbors[x][y].some(([nx, ny]) => isOcean.get(nx, ny) === 1);
       if (isCoastalOcean) {
         coastalCells.push([x, y]);
+        isCoastalCell.set(x, y, 1);
+      } else {
+        isCoastalCell.set(x, y, 0);
       }
     }
   }
@@ -275,17 +280,15 @@ function decideTerrainTypes(
   }
 
   const data = Array.from(upstreamCells.data).filter(i => i > 0);
-  const riverThreshold = Stats.quantile(data, 0.95);
-  const streamThreshold = Stats.quantile(data, 0.92);
+  // const upstreamCellsMax = ops.sup(upstreamCells);
+  const riverThreshold = Stats.quantile(data, 0.90);
   console.log('riverThreshold', riverThreshold);
-  console.log('streamThreshold', streamThreshold);
 
   for (let x = 0; x < width; x++) {
     for (let y = 0; y < height; y++) {
-      if (upstreamCells.get(x, y) > riverThreshold) {
+      const upstreamCount = upstreamCells.get(x, y);
+      if (upstreamCount > riverThreshold) {
         isRiver.set(x, y, 1);
-      } else if (upstreamCells.get(x, y) > streamThreshold) {
-        isRiver.set(x, y, 2);
       }
     }
   }
@@ -303,12 +306,9 @@ function decideTerrainTypes(
     if (isRiver.get(x, y) === 1) {
       return ETerrainType.RIVER;
     }
-    if (isRiver.get(x, y) === 2) {
-      return ETerrainType.STREAM;
-    }
     return ETerrainType.LAND;
   });
-  // console.log('Ocean percent', oceanCellCount / (width * height));
+  console.log('Ocean percent', oceanCellCount / (width * height));
   return terrainTypes;
 }
 
@@ -404,7 +404,6 @@ onmessage = function (event: MessageEvent) {
   const { waterheight, cellNeighbors } = removeDepressions(options, heightmap);
   const flowDirections = determineFlowDirections(options, waterheight);
   const terrainTypes = decideTerrainTypes(options, sealevel, heightmap, waterheight, flowDirections, cellNeighbors);
-
   const drainageBasins = decideDrainageBasins(options, cellNeighbors, waterheight, terrainTypes);
 
   const output: IWorldgenWorkerOutput = {

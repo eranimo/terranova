@@ -24,7 +24,7 @@ export default class App extends React.Component<{
   state = {
     viewOptions: {
       showFlowArrows: false,
-      showDrainageBasinLabels: true,
+      showDrainageBasinLabels: false,
     },
     isGenerating: false,
   }
