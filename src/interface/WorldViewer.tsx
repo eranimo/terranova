@@ -132,7 +132,8 @@ function drawCoastlineBorder(
 ): PIXI.Sprite {
   const g = new PIXI.Graphics(true);
   g.lineColor = 0x000000;
-  g.lineWidth = 2;
+  g.lineWidth = 1;
+  g.lineAlignment = 0.5;
   g.drawRect(0, 0, 1, 1);
   for (const cell of world.cells) {
     const cx = cell.x * CELL_WIDTH;
@@ -251,7 +252,7 @@ function createWorldViewer({
   }
 
   const coastlineBorder = drawCoastlineBorder(world, (a: Cell, b: Cell) => (
-    a.isLand && !b.isLand || !a.isLand && b.isLand
+    a.isLand && !b.isLand
   ));
   viewport.addChild(coastlineBorder);
 
