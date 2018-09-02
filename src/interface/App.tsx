@@ -26,6 +26,7 @@ export default class App extends React.Component<{
       showFlowArrows: false,
       showDrainageBasinLabels: false,
       showTemperatures: false,
+      showUpstreamCount: false,
     },
     isGenerating: false,
   }
@@ -94,6 +95,14 @@ export default class App extends React.Component<{
                       checked={this.state.viewOptions.showTemperatures}
                       onChange={this.onChangeField('showTemperatures')}
                       label='Show temperatures'
+                    />
+                  </li>
+                  <li>
+                    <Checkbox
+                      inline
+                      checked={this.state.viewOptions.showUpstreamCount}
+                      onChange={this.onChangeField('showUpstreamCount')}
+                      label='Show upstream count overlay'
                     />
                   </li>
                 </ul>

@@ -1,6 +1,6 @@
 import React, { ReactElement } from 'react';
 import * as PIXI from 'pixi.js';
-import World, { ETerrainType, EDirection } from '../simulation/world';
+import World, { Cell, ETerrainType, EDirection } from '../simulation/world';
 import Viewport from 'pixi-viewport';
 import boxboxIntersection from 'intersects/box-box';
 import colormap from 'colormap';
@@ -28,6 +28,7 @@ export interface IViewOptions {
   showFlowArrows: boolean;
   showDrainageBasinLabels: boolean;
   showTemperatures: boolean;
+  showUpstreamCount: boolean;
 }
 
 interface IViewState {
@@ -37,6 +38,7 @@ interface IViewState {
   arrowLayer: PIXI.Container;
   overlayLayer: PIXI.Container;
   temperatureOverlay: PIXI.Sprite;
+  upstreamCountOverlay: PIXI.Sprite;
 }
 
 function rgbToNumber(r: number, g: number, b: number): number {
@@ -64,6 +66,36 @@ function makeTerrainTexture(width: number, height: number, color: number): PIXI.
   g.drawRect(0, 0, width, height);
   g.endFill();
   return g.generateCanvasTexture();
+}
+
+function makeOverlay(world: World, key: string, mapStyle: string = 'jet'): PIXI.Sprite {
+  const g = new PIXI.Graphics();
+  const colors: [number, number, number, number][] = colormap({
+    nshades: 101,
+    format: 'rba',
+    colormap: mapStyle
+  });
+  const data = Array.from(world.cells).map(cell => cell[key]);
+  const min = Math.min(...data);
+  const max = Math.max(...data);
+  for (const cell of world.cells) {
+    const index = Math.round(((cell[key] - min) / (max - min)) * 100);
+    const color = colors[index];
+    if (!color) {
+      throw new Error(`No color for index ${index}`);
+    }
+    const colorNum = rgbToNumber(color[0], color[1], color[2]);
+    g.beginFill(colorNum);
+    g.drawRect(
+      cell.x * CELL_WIDTH,
+      cell.y * CELL_HEIGHT,
+      CELL_WIDTH,
+      CELL_HEIGHT
+    );
+    g.endFill();
+  }
+
+  return new PIXI.Sprite(g.generateCanvasTexture());
 }
 
 function createWorldViewer({
@@ -112,31 +144,12 @@ function createWorldViewer({
   viewport.addChild(arrowLayer);
 
   // temperature overlays
-  const temperatureG = new PIXI.Graphics();
-  const temperatureColors: [number, number, number, number][] = colormap({ nshades: 101, format: 'rba' });
-  const temps = Array.from(world.cells).map(cell => cell.temperature);
-  const minTemp = Math.min(...temps);
-  const maxTemp = Math.max(...temps);
-  for (const cell of world.cells) {
-    const index = Math.round(((cell.temperature - minTemp) / (maxTemp - minTemp)) * 100);
-    const color = temperatureColors[index];
-    if (!color) {
-      throw new Error(`No color for index ${index}`);
-    }
-    const colorNum = rgbToNumber(color[0], color[1], color[2]);
-    temperatureG.beginFill(colorNum);
-    temperatureG.drawRect(
-      cell.x * CELL_WIDTH,
-      cell.y * CELL_HEIGHT,
-      CELL_WIDTH,
-      CELL_HEIGHT
-    );
-    temperatureG.endFill();
-  }
-
-  const temperatureOverlay = new PIXI.Sprite(temperatureG.generateCanvasTexture());
-  // temperatureOverlay.alpha = 0.5;
+  const temperatureOverlay = makeOverlay(world, 'temperature');
   viewport.addChild(temperatureOverlay);
+
+  // upstream count overlay
+  const upstreamCountOverlay = makeOverlay(world, 'upstreamCount', 'velocity-blue');
+  viewport.addChild(upstreamCountOverlay);
 
   const cellSpriteMap = new Map();
   for (const cell of world.cells) {
@@ -244,6 +257,7 @@ function createWorldViewer({
     arrowLayer,
     overlayLayer,
     temperatureOverlay,
+    upstreamCountOverlay,
   };
 }
 
@@ -289,6 +303,7 @@ export default class WorldViewer extends React.Component<IWorldViewerProps> {
     this.viewState.arrowLayer.visible = props.viewOptions.showFlowArrows;
     this.viewState.overlayLayer.visible = props.viewOptions.showDrainageBasinLabels;
     this.viewState.temperatureOverlay.visible = props.viewOptions.showTemperatures;
+    this.viewState.upstreamCountOverlay.visible = props.viewOptions.showUpstreamCount;
   }
 
   componentWillUnmount() {

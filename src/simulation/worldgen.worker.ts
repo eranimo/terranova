@@ -308,7 +308,7 @@ function decideTerrainTypes(
     return ETerrainType.LAND;
   });
   console.log('Ocean percent', oceanCellCount / (width * height));
-  return terrainTypes;
+  return { terrainTypes, upstreamCells };
 }
 
 function decideDrainageBasins(
@@ -453,7 +453,7 @@ onmessage = function (event: MessageEvent) {
   const heightmap = generateHeightmap(options);
   const { waterheight, cellNeighbors } = removeDepressions(options, heightmap);
   const flowDirections = determineFlowDirections(options, waterheight);
-  const terrainTypes = decideTerrainTypes(options, sealevel, heightmap, waterheight, flowDirections, cellNeighbors);
+  const { terrainTypes, upstreamCells } = decideTerrainTypes(options, sealevel, heightmap, waterheight, flowDirections, cellNeighbors);
   const drainageBasins = decideDrainageBasins(options, cellNeighbors, waterheight, terrainTypes);
   const temperatures = decideTemperature(options, sealevel, waterheight);
   console.log(ndarrayStats(temperatures));
@@ -465,6 +465,7 @@ onmessage = function (event: MessageEvent) {
     flowDirections: flowDirections.data,
     terrainTypes: terrainTypes.data,
     drainageBasins,
+    upstreamCells: upstreamCells.data,
     temperatures: temperatures.data,
   };
   (postMessage as any)(output);

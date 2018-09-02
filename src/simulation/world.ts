@@ -26,14 +26,16 @@ export class Cell {
   flowDir: EDirection;
   drainageBasin?: DrainageBasin;
   temperature: number;
+  upstreamCount: number;
 
-  constructor({ x, y, terrainType, height, flowDir, temperature }: {
+  constructor({ x, y, terrainType, height, flowDir, temperature, upstreamCount }: {
     x: number,
     y: number,
     height: number,
     terrainType: ETerrainType,
     flowDir: EDirection,
     temperature: number,
+    upstreamCount: number,
   }) {
     this.x = x;
     this.y = y;
@@ -41,6 +43,7 @@ export class Cell {
     this.terrainType = terrainType;
     this.flowDir = flowDir;
     this.temperature = temperature;
+    this.upstreamCount = upstreamCount;
   }
 }
 
@@ -76,6 +79,7 @@ export default class World {
     const terrainTypes = ndarray(params.terrainTypes, [this.size.width, this.size.height]);
     const flowDirections = ndarray(params.flowDirections, [this.size.width, this.size.height]);
     const temperatures = ndarray(params.temperatures, [this.size.width, this.size.height]);
+    const upstreamCells = ndarray(params.upstreamCells, [this.size.width, this.size.height]);
     for (let x = 0; x < this.size.width; x++) {
       this.grid[x] = [];
       for (let y = 0; y < this.size.height; y++) {
@@ -85,6 +89,7 @@ export default class World {
           flowDir: flowDirections.get(x, y) as EDirection,
           terrainType: terrainTypes.get(x, y) as ETerrainType,
           temperature: temperatures.get(x, y),
+          upstreamCount: upstreamCells.get(x, y),
         });
         this.cells.add(cell);
         this.grid[x][y] = cell;
