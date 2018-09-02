@@ -19,6 +19,7 @@ export enum EDirection {
 }
 
 export class Cell {
+  world: World;
   x: number;
   y: number;
   height: number;
@@ -27,8 +28,9 @@ export class Cell {
   drainageBasin?: DrainageBasin;
   temperature: number;
   upstreamCount: number;
+  isLand: boolean;
 
-  constructor({ x, y, terrainType, height, flowDir, temperature, upstreamCount }: {
+  constructor(world: World, { x, y, terrainType, height, flowDir, temperature, upstreamCount }: {
     x: number,
     y: number,
     height: number,
@@ -37,10 +39,12 @@ export class Cell {
     temperature: number,
     upstreamCount: number,
   }) {
+    this.world = world;
     this.x = x;
     this.y = y;
     this.height = height;
     this.terrainType = terrainType;
+    this.isLand = terrainType !== ETerrainType.OCEAN;
     this.flowDir = flowDir;
     this.temperature = temperature;
     this.upstreamCount = upstreamCount;
@@ -69,12 +73,14 @@ export default class World {
     width: number;
     height: number;
   };
+  sealevel: number;
   drainageBasins: DrainageBasin[];
 
   constructor(params: IWorldgenWorkerOutput) {
     this.grid = [];
     this.cells = new Set();
     this.size = params.options.size;
+    this.sealevel = params.sealevel;
     const heightmap = ndarray(params.heightmap, [this.size.width, this.size.height]);
     const terrainTypes = ndarray(params.terrainTypes, [this.size.width, this.size.height]);
     const flowDirections = ndarray(params.flowDirections, [this.size.width, this.size.height]);
@@ -83,7 +89,7 @@ export default class World {
     for (let x = 0; x < this.size.width; x++) {
       this.grid[x] = [];
       for (let y = 0; y < this.size.height; y++) {
-        const cell: Cell = new Cell({
+        const cell: Cell = new Cell(this, {
           x, y,
           height: heightmap.get(x, y),
           flowDir: flowDirections.get(x, y) as EDirection,
@@ -101,6 +107,13 @@ export default class World {
         new DrainageBasin(parseInt(id, 10), color, cells.map(([x, y]) => this.grid[x][y])
       ));
     };
+  }
+
+  getCell(x: number, y: number): Cell | null {
+    if (x < 0 || y < 0 || x >= this.size.width || y >= this.size.height) {
+      return null;
+    }
+    return this.grid[x][y];
   }
 
 }

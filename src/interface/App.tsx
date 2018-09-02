@@ -27,6 +27,8 @@ export default class App extends React.Component<{
     viewOptions: {
       showFlowArrows: false,
       showDrainageBasinLabels: false,
+      drawCoastline: true,
+      drawGrid: false,
       overlay: 'none'
     },
     isGenerating: false,
@@ -89,6 +91,22 @@ export default class App extends React.Component<{
                       checked={this.state.viewOptions.showFlowArrows}
                       onChange={this.onChangeField('showFlowArrows')}
                       label='Show flow arrows'
+                    />
+                  </li>
+                  <li>
+                    <Checkbox
+                      inline
+                      checked={this.state.viewOptions.drawCoastline}
+                      onChange={this.onChangeField('drawCoastline')}
+                      label='Show coastline border'
+                    />
+                  </li>
+                  <li>
+                    <Checkbox
+                      inline
+                      checked={this.state.viewOptions.drawGrid}
+                      onChange={this.onChangeField('drawGrid')}
+                      label='Show grid'
                     />
                   </li>
                   <li>

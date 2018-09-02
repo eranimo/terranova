@@ -52,6 +52,8 @@ export interface IViewOptions {
   showFlowArrows: boolean;
   showDrainageBasinLabels: boolean;
   overlay: string;
+  drawCoastline: boolean;
+  drawGrid: boolean;
 }
 
 interface IViewState {
@@ -63,6 +65,8 @@ interface IViewState {
   overlays: {
     [name: string]: PIXI.Sprite;
   };
+  coastlineBorder: PIXI.Sprite;
+  gridLines: PIXI.Sprite;
 }
 
 function rgbToNumber(r: number, g: number, b: number): number {
@@ -122,6 +126,57 @@ function makeCellOverlay(world: World, overlay: ICellOverlay): PIXI.Sprite {
   return new PIXI.Sprite(g.generateCanvasTexture());
 }
 
+function drawCoastlineBorder(
+  world: World,
+  shouldDraw: (a: Cell, b: Cell) => boolean,
+): PIXI.Sprite {
+  const g = new PIXI.Graphics();
+  g.lineColor = 0x000000;
+  g.lineWidth = 1;
+  g.drawRect(0, 0, 1, 1);
+  for (const cell of world.cells) {
+    const cx = cell.x * CELL_WIDTH;
+    const cy = cell.y * CELL_HEIGHT;
+    const cellUp = world.getCell(cell.x, cell.y - 1);
+    const cellDown = world.getCell(cell.x, cell.y + 1);
+    const cellLeft = world.getCell(cell.x - 1, cell.y);
+    const cellRight = world.getCell(cell.x + 1, cell.y);
+
+    if (cellUp !== null && shouldDraw(cell, cellUp)) {
+      g.moveTo(cx, cy);
+      g.lineTo(cx + CELL_WIDTH, cy);
+    }
+    if (cellDown !== null && shouldDraw(cell, cellDown)) {
+      g.moveTo(cx, cy + CELL_HEIGHT);
+      g.lineTo(cx + CELL_WIDTH, cy + CELL_HEIGHT);
+    }
+    if (cellLeft !== null && shouldDraw(cell, cellLeft)) {
+      g.moveTo(cx, cy);
+      g.lineTo(cx, cy + CELL_HEIGHT);
+    }
+    if (cellRight !== null && shouldDraw(cell, cellRight)) {
+      g.moveTo(cx + CELL_WIDTH, cy);
+      g.lineTo(cx + CELL_WIDTH, cy + CELL_HEIGHT);
+    }
+  }
+  return new PIXI.Sprite(g.generateCanvasTexture());
+}
+
+function drawGridLines(world: World): PIXI.Sprite {
+  const g = new PIXI.Graphics();
+  g.lineColor = 0x000000;
+  g.lineWidth = 1;
+  for (let x = 0; x < world.size.width * CELL_WIDTH; x += CELL_WIDTH) {
+    g.moveTo(x, 0);
+    g.lineTo(x, world.size.height * CELL_HEIGHT);
+    for (let y = 0; y < world.size.height * CELL_HEIGHT; y += CELL_HEIGHT) {
+      g.moveTo(0, y);
+      g.lineTo(world.size.width * CELL_WIDTH, y);
+    }
+  }
+  return new PIXI.Sprite(g.generateCanvasTexture());
+}
+
 function createWorldViewer({
   world, textures, element,
 }: {
@@ -170,20 +225,22 @@ function createWorldViewer({
   viewport.addChild(arrowLayer);
   const overlays: { [name: string]: PIXI.Sprite } = {};
 
-  // temperature overlays
-  // const temperatureOverlay = makeCellOverlay(world, 'temperature');
-  // viewport.addChild(temperatureOverlay);
-
-  // // upstream count overlay
-  // const upstreamCountOverlay = makeCellOverlay(world, 'upstreamCount', 'velocity-blue');
-  // viewport.addChild(upstreamCountOverlay);
-
+  // draw cell overlays
   for (const [name, overlay] of Object.entries(cellOverlays)) {
     const overlaySprite = makeCellOverlay(world, overlay);
     overlaySprite.name = name;
     overlays[name] = overlaySprite;
     overlayLayer.addChild(overlaySprite);
   }
+
+  const coastlineBorder = drawCoastlineBorder(world, (a: Cell, b: Cell) => (
+    a.isLand && !b.isLand || !a.isLand && b.isLand
+  ));
+  viewport.addChild(coastlineBorder);
+
+  const gridLines = drawGridLines(world);
+  gridLines.alpha = 0.5;
+  viewport.addChild(gridLines);
 
   const cellSpriteMap = new Map();
   for (const cell of world.cells) {
@@ -204,8 +261,8 @@ function createWorldViewer({
       ? PIXI.Texture.EMPTY
       : textures.arrowTexture;
     const arrowSprite = new PIXI.Sprite(arrowTexture);
-    arrowSprite.width = CELL_WIDTH;
-    arrowSprite.height = CELL_HEIGHT;
+    arrowSprite.width = CELL_WIDTH - 5;
+    arrowSprite.height = CELL_HEIGHT - 5;
     arrowSprite.interactive = false;
     arrowSprite.position.set(
       cell.x * CELL_WIDTH + (CELL_WIDTH / 2),
@@ -291,6 +348,8 @@ function createWorldViewer({
     arrowLayer,
     drainageBasinLayer,
     overlays,
+    coastlineBorder,
+    gridLines,
   };
 }
 
@@ -335,6 +394,8 @@ export default class WorldViewer extends React.Component<IWorldViewerProps> {
   handleViewChanges(props: IWorldViewerProps) {
     this.viewState.arrowLayer.visible = props.viewOptions.showFlowArrows;
     this.viewState.drainageBasinLayer.visible = props.viewOptions.showDrainageBasinLabels;
+    this.viewState.coastlineBorder.visible = props.viewOptions.drawCoastline;
+    this.viewState.gridLines.visible = props.viewOptions.drawGrid;
     if (props.viewOptions.overlay === 'none') {
       for (const name of Object.keys(cellOverlays)) {
         this.viewState.overlays[name].visible = false;
