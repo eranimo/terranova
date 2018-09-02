@@ -193,13 +193,12 @@ function createWorldViewer({
     arrowTexture: PIXI.Texture,
   },
 }): IViewState {
-  const screenWidth = window.innerWidth / window.devicePixelRatio;
-  const screenHeight = (window.innerHeight - 50) / window.devicePixelRatio;
+  const screenWidth = window.innerWidth;
+  const screenHeight = (window.innerHeight - 50);
   const app = new PIXI.Application({
     width: screenWidth,
     height: screenHeight,
     antialias: false,
-    resolution: window.devicePixelRatio,
     roundPixels: true,
   });
   PIXI.settings.SCALE_MODE = PIXI.SCALE_MODES.NEAREST;
@@ -211,7 +210,6 @@ function createWorldViewer({
     worldWidth,
     worldHeight,
     divWheel: element,
-    interaction: app.renderer.plugins.interaction,
   });
   window.addEventListener('resize', () => {
     app.renderer.resize(
@@ -219,8 +217,8 @@ function createWorldViewer({
       window.innerHeight - 50
     );
     (viewport.resize as any)(
-      (window.innerWidth) / window.devicePixelRatio,
-      (window.innerHeight - 50) / window.devicePixelRatio,
+      window.innerWidth,
+      window.innerHeight - 50
     );
   }, true);
   app.stage.addChild(viewport);
@@ -241,6 +239,8 @@ function createWorldViewer({
     // });
   viewport.moveCenter(worldWidth / 2, worldHeight / 2);
   viewport.zoom(4);
+
+  (window as any).viewport = viewport;
 
   const terrainLayer = new PIXI.Container();
   const textLayer = new PIXI.Container();
