@@ -41,6 +41,11 @@ export const cellOverlays: { [name: string]: ICellOverlay } = {
     datapoint: 'temperature',
     colormap: 'jet',
   },
+  moisture: {
+    title: 'Moisture',
+    datapoint: 'moisture',
+    colormap: 'cool',
+  },
   upstreamCount: {
     title: 'Upstream Cell Count',
     datapoint: 'upstreamCount',
@@ -188,8 +193,8 @@ function createWorldViewer({
     arrowTexture: PIXI.Texture,
   },
 }): IViewState {
-  const screenWidth = window.innerWidth;
-  const screenHeight = window.innerHeight - 50;
+  const screenWidth = window.innerWidth / window.devicePixelRatio;
+  const screenHeight = (window.innerHeight - 50) / window.devicePixelRatio;
   const app = new PIXI.Application({
     width: screenWidth,
     height: screenHeight,
@@ -209,8 +214,14 @@ function createWorldViewer({
     interaction: app.renderer.plugins.interaction,
   });
   window.addEventListener('resize', () => {
-    app.renderer.resize(window.innerWidth, window.innerHeight - 50);
-    (viewport.resize as any)(window.innerWidth, window.innerHeight - 50);
+    app.renderer.resize(
+      window.innerWidth,
+      window.innerHeight - 50
+    );
+    (viewport.resize as any)(
+      (window.innerWidth) / window.devicePixelRatio,
+      (window.innerHeight - 50) / window.devicePixelRatio,
+    );
   }, true);
   app.stage.addChild(viewport);
   viewport
@@ -222,12 +233,12 @@ function createWorldViewer({
         Math.round(viewport.top),
       );
     })
-    .clampZoom({
-      minWidth: worldWidth / 10,
-      minHeight: worldHeight / 10,
-      maxWidth: worldWidth * 2,
-      maxHeight: worldHeight * 2,
-    });
+    // .clampZoom({
+    //   minWidth: worldWidth / 4,
+    //   minHeight: worldHeight / 4,
+    //   maxWidth: worldWidth * 20,
+    //   maxHeight: worldHeight * 20,
+    // });
   viewport.moveCenter(worldWidth / 2, worldHeight / 2);
   viewport.zoom(4);
 

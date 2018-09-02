@@ -29,16 +29,30 @@ export class Cell {
   temperature: number;
   upstreamCount: number;
   isLand: boolean;
+  moisture: number;
 
-  constructor(world: World, { x, y, terrainType, height, flowDir, temperature, upstreamCount }: {
-    x: number,
-    y: number,
-    height: number,
-    terrainType: ETerrainType,
-    flowDir: EDirection,
-    temperature: number,
-    upstreamCount: number,
-  }) {
+  constructor(
+    world: World,
+    {
+      x,
+      y,
+      terrainType,
+      height,
+      flowDir,
+      temperature,
+      upstreamCount,
+      moisture,
+    }: {
+      x: number,
+      y: number,
+      height: number,
+      terrainType: ETerrainType,
+      flowDir: EDirection,
+      temperature: number,
+      upstreamCount: number,
+      moisture: number,
+    }
+  ) {
     this.world = world;
     this.x = x;
     this.y = y;
@@ -48,6 +62,7 @@ export class Cell {
     this.flowDir = flowDir;
     this.temperature = temperature;
     this.upstreamCount = upstreamCount;
+    this.moisture = moisture;
   }
 }
 
@@ -86,6 +101,7 @@ export default class World {
     const flowDirections = ndarray(params.flowDirections, [this.size.width, this.size.height]);
     const temperatures = ndarray(params.temperatures, [this.size.width, this.size.height]);
     const upstreamCells = ndarray(params.upstreamCells, [this.size.width, this.size.height]);
+    const moistureMap = ndarray(params.moistureMap, [this.size.width, this.size.height]);
     for (let x = 0; x < this.size.width; x++) {
       this.grid[x] = [];
       for (let y = 0; y < this.size.height; y++) {
@@ -96,6 +112,7 @@ export default class World {
           terrainType: terrainTypes.get(x, y) as ETerrainType,
           temperature: temperatures.get(x, y),
           upstreamCount: upstreamCells.get(x, y),
+          moisture: moistureMap.get(x, y),
         });
         this.cells.add(cell);
         this.grid[x][y] = cell;

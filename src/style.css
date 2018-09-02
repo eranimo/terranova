@@ -7,6 +7,10 @@
   outline: none;
 }
 
+html {
+  overflow: hidden;
+}
+
 body {
   margin: 0;
   background-color: rgb(39, 52, 61);

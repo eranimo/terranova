@@ -447,6 +447,79 @@ function decideTemperature(
   return temperature;
 }
 
+function generateMoisture(
+  options: IWorldgenOptions,
+  heightmap: ndarray,
+  sealevel: number,
+  terrainTypes: ndarray
+): ndarray {
+  const { seed, size: { width, height } } = options;
+  const rng = new Alea(seed);
+  const moistureMap = ndarray(new Int16Array(width * height), [width, height]);
+  const simplex = new SimplexNoise(rng);
+  fill(moistureMap, (x, y) => {
+    if (terrainTypes.get(x, y) === ETerrainType.LAND) {
+      const nx = x / width - 0.5;
+      const ny = y / height - 0.5;
+      const moisture = ((simplex.noise2D(5 * nx, 5 * ny) + 1) / 2);
+      const inlandRatio = (heightmap.get(x, y) - sealevel) / (255 - sealevel);
+      return (moisture * (1 - inlandRatio)) * 500;
+    }
+    return 0;
+  });
+  for (let x = 0; x < width; x++) {
+    for (let y = 0; y < height; y++) {
+      if (terrainTypes.get(x, y) === ETerrainType.LAKE) {
+        const size = 15;
+        for (let cx = x - size; cx < x + size; cx++) {
+          for (let cy = y - size; cy < y + size; cy++) {
+            if (
+              terrainTypes.get(cx, cy) !== undefined &&
+              terrainTypes.get(cx, cy) !== ETerrainType.OCEAN
+            ) {
+              moistureMap.set(cx, cy, moistureMap.get(cx, cy) + 4);
+            }
+          }
+        }
+      } else if (terrainTypes.get(x, y) === ETerrainType.RIVER) {
+        moistureMap.set(x, y, moistureMap.get(x, y) + 1);
+        let size = Math.round(rng() * 10);
+        for (let cx = x - size; cx < x + size; cx++) {
+          for (let cy = y - size; cy < y + size; cy++) {
+            if (
+              terrainTypes.get(cx, cy) !== undefined &&
+              terrainTypes.get(cx, cy) !== ETerrainType.OCEAN
+            ) {
+              moistureMap.set(cx, cy, moistureMap.get(cx, cy) + 25);
+            }
+          }
+        }
+
+        size = Math.round(rng() * 5);
+        for (let cx = x - size; cx < x + size; cx++) {
+          for (let cy = y - size; cy < y + size; cy++) {
+            if (
+              terrainTypes.get(cx, cy) !== undefined &&
+              terrainTypes.get(cx, cy) !== ETerrainType.OCEAN
+            ) {
+              moistureMap.set(cx, cy, moistureMap.get(cx, cy) + 50);
+            }
+          }
+        }
+      }
+    }
+  }
+  for (let x = 0; x < width; x++) {
+    for (let y = 0; y < height; y++) {
+      if (terrainTypes.get(x, y) === ETerrainType.LAKE) {
+        moistureMap.set(x, y, 0);
+      }
+    }
+  }
+
+  return moistureMap;
+}
+
 onmessage = function (event: MessageEvent) {
   const options: IWorldgenOptions = event.data;
   const sealevel = 102;
@@ -456,7 +529,8 @@ onmessage = function (event: MessageEvent) {
   const { terrainTypes, upstreamCells } = decideTerrainTypes(options, sealevel, heightmap, waterheight, flowDirections, cellNeighbors);
   const drainageBasins = decideDrainageBasins(options, cellNeighbors, waterheight, terrainTypes);
   const temperatures = decideTemperature(options, sealevel, waterheight);
-  console.log(ndarrayStats(temperatures));
+  const moistureMap = generateMoisture(options, heightmap, sealevel, terrainTypes);
+  console.log('moistureMap', ndarrayStats(moistureMap));
 
   const output: IWorldgenWorkerOutput = {
     options,
@@ -467,6 +541,7 @@ onmessage = function (event: MessageEvent) {
     drainageBasins,
     upstreamCells: upstreamCells.data,
     temperatures: temperatures.data,
+    moistureMap: moistureMap.data,
   };
   (postMessage as any)(output);
 }
