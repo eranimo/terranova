@@ -472,7 +472,6 @@ function decideTemperature(
 function generateMoisture(
   options: IWorldgenOptions,
   heightmap: ndarray,
-  upstreamCells: ndarray,
   sealevel: number,
   terrainTypes: ndarray
 ): ndarray {
@@ -490,26 +489,12 @@ function generateMoisture(
     }
     return 0;
   });
-  const maxUpstreamCount = ops.sup(upstreamCells);
   let cells = [];
   for (let x = 0; x < width; x++) {
     for (let y = 0; y < height; y++) {
-      if (terrainTypes.get(x, y) === ETerrainType.LAKE) {
-        // const size = 15;
-        // for (let cx = x - size; cx < x + size; cx++) {
-        //   for (let cy = y - size; cy < y + size; cy++) {
-        //     if (
-        //       terrainTypes.get(cx, cy) !== undefined &&
-        //       terrainTypes.get(cx, cy) !== ETerrainType.OCEAN
-        //     ) {
-        //       moistureMap.set(cx, cy, moistureMap.get(cx, cy) + 4);
-        //     }
-        //   }
-        // }
-      } else if (terrainTypes.get(x, y) === ETerrainType.RIVER) {
+      if (terrainTypes.get(x, y) === ETerrainType.RIVER) {
         const inlandRatio = (heightmap.get(x, y) - sealevel) / (255 - sealevel);
         const riverAdd = (1 - inlandRatio) * 15;
-        // moistureMap.set(x, y, moistureMap.get(x, y) + riverAdd);
         let size = 15 + Math.round(rng() * 10); // 15 to 25
         cells = loopGridCircle(x, y, size);
         for (const [cx, cy] of cells) {
@@ -559,15 +544,40 @@ function generateMoisture(
 onmessage = function (event: MessageEvent) {
   const options: IWorldgenOptions = event.data;
   const sealevel = 102;
+  console.time('Worldgen');
+
+  console.time('step: generateHeightmap');
   const heightmap = generateHeightmap(options);
+  console.timeEnd('step: generateHeightmap');
+
+  console.time('step: removeDepressions');
   const { waterheight, cellNeighbors } = removeDepressions(options, heightmap);
+  console.timeEnd('step: removeDepressions');
+
+  console.time('step: determineFlowDirections');
   const flowDirections = determineFlowDirections(options, waterheight);
+  console.timeEnd('step: determineFlowDirections');
+
+  console.time('step: decideTerrainTypes');
   const { terrainTypes, upstreamCells } = decideTerrainTypes(options, sealevel, heightmap, waterheight, flowDirections, cellNeighbors);
+  console.timeEnd('step: decideTerrainTypes');
+
+  console.time('step: decideDrainageBasins');
   const drainageBasins = decideDrainageBasins(options, cellNeighbors, waterheight, terrainTypes);
+  console.timeEnd('step: decideDrainageBasins');
+
+  console.time('step: decideTemperature');
   const temperatures = decideTemperature(options, sealevel, waterheight);
-  const moistureMap = generateMoisture(options, heightmap, upstreamCells, sealevel, terrainTypes);
-  console.log('moistureMap', ndarrayStats(moistureMap));
+  console.timeEnd('step: decideTemperature');
+
+  console.time('step: generateMoisture');
+  const moistureMap = generateMoisture(options, heightmap, sealevel, terrainTypes);
+  console.timeEnd('step: generateMoisture');
+
   console.log('upstreamCells', ndarrayStats(upstreamCells));
+  console.log('moistureMap', ndarrayStats(moistureMap));
+  console.log('temperatures', ndarrayStats(temperatures));
+  console.timeEnd('Worldgen');
 
   const output: IWorldgenWorkerOutput = {
     options,
