@@ -74,7 +74,7 @@ function rgbToNumber(r: number, g: number, b: number): number {
 }
 
 function makeArrowTexture(width: number, height: number): PIXI.Texture {
-  const g = new PIXI.Graphics();
+  const g = new PIXI.Graphics(true);
   g.lineColor = 0x000000;
   g.lineWidth = 1;
   g.moveTo(width / 2, height);
@@ -89,7 +89,7 @@ type TextureMap = { [name: string]: PIXI.Texture };
 let drainageTextureCache = {};
 
 function makeTerrainTexture(width: number, height: number, color: number): PIXI.Texture {
-  const g = new PIXI.Graphics();
+  const g = new PIXI.Graphics(true);
   g.beginFill(color);
   g.drawRect(0, 0, width, height);
   g.endFill();
@@ -130,9 +130,9 @@ function drawCoastlineBorder(
   world: World,
   shouldDraw: (a: Cell, b: Cell) => boolean,
 ): PIXI.Sprite {
-  const g = new PIXI.Graphics();
+  const g = new PIXI.Graphics(true);
   g.lineColor = 0x000000;
-  g.lineWidth = 1;
+  g.lineWidth = 2;
   g.drawRect(0, 0, 1, 1);
   for (const cell of world.cells) {
     const cx = cell.x * CELL_WIDTH;
@@ -163,7 +163,7 @@ function drawCoastlineBorder(
 }
 
 function drawGridLines(world: World): PIXI.Sprite {
-  const g = new PIXI.Graphics();
+  const g = new PIXI.Graphics(true);
   g.lineColor = 0x000000;
   g.lineWidth = 1;
   for (let x = 0; x < world.size.width * CELL_WIDTH; x += CELL_WIDTH) {
@@ -193,15 +193,19 @@ function createWorldViewer({
     width: screenWidth,
     height: screenHeight,
     antialias: false,
+    resolution: window.devicePixelRatio,
     roundPixels: true,
   });
-
+  PIXI.settings.SCALE_MODE = PIXI.SCALE_MODES.NEAREST;
+  const worldWidth = world.size.width * CELL_WIDTH;
+  const worldHeight = world.size.height * CELL_HEIGHT;
   const viewport = new Viewport({
     screenWidth,
     screenHeight,
-    worldWidth: world.size.width * CELL_WIDTH,
-    worldHeight: world.size.height * CELL_HEIGHT,
-    divWheel: element
+    worldWidth,
+    worldHeight,
+    divWheel: element,
+    interaction: app.renderer.plugins.interaction,
   });
   window.addEventListener('resize', () => {
     app.renderer.resize(window.innerWidth, window.innerHeight - 50);
@@ -210,8 +214,21 @@ function createWorldViewer({
   app.stage.addChild(viewport);
   viewport
     .drag()
-    .wheel();
-  // viewport.fitWorld();
+    .wheel()
+    .on('drag-end', () => {
+      viewport.moveCorner(
+        Math.round(viewport.left),
+        Math.round(viewport.top),
+      );
+    })
+    .clampZoom({
+      minWidth: worldWidth / 10,
+      minHeight: worldHeight / 10,
+      maxWidth: worldWidth * 2,
+      maxHeight: worldHeight * 2,
+    });
+  viewport.moveCenter(worldWidth / 2, worldHeight / 2);
+  viewport.zoom(4);
 
   const terrainLayer = new PIXI.Container();
   const textLayer = new PIXI.Container();
