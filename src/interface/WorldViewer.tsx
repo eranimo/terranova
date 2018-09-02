@@ -24,11 +24,34 @@ const directionAngles = {
   [EDirection.UP]: 0,
 }
 
+export interface ICellOverlay {
+  title: string;
+  datapoint: string;
+  colormap: string;
+}
+
+export const cellOverlays: { [name: string]: ICellOverlay } = {
+  height: {
+    title: 'Height',
+    datapoint: 'height',
+    colormap: 'bathymetry',
+  },
+  temperature: {
+    title: 'Temperature',
+    datapoint: 'temperature',
+    colormap: 'jet',
+  },
+  upstreamCount: {
+    title: 'Upstream Cell Count',
+    datapoint: 'upstreamCount',
+    colormap: 'velocity-blue',
+  }
+}
+
 export interface IViewOptions {
   showFlowArrows: boolean;
   showDrainageBasinLabels: boolean;
-  showTemperatures: boolean;
-  showUpstreamCount: boolean;
+  overlay: string;
 }
 
 interface IViewState {
@@ -36,9 +59,10 @@ interface IViewState {
   terrainLayer: PIXI.Container;
   textLayer: PIXI.Container;
   arrowLayer: PIXI.Container;
-  overlayLayer: PIXI.Container;
-  temperatureOverlay: PIXI.Sprite;
-  upstreamCountOverlay: PIXI.Sprite;
+  drainageBasinLayer: PIXI.Container;
+  overlays: {
+    [name: string]: PIXI.Sprite;
+  };
 }
 
 function rgbToNumber(r: number, g: number, b: number): number {
@@ -68,18 +92,18 @@ function makeTerrainTexture(width: number, height: number, color: number): PIXI.
   return g.generateCanvasTexture();
 }
 
-function makeOverlay(world: World, key: string, mapStyle: string = 'jet'): PIXI.Sprite {
+function makeCellOverlay(world: World, overlay: ICellOverlay): PIXI.Sprite {
   const g = new PIXI.Graphics();
   const colors: [number, number, number, number][] = colormap({
     nshades: 101,
     format: 'rba',
-    colormap: mapStyle
+    colormap: overlay.colormap
   });
-  const data = Array.from(world.cells).map(cell => cell[key]);
+  const data = Array.from(world.cells).map(cell => cell[overlay.datapoint]);
   const min = Math.min(...data);
   const max = Math.max(...data);
   for (const cell of world.cells) {
-    const index = Math.round(((cell[key] - min) / (max - min)) * 100);
+    const index = Math.round(((cell[overlay.datapoint] - min) / (max - min)) * 100);
     const color = colors[index];
     if (!color) {
       throw new Error(`No color for index ${index}`);
@@ -137,19 +161,29 @@ function createWorldViewer({
   const terrainLayer = new PIXI.Container();
   const textLayer = new PIXI.Container();
   const arrowLayer = new PIXI.Container();
+  const drainageBasinLayer = new PIXI.Container();
   const overlayLayer = new PIXI.Container();
   viewport.addChild(terrainLayer);
   viewport.addChild(textLayer);
+  viewport.addChild(drainageBasinLayer);
   viewport.addChild(overlayLayer);
   viewport.addChild(arrowLayer);
+  const overlays: { [name: string]: PIXI.Sprite } = {};
 
   // temperature overlays
-  const temperatureOverlay = makeOverlay(world, 'temperature');
-  viewport.addChild(temperatureOverlay);
+  // const temperatureOverlay = makeCellOverlay(world, 'temperature');
+  // viewport.addChild(temperatureOverlay);
 
-  // upstream count overlay
-  const upstreamCountOverlay = makeOverlay(world, 'upstreamCount', 'velocity-blue');
-  viewport.addChild(upstreamCountOverlay);
+  // // upstream count overlay
+  // const upstreamCountOverlay = makeCellOverlay(world, 'upstreamCount', 'velocity-blue');
+  // viewport.addChild(upstreamCountOverlay);
+
+  for (const [name, overlay] of Object.entries(cellOverlays)) {
+    const overlaySprite = makeCellOverlay(world, overlay);
+    overlaySprite.name = name;
+    overlays[name] = overlaySprite;
+    overlayLayer.addChild(overlaySprite);
+  }
 
   const cellSpriteMap = new Map();
   for (const cell of world.cells) {
@@ -183,7 +217,7 @@ function createWorldViewer({
     arrowSprite.rotation = directionAngles[cell.flowDir] * (Math.PI / 180);
     arrowLayer.addChild(arrowSprite);
 
-    // drainage basin overlay
+    // drainage basin labels
     let overlayT;
     if (cell.drainageBasin) {
       if (cell.drainageBasin.id in drainageTextureCache) {
@@ -207,7 +241,7 @@ function createWorldViewer({
       cell.x * CELL_WIDTH,
       cell.y * CELL_HEIGHT,
     );
-    overlayLayer.addChild(overlay);
+    drainageBasinLayer.addChild(overlay);
 
 
     cellSpriteMap.set(cell, [terrainSprite, arrowSprite]);
@@ -255,9 +289,8 @@ function createWorldViewer({
     terrainLayer,
     textLayer,
     arrowLayer,
-    overlayLayer,
-    temperatureOverlay,
-    upstreamCountOverlay,
+    drainageBasinLayer,
+    overlays,
   };
 }
 
@@ -301,9 +334,16 @@ export default class WorldViewer extends React.Component<IWorldViewerProps> {
 
   handleViewChanges(props: IWorldViewerProps) {
     this.viewState.arrowLayer.visible = props.viewOptions.showFlowArrows;
-    this.viewState.overlayLayer.visible = props.viewOptions.showDrainageBasinLabels;
-    this.viewState.temperatureOverlay.visible = props.viewOptions.showTemperatures;
-    this.viewState.upstreamCountOverlay.visible = props.viewOptions.showUpstreamCount;
+    this.viewState.drainageBasinLayer.visible = props.viewOptions.showDrainageBasinLabels;
+    if (props.viewOptions.overlay === 'none') {
+      for (const name of Object.keys(cellOverlays)) {
+        this.viewState.overlays[name].visible = false;
+      }
+    } else {
+      for (const name of Object.keys(cellOverlays)) {
+        this.viewState.overlays[name].visible = props.viewOptions.overlay === name;
+      }
+    }
   }
 
   componentWillUnmount() {

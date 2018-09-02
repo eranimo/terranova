@@ -7,12 +7,14 @@ import {
   NavbarHeading,
   Alignment,
   Checkbox,
+  RadioGroup,
+  Radio,
   Popover,
   PopoverInteractionKind,
   Position
 } from '@blueprintjs/core';
 import { Simulation } from '../simulation';
-import WorldViewer, { IViewOptions } from './WorldViewer';
+import WorldViewer, { IViewOptions, cellOverlays } from './WorldViewer';
 
 
 export default class App extends React.Component<{
@@ -25,8 +27,7 @@ export default class App extends React.Component<{
     viewOptions: {
       showFlowArrows: false,
       showDrainageBasinLabels: false,
-      showTemperatures: false,
-      showUpstreamCount: false,
+      overlay: 'none'
     },
     isGenerating: false,
   }
@@ -38,6 +39,15 @@ export default class App extends React.Component<{
         [fieldName]: !this.state.viewOptions[fieldName],
       }
     })
+  }
+
+  onChangeOverlay = event => {
+    this.setState({
+      viewOptions: {
+        ...this.state.viewOptions,
+        overlay: event.target.value
+      },
+    });
   }
 
   async onClickRegen() {
@@ -89,23 +99,24 @@ export default class App extends React.Component<{
                       label='Show drainage basin overlays'
                     />
                   </li>
-                  <li>
-                    <Checkbox
-                      inline
-                      checked={this.state.viewOptions.showTemperatures}
-                      onChange={this.onChangeField('showTemperatures')}
-                      label='Show temperatures'
-                    />
-                  </li>
-                  <li>
-                    <Checkbox
-                      inline
-                      checked={this.state.viewOptions.showUpstreamCount}
-                      onChange={this.onChangeField('showUpstreamCount')}
-                      label='Show upstream count overlay'
-                    />
-                  </li>
                 </ul>
+                <RadioGroup
+                  label="Overlay"
+                  onChange={this.onChangeOverlay}
+                  selectedValue={this.state.viewOptions.overlay}
+                >
+                  <Radio
+                    label="None"
+                    value={'none'}
+                  />
+                  {Object.entries(cellOverlays).map(([name, overlay]) => (
+                    <Radio
+                      key={name}
+                      label={overlay.title}
+                      value={name}
+                    />
+                  ))}
+                </RadioGroup>
               </div>
             </Popover>
           </NavbarGroup>
