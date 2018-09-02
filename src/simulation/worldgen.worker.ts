@@ -15,11 +15,17 @@ import * as Stats from 'simple-statistics';
  */
 
 function ndarrayStats(ndarray: ndarray) {
+  const data = Array.from(ndarray.data);
+  const quantiles = {};
+  for (let q = 0; q <= 100; q += 1) {
+    quantiles[q] = Stats.quantile(data, q / 100);
+  }
   return {
     array: ndarray,
     avg: ops.sum(ndarray) / (ndarray.shape[0] * ndarray.shape[0]),
     max: ops.sup(ndarray),
     min: ops.inf(ndarray),
+    quantiles
   };
 }
 
@@ -55,6 +61,22 @@ const oppositeDirections = {
 function isValidCell(x: number, y: number, width: number, height: number): boolean {
   return x >= 0 && y >= 0 && x < width && y < height;
 }
+
+
+function loopGridCircle(x, y, radius) {
+  let cells = [];
+  for (let cx = x - radius; cx < x + radius; cx++) {
+    for (let cy = y - radius; cy < y + radius; cy++) {
+      const distance = Math.sqrt(Math.pow(x - cx, 2) + Math.pow(y - cy, 2));
+      if (distance <= radius) {
+        cells.push([cx, cy]);
+      }
+    }
+  }
+  return cells;
+}
+
+//////
 
 function generateHeightmap(options: IWorldgenOptions) {
   const { seed, size: { width, height } } = options;
@@ -450,6 +472,7 @@ function decideTemperature(
 function generateMoisture(
   options: IWorldgenOptions,
   heightmap: ndarray,
+  upstreamCells: ndarray,
   sealevel: number,
   terrainTypes: ndarray
 ): ndarray {
@@ -458,64 +481,65 @@ function generateMoisture(
   const moistureMap = ndarray(new Int16Array(width * height), [width, height]);
   const simplex = new SimplexNoise(rng);
   fill(moistureMap, (x, y) => {
-    if (terrainTypes.get(x, y) === ETerrainType.LAND) {
+    if (terrainTypes.get(x, y) !== ETerrainType.OCEAN) {
       const nx = x / width - 0.5;
       const ny = y / height - 0.5;
-      const moisture = ((simplex.noise2D(5 * nx, 5 * ny) + 1) / 2);
+      const moisture = ((simplex.noise2D(3 * nx, 3 * ny) + 1) / 2);
       const inlandRatio = (heightmap.get(x, y) - sealevel) / (255 - sealevel);
       return (moisture * (1 - inlandRatio)) * 500;
     }
     return 0;
   });
+  const maxUpstreamCount = ops.sup(upstreamCells);
+  let cells = [];
   for (let x = 0; x < width; x++) {
     for (let y = 0; y < height; y++) {
       if (terrainTypes.get(x, y) === ETerrainType.LAKE) {
-        const size = 15;
-        for (let cx = x - size; cx < x + size; cx++) {
-          for (let cy = y - size; cy < y + size; cy++) {
-            if (
-              terrainTypes.get(cx, cy) !== undefined &&
-              terrainTypes.get(cx, cy) !== ETerrainType.OCEAN
-            ) {
-              moistureMap.set(cx, cy, moistureMap.get(cx, cy) + 4);
-            }
-          }
-        }
+        // const size = 15;
+        // for (let cx = x - size; cx < x + size; cx++) {
+        //   for (let cy = y - size; cy < y + size; cy++) {
+        //     if (
+        //       terrainTypes.get(cx, cy) !== undefined &&
+        //       terrainTypes.get(cx, cy) !== ETerrainType.OCEAN
+        //     ) {
+        //       moistureMap.set(cx, cy, moistureMap.get(cx, cy) + 4);
+        //     }
+        //   }
+        // }
       } else if (terrainTypes.get(x, y) === ETerrainType.RIVER) {
-        moistureMap.set(x, y, moistureMap.get(x, y) + 1);
-        let size = Math.round(rng() * 20);
-        for (let cx = x - size; cx < x + size; cx++) {
-          for (let cy = y - size; cy < y + size; cy++) {
-            if (
-              terrainTypes.get(cx, cy) !== undefined &&
-              terrainTypes.get(cx, cy) !== ETerrainType.OCEAN
-            ) {
-              moistureMap.set(cx, cy, moistureMap.get(cx, cy) + 25);
-            }
+        const inlandRatio = (heightmap.get(x, y) - sealevel) / (255 - sealevel);
+        const riverAdd = (1 - inlandRatio) * 15;
+        // moistureMap.set(x, y, moistureMap.get(x, y) + riverAdd);
+        let size = 15 + Math.round(rng() * 10); // 15 to 25
+        cells = loopGridCircle(x, y, size);
+        for (const [cx, cy] of cells) {
+          if (
+            terrainTypes.get(cx, cy) !== undefined &&
+            terrainTypes.get(cx, cy) !== ETerrainType.OCEAN
+          ) {
+            moistureMap.set(cx, cy, moistureMap.get(cx, cy) + riverAdd);
           }
         }
 
-        size = Math.round(rng() * 10);
-        for (let cx = x - size; cx < x + size; cx++) {
-          for (let cy = y - size; cy < y + size; cy++) {
-            if (
-              terrainTypes.get(cx, cy) !== undefined &&
-              terrainTypes.get(cx, cy) !== ETerrainType.OCEAN
-            ) {
-              moistureMap.set(cx, cy, moistureMap.get(cx, cy) + 35);
-            }
+        size = 5 + Math.round(rng() * 10); // 5 to 15
+        cells = loopGridCircle(x, y, size);
+        for (const [cx, cy] of cells) {
+          if (
+            terrainTypes.get(cx, cy) !== undefined &&
+            terrainTypes.get(cx, cy) !== ETerrainType.OCEAN
+          ) {
+            moistureMap.set(cx, cy, moistureMap.get(cx, cy) + (riverAdd * 2));
           }
         }
 
-        size = Math.round(rng() * 5);
-        for (let cx = x - size; cx < x + size; cx++) {
-          for (let cy = y - size; cy < y + size; cy++) {
-            if (
-              terrainTypes.get(cx, cy) !== undefined &&
-              terrainTypes.get(cx, cy) !== ETerrainType.OCEAN
-            ) {
-              moistureMap.set(cx, cy, moistureMap.get(cx, cy) + 45);
-            }
+        size = 5 + Math.round(rng() * 5); // 5 to 10
+        cells = loopGridCircle(x, y, size);
+        for (const [cx, cy] of cells) {
+          if (
+            terrainTypes.get(cx, cy) !== undefined &&
+            terrainTypes.get(cx, cy) !== ETerrainType.OCEAN
+          ) {
+            moistureMap.set(cx, cy, moistureMap.get(cx, cy) + (riverAdd * 3));
           }
         }
       }
@@ -541,8 +565,9 @@ onmessage = function (event: MessageEvent) {
   const { terrainTypes, upstreamCells } = decideTerrainTypes(options, sealevel, heightmap, waterheight, flowDirections, cellNeighbors);
   const drainageBasins = decideDrainageBasins(options, cellNeighbors, waterheight, terrainTypes);
   const temperatures = decideTemperature(options, sealevel, waterheight);
-  const moistureMap = generateMoisture(options, heightmap, sealevel, terrainTypes);
+  const moistureMap = generateMoisture(options, heightmap, upstreamCells, sealevel, terrainTypes);
   console.log('moistureMap', ndarrayStats(moistureMap));
+  console.log('upstreamCells', ndarrayStats(upstreamCells));
 
   const output: IWorldgenWorkerOutput = {
     options,
