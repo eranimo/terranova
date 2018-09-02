@@ -483,7 +483,7 @@ function generateMoisture(
         }
       } else if (terrainTypes.get(x, y) === ETerrainType.RIVER) {
         moistureMap.set(x, y, moistureMap.get(x, y) + 1);
-        let size = Math.round(rng() * 10);
+        let size = Math.round(rng() * 20);
         for (let cx = x - size; cx < x + size; cx++) {
           for (let cy = y - size; cy < y + size; cy++) {
             if (
@@ -495,6 +495,18 @@ function generateMoisture(
           }
         }
 
+        size = Math.round(rng() * 10);
+        for (let cx = x - size; cx < x + size; cx++) {
+          for (let cy = y - size; cy < y + size; cy++) {
+            if (
+              terrainTypes.get(cx, cy) !== undefined &&
+              terrainTypes.get(cx, cy) !== ETerrainType.OCEAN
+            ) {
+              moistureMap.set(cx, cy, moistureMap.get(cx, cy) + 35);
+            }
+          }
+        }
+
         size = Math.round(rng() * 5);
         for (let cx = x - size; cx < x + size; cx++) {
           for (let cy = y - size; cy < y + size; cy++) {
@@ -502,7 +514,7 @@ function generateMoisture(
               terrainTypes.get(cx, cy) !== undefined &&
               terrainTypes.get(cx, cy) !== ETerrainType.OCEAN
             ) {
-              moistureMap.set(cx, cy, moistureMap.get(cx, cy) + 50);
+              moistureMap.set(cx, cy, moistureMap.get(cx, cy) + 45);
             }
           }
         }
