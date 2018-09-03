@@ -4,9 +4,17 @@ import SimplexNoise from 'simplex-noise';
 import fill from 'ndarray-fill';
 import ops from 'ndarray-ops';
 import { IWorldgenOptions, IWorldgenWorkerOutput } from './simulation';
-import { ETerrainType, EDirection } from './world';
+import {
+  ETerrainType,
+  EDirection,
+  EBiome,
+  moistureZoneRanges,
+  temperatureZoneRanges,
+  biomeRanges
+} from './world';
 import * as Collections from 'typescript-collections';
 import * as Stats from 'simple-statistics';
+import { groupBy, mapValues } from 'lodash';
 
 
 /**
@@ -27,6 +35,11 @@ function ndarrayStats(ndarray: ndarray) {
     min: ops.inf(ndarray),
     quantiles
   };
+}
+
+function countUnique(ndarray: ndarray) {
+  const data = Array.from(ndarray.data);
+  return mapValues(groupBy(data, i => i), i => i.length);
 }
 
 const getNeighbors = (x: number, y: number): number[][] => [
@@ -434,7 +447,7 @@ function decideTemperature(
 ): ndarray {
   const { size: { width, height } } = options;
   const AVG_TEMP = 14; // average global temperature in celcius
-  const VOLITILITY = 0; // higher number means greater variation
+  const VOLITILITY = 5; // higher number means greater variation
   const MIN_TEMP = -50; // Math.max(AVG_TEMP - VOLITILITY, BASE_TEMP);
 
   const latitudeRatio = ndarray(new Float32Array(width * height), [width, height]);
@@ -541,6 +554,44 @@ function generateMoisture(
   return moistureMap;
 }
 
+function generateBiomes(
+  options: IWorldgenOptions,
+  temperatures: ndarray,
+  moistureMap: ndarray,
+  terrainTypes: ndarray,
+): ndarray {
+  const { size: { width, height } } = options;
+  const biomes = ndarray(new Int16Array(width * height), [width, height]);
+  fill(biomes, (x, y) => {
+    if (terrainTypes.get(x, y,) === ETerrainType.OCEAN) {
+      return EBiome.NONE;
+    }
+    const moisture = moistureMap.get(x, y) / 10;
+    const temperature = temperatures.get(x, y);
+    let moistureZone = null;
+    for (const [zone, { start, end }] of Object.entries(moistureZoneRanges)) {
+      if (moisture >= start && moisture < end) {
+        moistureZone = zone;
+      }
+    }
+    let temperatureZone = null;
+    for (const [zone, { start, end }] of Object.entries(temperatureZoneRanges)) {
+      if (temperature >= start && temperature < end) {
+        temperatureZone = zone;
+      }
+    }
+    if (moistureZone === null) {
+      throw new Error(`Failed to find biome for moisture: ${moisture}`);
+    }
+    if (temperatureZone === null) {
+      throw new Error(`Failed to find biome for temperature: ${temperature}`);
+    }
+    return biomeRanges[moistureZone][temperatureZone];
+  });
+
+  return biomes;
+}
+
 onmessage = function (event: MessageEvent) {
   const options: IWorldgenOptions = event.data;
   const sealevel = 102;
@@ -574,9 +625,14 @@ onmessage = function (event: MessageEvent) {
   const moistureMap = generateMoisture(options, heightmap, sealevel, terrainTypes);
   console.timeEnd('step: generateMoisture');
 
+  console.time('step: generateMoisture');
+  const biomes = generateBiomes(options, temperatures, moistureMap, terrainTypes);
+  console.timeEnd('step: generateMoisture');
+
   console.log('upstreamCells', ndarrayStats(upstreamCells));
   console.log('moistureMap', ndarrayStats(moistureMap));
   console.log('temperatures', ndarrayStats(temperatures));
+  console.log('biomes', countUnique(biomes));
   console.timeEnd('Worldgen');
 
   const output: IWorldgenWorkerOutput = {

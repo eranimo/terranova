@@ -10,6 +10,119 @@ export enum ETerrainType {
   LAKE,
 }
 
+export enum EBiome {
+  NONE,
+  TUNDRA,
+  BOREAL_FOREST,
+  SHRUBLAND,
+  GRASSLAND,
+  SAVANNA,
+  DESERT,
+  TEMPERATE_FOREST,
+  TEMPERATE_RAINFOREST,
+  TROPICAL_FOREST,
+  TROPICAL_RAINFOREST
+}
+
+export enum EMoistureZone {
+  BARREN,
+  ARID,
+  SEMIARID,
+  SEMIWET,
+  WET,
+}
+
+export enum ETemperatureZone {
+  ARCTIC,
+  SUBARCTIC,
+  TEMPERATE,
+  SUBTROPICAL,
+  TROPICAL,
+}
+
+export const biomeTitles = {
+  [EBiome.NONE]: 'None',
+  [EBiome.TUNDRA]: 'Tundra',
+  [EBiome.BOREAL_FOREST]: 'Boreal Forest',
+  [EBiome.SHRUBLAND]: 'Scrubland',
+  [EBiome.GRASSLAND]: 'Grassland',
+  [EBiome.SAVANNA]: 'Savanna',
+  [EBiome.DESERT]: 'Desert',
+  [EBiome.TEMPERATE_FOREST]: 'Temperate Forest',
+  [EBiome.TEMPERATE_RAINFOREST]: 'Temperate Rainforest',
+  [EBiome.TROPICAL_FOREST]: 'Tropical Forest',
+  [EBiome.TROPICAL_RAINFOREST]: 'Tropical Rainforest'
+}
+
+export const biomeColors = {
+  [EBiome.NONE]: 0x000000,
+  [EBiome.TUNDRA]: 0x96D1C3,
+  [EBiome.BOREAL_FOREST]: 0x006259,
+  [EBiome.SHRUBLAND]: 0xB26A47,
+  [EBiome.GRASSLAND]: 0xF6EB64,
+  [EBiome.SAVANNA]: 0xC7C349,
+  [EBiome.DESERT]: 0x8B4D32,
+  [EBiome.TEMPERATE_FOREST]: 0x92D847,
+  [EBiome.TEMPERATE_RAINFOREST]: 0x6B842A,
+  [EBiome.TROPICAL_FOREST]: 0x097309,
+  [EBiome.TROPICAL_RAINFOREST]: 0x005100
+}
+
+export const moistureZoneRanges = {
+  [EMoistureZone.BARREN]: { start: 0, end: 25 },
+  [EMoistureZone.ARID]: { start: 25, end: 50 },
+  [EMoistureZone.SEMIARID]: { start: 50, end: 100 },
+  [EMoistureZone.SEMIWET]: { start: 100, end: 200 },
+  [EMoistureZone.WET]: { start: 200, end: 500 },
+}
+
+export const temperatureZoneRanges = {
+  [ETemperatureZone.ARCTIC]: { start: -50, end: -10 },
+  [ETemperatureZone.SUBARCTIC]: { start: -10, end: 5 },
+  [ETemperatureZone.TEMPERATE]: { start: 5, end: 15 },
+  [ETemperatureZone.SUBTROPICAL]: { start: 15, end: 20 },
+  [ETemperatureZone.TROPICAL]: { start: 20, end: 30 },
+}
+
+// mapping between moisture zones and temperatures which returns biome
+export const biomeRanges = {
+  [EMoistureZone.BARREN]: {
+    [ETemperatureZone.ARCTIC]: EBiome.TUNDRA,
+    [ETemperatureZone.SUBARCTIC]: EBiome.TUNDRA,
+    [ETemperatureZone.TEMPERATE]: EBiome.GRASSLAND,
+    [ETemperatureZone.SUBTROPICAL]: EBiome.GRASSLAND,
+    [ETemperatureZone.TROPICAL]: EBiome.DESERT,
+  },
+  [EMoistureZone.ARID]: {
+    [ETemperatureZone.ARCTIC]: EBiome.TUNDRA,
+    [ETemperatureZone.SUBARCTIC]: EBiome.TUNDRA,
+    [ETemperatureZone.TEMPERATE]: EBiome.SHRUBLAND,
+    [ETemperatureZone.SUBTROPICAL]: EBiome.SHRUBLAND,
+    [ETemperatureZone.TROPICAL]: EBiome.DESERT,
+  },
+  [EMoistureZone.SEMIARID]: {
+    [ETemperatureZone.ARCTIC]: EBiome.TUNDRA,
+    [ETemperatureZone.SUBARCTIC]: EBiome.BOREAL_FOREST,
+    [ETemperatureZone.TEMPERATE]: EBiome.TEMPERATE_FOREST,
+    [ETemperatureZone.SUBTROPICAL]: EBiome.SHRUBLAND,
+    [ETemperatureZone.TROPICAL]: EBiome.SAVANNA,
+  },
+  [EMoistureZone.SEMIWET]: {
+    [ETemperatureZone.ARCTIC]: EBiome.TUNDRA,
+    [ETemperatureZone.SUBARCTIC]: EBiome.BOREAL_FOREST,
+    [ETemperatureZone.TEMPERATE]: EBiome.TEMPERATE_FOREST,
+    [ETemperatureZone.SUBTROPICAL]: EBiome.TEMPERATE_FOREST,
+    [ETemperatureZone.TROPICAL]: EBiome.TROPICAL_FOREST,
+  },
+  [EMoistureZone.WET]: {
+    [ETemperatureZone.ARCTIC]: EBiome.TUNDRA,
+    [ETemperatureZone.SUBARCTIC]: EBiome.BOREAL_FOREST,
+    [ETemperatureZone.TEMPERATE]: EBiome.TEMPERATE_RAINFOREST,
+    [ETemperatureZone.SUBTROPICAL]: EBiome.TEMPERATE_RAINFOREST,
+    [ETemperatureZone.TROPICAL]: EBiome.TROPICAL_RAINFOREST,
+  },
+}
+
 export enum EDirection {
   NONE,
   UP,
