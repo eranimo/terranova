@@ -55,7 +55,7 @@ export const biomeTitles = {
 }
 
 export const biomeColors = {
-  [EBiome.NONE]: 0x000000,
+  [EBiome.NONE]: 0x4783A0,
   [EBiome.TUNDRA]: 0x96D1C3,
   [EBiome.BOREAL_FOREST]: 0x006259,
   [EBiome.SHRUBLAND]: 0xB26A47,
@@ -78,8 +78,8 @@ export const moistureZoneRanges = {
 
 export const temperatureZoneRanges = {
   [ETemperatureZone.ARCTIC]: { start: -50, end: -10 },
-  [ETemperatureZone.SUBARCTIC]: { start: -10, end: 5 },
-  [ETemperatureZone.TEMPERATE]: { start: 5, end: 15 },
+  [ETemperatureZone.SUBARCTIC]: { start: -10, end: 2 },
+  [ETemperatureZone.TEMPERATE]: { start: 2, end: 15 },
   [ETemperatureZone.SUBTROPICAL]: { start: 15, end: 20 },
   [ETemperatureZone.TROPICAL]: { start: 20, end: 30 },
 }
@@ -143,6 +143,7 @@ export class Cell {
   upstreamCount: number;
   isLand: boolean;
   moisture: number;
+  biome: EBiome;
 
   constructor(
     world: World,
@@ -155,6 +156,7 @@ export class Cell {
       temperature,
       upstreamCount,
       moisture,
+      biome,
     }: {
       x: number,
       y: number,
@@ -164,6 +166,7 @@ export class Cell {
       temperature: number,
       upstreamCount: number,
       moisture: number,
+      biome: EBiome,
     }
   ) {
     this.world = world;
@@ -176,6 +179,7 @@ export class Cell {
     this.temperature = temperature;
     this.upstreamCount = upstreamCount;
     this.moisture = moisture;
+    this.biome = biome;
   }
 }
 
@@ -215,6 +219,7 @@ export default class World {
     const temperatures = ndarray(params.temperatures, [this.size.width, this.size.height]);
     const upstreamCells = ndarray(params.upstreamCells, [this.size.width, this.size.height]);
     const moistureMap = ndarray(params.moistureMap, [this.size.width, this.size.height]);
+    const biomes = ndarray(params.biomes, [this.size.width, this.size.height]);
     for (let x = 0; x < this.size.width; x++) {
       this.grid[x] = [];
       for (let y = 0; y < this.size.height; y++) {
@@ -226,6 +231,7 @@ export default class World {
           temperature: temperatures.get(x, y),
           upstreamCount: upstreamCells.get(x, y),
           moisture: moistureMap.get(x, y),
+          biome: biomes.get(x, y),
         });
         this.cells.add(cell);
         this.grid[x][y] = cell;

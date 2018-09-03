@@ -563,7 +563,10 @@ function generateBiomes(
   const { size: { width, height } } = options;
   const biomes = ndarray(new Int16Array(width * height), [width, height]);
   fill(biomes, (x, y) => {
-    if (terrainTypes.get(x, y,) === ETerrainType.OCEAN) {
+    if (
+      terrainTypes.get(x, y,) === ETerrainType.OCEAN ||
+      terrainTypes.get(x, y,) === ETerrainType.LAKE
+    ) {
       return EBiome.NONE;
     }
     const moisture = moistureMap.get(x, y) / 10;
@@ -645,6 +648,7 @@ onmessage = function (event: MessageEvent) {
     upstreamCells: upstreamCells.data,
     temperatures: temperatures.data,
     moistureMap: moistureMap.data,
+    biomes: biomes.data,
   };
   (postMessage as any)(output);
 }

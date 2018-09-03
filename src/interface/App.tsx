@@ -29,7 +29,8 @@ export default class App extends React.Component<{
       showDrainageBasinLabels: false,
       drawCoastline: true,
       drawGrid: false,
-      overlay: 'none'
+      overlay: 'none',
+      showBiomes: false,
     },
     isGenerating: false,
   }
@@ -115,6 +116,14 @@ export default class App extends React.Component<{
                       checked={this.state.viewOptions.showDrainageBasinLabels}
                       onChange={this.onChangeField('showDrainageBasinLabels')}
                       label='Show drainage basin overlays'
+                    />
+                  </li>
+                  <li>
+                    <Checkbox
+                      inline
+                      checked={this.state.viewOptions.showBiomes}
+                      onChange={this.onChangeField('showBiomes')}
+                      label='Show biomes'
                     />
                   </li>
                 </ul>

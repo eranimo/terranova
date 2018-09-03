@@ -25,6 +25,7 @@ export interface IWorldgenWorkerOutput {
   upstreamCells: ndarray.Data<number>;
   temperatures: ndarray.Data<number>;
   moistureMap: ndarray.Data<number>;
+  biomes: ndarray.Data<number>;
 }
 
 export class Simulation {

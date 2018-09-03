@@ -1,6 +1,6 @@
 import React, { ReactElement } from 'react';
 import * as PIXI from 'pixi.js';
-import World, { Cell, ETerrainType, EDirection } from '../simulation/world';
+import World, { Cell, ETerrainType, EDirection, biomeColors, EBiome } from '../simulation/world';
 import Viewport from 'pixi-viewport';
 import boxboxIntersection from 'intersects/box-box';
 import colormap from 'colormap';
@@ -59,6 +59,7 @@ export interface IViewOptions {
   overlay: string;
   drawCoastline: boolean;
   drawGrid: boolean;
+  showBiomes: boolean;
 }
 
 interface IViewState {
@@ -72,6 +73,7 @@ interface IViewState {
   };
   coastlineBorder: PIXI.Sprite;
   gridLines: PIXI.Sprite;
+  biomeSprite: PIXI.Sprite;
 }
 
 function rgbToNumber(r: number, g: number, b: number): number {
@@ -183,6 +185,26 @@ function drawGridLines(world: World): PIXI.Sprite {
   return new PIXI.Sprite(g.generateCanvasTexture());
 }
 
+function drawBiomes(world: World) {
+  const g = new PIXI.Graphics();
+  g.drawRect(0, 0, 1, 1);
+  for (const [biome, color] of Object.entries(biomeColors)) {
+    g.beginFill(color);
+    for (const cell of world.cells) {
+      if (cell.biome === parseInt(biome, 10)) {
+        g.drawRect(
+          cell.x * CELL_WIDTH,
+          cell.y * CELL_HEIGHT,
+          CELL_WIDTH,
+          CELL_HEIGHT
+        );
+      }
+    }
+    g.endFill();
+  }
+  return new PIXI.Sprite(g.generateCanvasTexture());
+}
+
 function createWorldViewer({
   world, textures, element,
 }: {
@@ -266,6 +288,10 @@ function createWorldViewer({
     a.isLand && !b.isLand
   ));
   viewport.addChild(coastlineBorder);
+
+
+  const biomeSprite = drawBiomes(world);
+  viewport.addChild(biomeSprite);
 
   const gridLines = drawGridLines(world);
   gridLines.alpha = 0.5;
@@ -379,6 +405,7 @@ function createWorldViewer({
     overlays,
     coastlineBorder,
     gridLines,
+    biomeSprite,
   };
 }
 
@@ -425,6 +452,7 @@ export default class WorldViewer extends React.Component<IWorldViewerProps> {
     this.viewState.drainageBasinLayer.visible = props.viewOptions.showDrainageBasinLabels;
     this.viewState.coastlineBorder.visible = props.viewOptions.drawCoastline;
     this.viewState.gridLines.visible = props.viewOptions.drawGrid;
+    this.viewState.biomeSprite.visible = props.viewOptions.showBiomes;
     if (props.viewOptions.overlay === 'none') {
       for (const name of Object.keys(cellOverlays)) {
         this.viewState.overlays[name].visible = false;
