@@ -222,7 +222,10 @@ function createWorldViewer({
     height: screenHeight,
     antialias: false,
     roundPixels: true,
+    forceCanvas: false,
+    legacy: true,
   });
+  (window as any).pixi = app;
   PIXI.settings.SCALE_MODE = PIXI.SCALE_MODES.NEAREST;
   const worldWidth = world.size.width * CELL_WIDTH;
   const worldHeight = world.size.height * CELL_HEIGHT;
