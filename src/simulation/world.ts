@@ -9,6 +9,7 @@ export enum ETerrainType {
   RIVER,
   LAKE,
   COAST,
+  MOUNTAIN,
 }
 
 export enum EBiome {

@@ -15,6 +15,7 @@ const terrainTextureColors = {
   [ETerrainType.RIVER]: 0x5292B5,
   [ETerrainType.LAKE]: 0xB5FADE,
   [ETerrainType.COAST]: 0x367593,
+  [ETerrainType.MOUNTAIN]: 0x705e55,
 }
 
 const directionAngles = {

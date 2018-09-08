@@ -100,7 +100,8 @@ function isContinental(cell) {
   return (
     cell === ETerrainType.LAND ||
     cell === ETerrainType.LAKE ||
-    cell === ETerrainType.RIVER
+    cell === ETerrainType.RIVER ||
+    cell === ETerrainType.MOUNTAIN
   );
 }
 
@@ -606,6 +607,28 @@ function generateBiomes(
   return biomes;
 }
 
+function decideMountains(
+  options: IWorldgenOptions,
+  terrainTypes: ndarray,
+  waterheight: ndarray,
+  sealevel: number
+) {
+  const { size: { width, height } } = options;
+  const maxHeight = ops.sup(waterheight);
+  const maxAltitude = maxHeight - sealevel;
+  const data = Array.from(waterheight.data).map(value => value - sealevel);
+  const mountainThreshold = Stats.quantile(data, .99);
+
+  for (let x = 0; x < width; x++) {
+    for (let y = 0; y < height; y++) {
+      const altitude = waterheight.get(x, y) - sealevel;
+      if (altitude >= mountainThreshold) {
+        terrainTypes.set(x, y, ETerrainType.MOUNTAIN);
+      }
+    }
+  }
+}
+
 onmessage = function (event: MessageEvent) {
   const options: IWorldgenOptions = event.data;
   const sealevel = 102;
@@ -624,7 +647,7 @@ onmessage = function (event: MessageEvent) {
   console.timeEnd('step: determineFlowDirections');
 
   console.time('step: decideTerrainTypes');
-  const { terrainTypes, upstreamCells } = decideTerrainTypes(options, sealevel, heightmap, waterheight, flowDirections, cellNeighbors);
+  let { terrainTypes, upstreamCells } = decideTerrainTypes(options, sealevel, heightmap, waterheight, flowDirections, cellNeighbors);
   console.timeEnd('step: decideTerrainTypes');
 
   console.time('step: decideDrainageBasins');
@@ -639,9 +662,14 @@ onmessage = function (event: MessageEvent) {
   const moistureMap = generateMoisture(options, heightmap, sealevel, terrainTypes);
   console.timeEnd('step: generateMoisture');
 
-  console.time('step: generateMoisture');
+  console.time('step: generateBiomes');
   const biomes = generateBiomes(options, temperatures, moistureMap, terrainTypes);
-  console.timeEnd('step: generateMoisture');
+  console.timeEnd('step: generateBiomes');
+
+  console.time('step: decideMountains');
+  decideMountains(options, terrainTypes, waterheight, sealevel);
+  console.timeEnd('step: decideMountains');
+
 
   console.log('upstreamCells', ndarrayStats(upstreamCells));
   console.log('moistureMap', ndarrayStats(moistureMap));
