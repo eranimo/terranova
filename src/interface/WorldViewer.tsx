@@ -13,7 +13,7 @@ const terrainTextureColors = {
   [ETerrainType.OCEAN]: 0x215b77,
   [ETerrainType.LAND]: 0x809973,
   [ETerrainType.RIVER]: 0x5292B5,
-  [ETerrainType.LAKE]: 0xB5FADE,
+  [ETerrainType.LAKE]: 0x4a749b,
   [ETerrainType.COAST]: 0x367593,
   [ETerrainType.MOUNTAIN]: 0x705e55,
 }

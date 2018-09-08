@@ -494,7 +494,9 @@ function decideTemperature(
       // shallow seas are warmer than deep oceans
       part2 = (1 - (Math.abs(altitude) / sealevel)) * 10;
     } else {
-      part2 = 10 + (altitude / maxAltitude) * -15;
+      // higher is colder
+      // lower is warmer
+      part2 = 10 + (altitude / maxAltitude) * -30;
     }
     return radiation + part2;
   });
@@ -531,7 +533,7 @@ function generateMoisture(
         let size = 15 + Math.round(rng() * 10); // 15 to 25
         cells = loopGridCircle(x, y, size);
         for (const [cx, cy] of cells) {
-          if (isContinental(terrainTypes)) {
+          if (isContinental(terrainTypes.get(x, y))) {
             moistureMap.set(cx, cy, moistureMap.get(cx, cy) + riverAdd);
           }
         }
@@ -539,7 +541,7 @@ function generateMoisture(
         size = 5 + Math.round(rng() * 10); // 5 to 15
         cells = loopGridCircle(x, y, size);
         for (const [cx, cy] of cells) {
-          if (isContinental(terrainTypes)) {
+          if (isContinental(terrainTypes.get(x, y))) {
             moistureMap.set(cx, cy, moistureMap.get(cx, cy) + (riverAdd * 2));
           }
         }
@@ -547,7 +549,7 @@ function generateMoisture(
         size = 5 + Math.round(rng() * 5); // 5 to 10
         cells = loopGridCircle(x, y, size);
         for (const [cx, cy] of cells) {
-          if (isContinental(terrainTypes)) {
+          if (isContinental(terrainTypes.get(x, y))) {
             moistureMap.set(cx, cy, moistureMap.get(cx, cy) + (riverAdd * 3));
           }
         }
@@ -650,6 +652,10 @@ onmessage = function (event: MessageEvent) {
   let { terrainTypes, upstreamCells } = decideTerrainTypes(options, sealevel, heightmap, waterheight, flowDirections, cellNeighbors);
   console.timeEnd('step: decideTerrainTypes');
 
+  console.time('step: decideMountains');
+  decideMountains(options, terrainTypes, waterheight, sealevel);
+  console.timeEnd('step: decideMountains');
+
   console.time('step: decideDrainageBasins');
   const drainageBasins = decideDrainageBasins(options, cellNeighbors, waterheight, terrainTypes);
   console.timeEnd('step: decideDrainageBasins');
@@ -665,10 +671,6 @@ onmessage = function (event: MessageEvent) {
   console.time('step: generateBiomes');
   const biomes = generateBiomes(options, temperatures, moistureMap, terrainTypes);
   console.timeEnd('step: generateBiomes');
-
-  console.time('step: decideMountains');
-  decideMountains(options, terrainTypes, waterheight, sealevel);
-  console.timeEnd('step: decideMountains');
 
 
   console.log('upstreamCells', ndarrayStats(upstreamCells));
