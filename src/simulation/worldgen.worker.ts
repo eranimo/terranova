@@ -89,6 +89,21 @@ function loopGridCircle(x, y, radius) {
   return cells;
 }
 
+function isOceanic(cell) {
+  return (
+    cell === ETerrainType.OCEAN ||
+    cell === ETerrainType.COAST
+  );
+}
+
+function isContinental(cell) {
+  return (
+    cell === ETerrainType.LAND ||
+    cell === ETerrainType.LAKE ||
+    cell === ETerrainType.RIVER
+  );
+}
+
 //////
 
 function generateHeightmap(options: IWorldgenOptions) {
@@ -331,7 +346,11 @@ function decideTerrainTypes(
   let oceanCellCount = 0;
   fill(terrainTypes, (x, y) => {
     if (isOcean.get(x, y)) {
+      const waterDepth = sealevel - waterheight.get(x, y);
       oceanCellCount++;
+      if (waterDepth < 10) {
+        return ETerrainType.COAST;
+      }
       return ETerrainType.OCEAN;
     }
     if (isLake.get(x, y) === 1) {
@@ -413,7 +432,7 @@ function decideDrainageBasins(
   } = {};
   for (let x = 0; x < width; x++) {
     for (let y = 0; y < height; y++) {
-      if (terrainTypes.get(x, y) === ETerrainType.OCEAN) continue;
+      if (isOceanic(terrainTypes.get(x, y))) continue;
       const id: number = labels[x][y];
       if (!(id in drainageBasins)) {
         const red: number = Math.round(rng() * 255);
@@ -493,7 +512,7 @@ function generateMoisture(
   const moistureMap = ndarray(new Int16Array(width * height), [width, height]);
   const simplex = new SimplexNoise(rng);
   fill(moistureMap, (x, y) => {
-    if (terrainTypes.get(x, y) !== ETerrainType.OCEAN) {
+    if (isContinental(terrainTypes.get(x, y))) {
       const nx = x / width - 0.5;
       const ny = y / height - 0.5;
       const moisture = ((simplex.noise2D(3 * nx, 3 * ny) + 1) / 2);
@@ -511,10 +530,7 @@ function generateMoisture(
         let size = 15 + Math.round(rng() * 10); // 15 to 25
         cells = loopGridCircle(x, y, size);
         for (const [cx, cy] of cells) {
-          if (
-            terrainTypes.get(cx, cy) !== undefined &&
-            terrainTypes.get(cx, cy) !== ETerrainType.OCEAN
-          ) {
+          if (isContinental(terrainTypes)) {
             moistureMap.set(cx, cy, moistureMap.get(cx, cy) + riverAdd);
           }
         }
@@ -522,10 +538,7 @@ function generateMoisture(
         size = 5 + Math.round(rng() * 10); // 5 to 15
         cells = loopGridCircle(x, y, size);
         for (const [cx, cy] of cells) {
-          if (
-            terrainTypes.get(cx, cy) !== undefined &&
-            terrainTypes.get(cx, cy) !== ETerrainType.OCEAN
-          ) {
+          if (isContinental(terrainTypes)) {
             moistureMap.set(cx, cy, moistureMap.get(cx, cy) + (riverAdd * 2));
           }
         }
@@ -533,10 +546,7 @@ function generateMoisture(
         size = 5 + Math.round(rng() * 5); // 5 to 10
         cells = loopGridCircle(x, y, size);
         for (const [cx, cy] of cells) {
-          if (
-            terrainTypes.get(cx, cy) !== undefined &&
-            terrainTypes.get(cx, cy) !== ETerrainType.OCEAN
-          ) {
+          if (isContinental(terrainTypes)) {
             moistureMap.set(cx, cy, moistureMap.get(cx, cy) + (riverAdd * 3));
           }
         }
@@ -565,6 +575,7 @@ function generateBiomes(
   fill(biomes, (x, y) => {
     if (
       terrainTypes.get(x, y,) === ETerrainType.OCEAN ||
+      terrainTypes.get(x, y,) === ETerrainType.COAST ||
       terrainTypes.get(x, y,) === ETerrainType.LAKE
     ) {
       return EBiome.NONE;

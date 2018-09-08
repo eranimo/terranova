@@ -8,6 +8,7 @@ export enum ETerrainType {
   LAND,
   RIVER,
   LAKE,
+  COAST,
 }
 
 export enum EBiome {
@@ -174,7 +175,7 @@ export class Cell {
     this.y = y;
     this.height = height;
     this.terrainType = terrainType;
-    this.isLand = terrainType !== ETerrainType.OCEAN;
+    this.isLand = terrainType !== ETerrainType.OCEAN && terrainType !== ETerrainType.COAST;
     this.flowDir = flowDir;
     this.temperature = temperature;
     this.upstreamCount = upstreamCount;

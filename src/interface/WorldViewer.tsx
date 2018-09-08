@@ -10,10 +10,11 @@ const CELL_WIDTH = 10;
 const CELL_HEIGHT = 10;
 
 const terrainTextureColors = {
-  [ETerrainType.OCEAN]: 0x4783A0,
+  [ETerrainType.OCEAN]: 0x215b77,
   [ETerrainType.LAND]: 0x809973,
   [ETerrainType.RIVER]: 0x5292B5,
   [ETerrainType.LAKE]: 0xB5FADE,
+  [ETerrainType.COAST]: 0x367593,
 }
 
 const directionAngles = {
