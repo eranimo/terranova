@@ -104,7 +104,7 @@ function makeTerrainTexture(width: number, height: number, color: number): PIXI.
 }
 
 function makeCellOverlay(world: World, overlay: ICellOverlay): PIXI.Sprite {
-  const g = new PIXI.Graphics();
+  const g = new PIXI.Graphics(true);
   const colors: [number, number, number, number][] = colormap({
     nshades: 101,
     format: 'rba',
@@ -186,7 +186,7 @@ function drawGridLines(world: World): PIXI.Sprite {
 }
 
 function drawBiomes(world: World) {
-  const g = new PIXI.Graphics();
+  const g = new PIXI.Graphics(true);
   g.drawRect(0, 0, 1, 1);
   for (const [biome, color] of Object.entries(biomeColors)) {
     g.beginFill(color);
