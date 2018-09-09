@@ -1,5 +1,6 @@
 import ndarray from 'ndarray';
 import World from './world';
+import localforage from 'localforage';
 
 
 export interface IWorldgenOptions {
@@ -28,15 +29,25 @@ export interface IWorldgenWorkerOutput {
   biomes: ndarray.Data<number>;
 }
 
+export interface IWorldSaveData {
+  name: string;
+  saveDate: number;
+  worldData: IWorldgenWorkerOutput;
+}
+
 export class Simulation {
   ticks: number;
   options: IWorldgenOptions;
   world?: World;
+  saveStore: LocalForage;
 
   constructor(options: IWorldgenOptions) {
     this.ticks = 0;
     this.options = options;
     this.world = null;
+    this.saveStore = localforage.createInstance({
+      name: 'world-saves'
+    });
   }
 
   async generate() {
@@ -52,6 +63,24 @@ export class Simulation {
       }
     });
   }
+
+  async getWorldSaves(): Promise<string[]> {
+    return await this.saveStore.keys();
+  }
+
+  async saveWorld(name: string): Promise<void> {
+    const data: IWorldSaveData = {
+      name,
+      saveDate: Date.now(),
+      worldData: this.world.params,
+    };
+    await this.saveStore.setItem(name, data);
+  }
+
+  async loadWorld(name: string): Promise<void> {
+    const data = await this.saveStore.getItem(name) as IWorldSaveData;
+    this.world = new World(data.worldData as IWorldgenWorkerOutput);
+  }
 }
 
 export async function createSimulation(): Promise<Simulation> {
@@ -63,5 +92,6 @@ export async function createSimulation(): Promise<Simulation> {
     },
   });
   await sim.generate();
+  (window as any).simulation = sim;
   return sim;
 }

@@ -209,8 +209,10 @@ export default class World {
   };
   sealevel: number;
   drainageBasins: DrainageBasin[];
+  params: IWorldgenWorkerOutput;
 
   constructor(params: IWorldgenWorkerOutput) {
+    this.params = params;
     this.grid = [];
     this.cells = new Set();
     this.size = params.options.size;
