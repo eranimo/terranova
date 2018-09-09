@@ -37,30 +37,30 @@ export interface IWorldSaveData {
 
 export class Simulation {
   ticks: number;
-  options: IWorldgenOptions;
   world?: World;
   saveStore: LocalForage;
 
-  constructor(options: IWorldgenOptions) {
+  constructor() {
     this.ticks = 0;
-    this.options = options;
     this.world = null;
     this.saveStore = localforage.createInstance({
       name: 'world-saves'
     });
   }
 
-  async generate() {
+  async generate(options: IWorldgenOptions) {
     // make a new World
-    return new Promise(resolve => {
+    return new Promise((resolve, reject) => {
       const worker = new Worker('./worldgen.worker.ts');
-      worker.postMessage(this.options);
+      worker.postMessage(options);
       worker.onmessage = (message: MessageEvent) => {
         console.log('[worker]', message.data);
-        this.world = new World(message.data as IWorldgenWorkerOutput);
-        console.log('World init', this.world);
+        const world = new World(message.data as IWorldgenWorkerOutput);
+        console.log('World init', world);
+        this.world = world;
         resolve();
       }
+      worker.onerror = error => reject(error);
     });
   }
 
@@ -84,14 +84,7 @@ export class Simulation {
 }
 
 export async function createSimulation(): Promise<Simulation> {
-  const sim = new Simulation({
-    seed: 'fuck',
-    size: {
-      width: 250,
-      height: 200,
-    },
-  });
-  await sim.generate();
+  const sim = new Simulation();
   (window as any).simulation = sim;
   return sim;
 }

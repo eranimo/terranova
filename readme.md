@@ -4,7 +4,6 @@ World generator
 
 # Routes
 
-- `/`: Main menu
-- `/new`: New World generator
+- `/`: New world
 - `/load`: View all saved worlds
 - `/world/:worldName`: world view (loads world from saves)
