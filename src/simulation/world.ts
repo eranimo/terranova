@@ -75,7 +75,7 @@ export const moistureZoneRanges = {
   [EMoistureZone.ARID]: { start: 25, end: 50 },
   [EMoistureZone.SEMIARID]: { start: 50, end: 100 },
   [EMoistureZone.SEMIWET]: { start: 100, end: 200 },
-  [EMoistureZone.WET]: { start: 200, end: 500 },
+  [EMoistureZone.WET]: { start: 200, end: Infinity },
 }
 
 export const temperatureZoneRanges = {
@@ -83,7 +83,7 @@ export const temperatureZoneRanges = {
   [ETemperatureZone.SUBARCTIC]: { start: -10, end: 2 },
   [ETemperatureZone.TEMPERATE]: { start: 2, end: 15 },
   [ETemperatureZone.SUBTROPICAL]: { start: 15, end: 20 },
-  [ETemperatureZone.TROPICAL]: { start: 20, end: 30 },
+  [ETemperatureZone.TROPICAL]: { start: 20, end: Infinity },
 }
 
 // mapping between moisture zones and temperatures which returns biome

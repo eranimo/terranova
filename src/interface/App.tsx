@@ -21,6 +21,7 @@ import {
   Classes,
   AnchorButton,
   Intent,
+  NumericInput,
 } from '@blueprintjs/core';
 import { Simulation } from '../simulation';
 import WorldViewer, { IViewOptions, cellOverlays } from './WorldViewer';
@@ -277,6 +278,38 @@ class NewWorldView extends Component<RouteComponentProps<{}>, {
                   })}
                 />
               </ControlGroup>
+            </FormGroup>
+            <FormGroup
+              label="Width"
+            >
+              <NumericInput
+                value={this.state.options.size.width}
+                onValueChange={value => this.setState({
+                  options: {
+                    ...this.state.options,
+                    size: {
+                      ...this.state.options.size,
+                      width: value,
+                    }
+                  },
+                })}
+              />
+            </FormGroup>
+            <FormGroup
+              label="Height"
+            >
+              <NumericInput
+                value={this.state.options.size.height}
+                onValueChange={value => this.setState({
+                  options: {
+                    ...this.state.options,
+                    size: {
+                      ...this.state.options.size,
+                      height: value,
+                    }
+                  },
+                })}
+              />
             </FormGroup>
           </div>
         </Popover>

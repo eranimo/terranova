@@ -4,6 +4,7 @@ import World, { Cell, ETerrainType, EDirection, biomeColors, EBiome } from '../s
 import Viewport from 'pixi-viewport';
 import boxboxIntersection from 'intersects/box-box';
 import colormap from 'colormap';
+import * as _ from 'lodash';
 
 
 const CELL_WIDTH = 10;
@@ -112,9 +113,22 @@ function makeCellOverlay(world: World, overlay: ICellOverlay): PIXI.Sprite {
     format: 'rba',
     colormap: overlay.colormap
   });
-  const data = Array.from(world.cells).map(cell => cell[overlay.datapoint]);
-  const min = Math.min(...data);
-  const max = Math.max(...data);
+  // const data = Array.from(world.cells).map(cell => cell[overlay.datapoint]);
+  // const min = _.min(data);
+  // const max = _.max(data);
+  const data = [];
+  let item;
+  let min = Infinity;
+  let max = -Infinity;
+  for (const cell of world.cells) {
+    item = cell[overlay.datapoint];
+    data.push(item);
+    if (item < min) {
+      min = item;
+    } else if (item > max) {
+      max = item;
+    }
+  }
   for (const cell of world.cells) {
     const index = Math.round(((cell[overlay.datapoint] - min) / (max - min)) * 100);
     const color = colors[index];
