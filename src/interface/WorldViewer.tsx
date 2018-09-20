@@ -1,6 +1,6 @@
 import React, { ReactElement } from 'react';
 import * as PIXI from 'pixi.js';
-import World, { Cell, ETerrainType, EDirection, biomeColors, EBiome } from '../simulation/world';
+import World, { Cell, ETerrainType, EDirection, biomeLabelColors, EBiome } from '../simulation/world';
 import Viewport from 'pixi-viewport';
 import boxboxIntersection from 'intersects/box-box';
 import colormap from 'colormap';
@@ -129,13 +129,16 @@ function makeCellOverlay(world: World, overlay: ICellOverlay): PIXI.Sprite {
       max = item;
     }
   }
+  let index: number;
+  let color: number[];
+  let colorNum: number;
   for (const cell of world.cells) {
-    const index = Math.round(((cell[overlay.datapoint] - min) / (max - min)) * 100);
-    const color = colors[index];
+    index = Math.round(((cell[overlay.datapoint] - min) / (max - min)) * 100);
+    color = colors[index];
     if (!color) {
       throw new Error(`No color for index ${index}`);
     }
-    const colorNum = rgbToNumber(color[0], color[1], color[2]);
+    colorNum = rgbToNumber(color[0], color[1], color[2]);
     g.beginFill(colorNum);
     g.drawRect(
       cell.x * CELL_WIDTH,
@@ -204,7 +207,7 @@ function drawGridLines(world: World): PIXI.Sprite {
 function drawBiomes(world: World) {
   const g = new PIXI.Graphics(true);
   g.drawRect(0, 0, 1, 1);
-  for (const [biome, color] of Object.entries(biomeColors)) {
+  for (const [biome, color] of Object.entries(biomeLabelColors)) {
     g.beginFill(color);
     for (const cell of world.cells) {
       if (cell.biome === parseInt(biome, 10)) {
@@ -231,6 +234,8 @@ function createWorldViewer({
     arrowTexture: PIXI.Texture,
   },
 }): IViewState {
+  console.group('World viewer');
+  console.time('total time');
   const screenWidth = window.innerWidth;
   const screenHeight = (window.innerHeight - 50);
   const app = new PIXI.Application({
@@ -296,27 +301,36 @@ function createWorldViewer({
   const overlays: { [name: string]: PIXI.Sprite } = {};
 
   // draw cell overlays
+  console.time('building overlay')
   for (const [name, overlay] of Object.entries(cellOverlays)) {
     const overlaySprite = makeCellOverlay(world, overlay);
     overlaySprite.name = name;
     overlays[name] = overlaySprite;
     overlayLayer.addChild(overlaySprite);
   }
+  console.timeEnd('building overlay')
 
+  console.time('building coastline borders')
   const coastlineBorder = drawCoastlineBorder(world, (a: Cell, b: Cell) => (
     a.isLand && !b.isLand
   ));
   viewport.addChild(coastlineBorder);
+  console.timeEnd('building coastline borders')
 
 
+  console.time('building biomes')
   const biomeSprite = drawBiomes(world);
   viewport.addChild(biomeSprite);
+  console.timeEnd('building biomes')
 
+  console.time('building grid lines')
   const gridLines = drawGridLines(world);
   gridLines.alpha = 0.5;
   viewport.addChild(gridLines);
+  console.timeEnd('building grid lines')
 
   const cellSpriteMap = new Map();
+  console.time('building cells')
   for (const cell of world.cells) {
     // terrain
     const terrainTexture = textures.terrainTextures[cell.terrainType];
@@ -393,6 +407,11 @@ function createWorldViewer({
     //   cellSpriteMap.set(cell, [terrainSprite]);
     // }
   }
+  console.timeEnd('building cells')
+
+  terrainLayer.cacheAsBitmap = true;
+  arrowLayer.cacheAsBitmap = true;
+  drainageBasinLayer.cacheAsBitmap = true;
 
   // viewport culling
   function cullOffscreenCells() {
@@ -411,9 +430,12 @@ function createWorldViewer({
       }
     }
   }
-  viewport.on('moved', cullOffscreenCells);
-  // viewport.zoomPercent(0.25);
-  cullOffscreenCells();
+  // viewport.on('moved', cullOffscreenCells);
+  // // viewport.zoomPercent(0.25);
+  // cullOffscreenCells();
+
+  console.timeEnd('total time');
+  console.groupEnd();
 
   return {
     app,

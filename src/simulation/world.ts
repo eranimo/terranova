@@ -56,7 +56,7 @@ export const biomeTitles = {
   [EBiome.TROPICAL_RAINFOREST]: 'Tropical Rainforest'
 }
 
-export const biomeColors = {
+export const biomeLabelColors = {
   [EBiome.NONE]: 0x4783A0,
   [EBiome.TUNDRA]: 0x96D1C3,
   [EBiome.BOREAL_FOREST]: 0x006259,
