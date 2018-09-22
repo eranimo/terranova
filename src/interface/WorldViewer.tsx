@@ -12,7 +12,7 @@ const CELL_HEIGHT = 10;
 
 const terrainTextureColors = {
   [ETerrainType.OCEAN]: 0x215b77,
-  [ETerrainType.LAND]: 0x809973,
+  [ETerrainType.LAND]: 0x809973, // replace with Low and High land
   [ETerrainType.RIVER]: 0x5292B5,
   [ETerrainType.LAKE]: 0x4a749b,
   [ETerrainType.COAST]: 0x367593,
@@ -27,32 +27,48 @@ const directionAngles = {
   [EDirection.UP]: 0,
 }
 
-export interface ICellOverlay {
+const mapModeRenderFunctions = {
+  overlay: makeCellOverlay,
+};
+
+interface IMapMode {
   title: string;
-  datapoint: string;
-  colormap: string;
+  renderFunc: keyof typeof mapModeRenderFunctions;
+  options: Record<string, any>;
 }
 
-export const cellOverlays: { [name: string]: ICellOverlay } = {
+export const mapModes: Record<string, IMapMode> = {
   height: {
     title: 'Height',
-    datapoint: 'height',
-    colormap: 'bathymetry',
+    renderFunc: 'overlay',
+    options: {
+      datapoint: 'height',
+      colormap: 'bathymetry'
+    }
   },
   temperature: {
     title: 'Temperature',
-    datapoint: 'temperature',
-    colormap: 'jet',
+    renderFunc: 'overlay',
+    options: {
+      datapoint: 'temperature',
+      colormap: 'jet',
+    },
   },
   moisture: {
     title: 'Moisture',
-    datapoint: 'moisture',
-    colormap: 'cool',
+    renderFunc: 'overlay',
+    options: {
+      datapoint: 'moisture',
+      colormap: 'cool',
+    },
   },
   upstreamCount: {
     title: 'Upstream Cell Count',
-    datapoint: 'upstreamCount',
-    colormap: 'velocity-blue',
+    renderFunc: 'overlay',
+    options: {
+      datapoint: 'upstreamCount',
+      colormap: 'velocity-blue',
+    },
   }
 }
 
@@ -71,9 +87,7 @@ interface IViewState {
   textLayer: PIXI.Container;
   arrowLayer: PIXI.Container;
   drainageBasinLayer: PIXI.Container;
-  overlays: {
-    [name: string]: PIXI.Sprite;
-  };
+  mapModeSprites: Record<string, PIXI.Sprite>;
   coastlineBorder: PIXI.Sprite;
   gridLines: PIXI.Sprite;
   biomeSprite: PIXI.Sprite;
@@ -106,22 +120,19 @@ function makeTerrainTexture(width: number, height: number, color: number): PIXI.
   return g.generateCanvasTexture();
 }
 
-function makeCellOverlay(world: World, overlay: ICellOverlay): PIXI.Sprite {
+function makeCellOverlay(world: World, options: any): PIXI.Sprite {
   const g = new PIXI.Graphics(true);
   const colors: [number, number, number, number][] = colormap({
     nshades: 101,
     format: 'rba',
-    colormap: overlay.colormap
+    colormap: options.colormap
   });
-  // const data = Array.from(world.cells).map(cell => cell[overlay.datapoint]);
-  // const min = _.min(data);
-  // const max = _.max(data);
   const data = [];
   let item;
   let min = Infinity;
   let max = -Infinity;
   for (const cell of world.cells) {
-    item = cell[overlay.datapoint];
+    item = cell[options.datapoint];
     data.push(item);
     if (item < min) {
       min = item;
@@ -133,7 +144,7 @@ function makeCellOverlay(world: World, overlay: ICellOverlay): PIXI.Sprite {
   let color: number[];
   let colorNum: number;
   for (const cell of world.cells) {
-    index = Math.round(((cell[overlay.datapoint] - min) / (max - min)) * 100);
+    index = Math.round(((cell[options.datapoint] - min) / (max - min)) * 100);
     color = colors[index];
     if (!color) {
       throw new Error(`No color for index ${index}`);
@@ -292,21 +303,25 @@ function createWorldViewer({
   const textLayer = new PIXI.Container();
   const arrowLayer = new PIXI.Container();
   const drainageBasinLayer = new PIXI.Container();
-  const overlayLayer = new PIXI.Container();
+  const mapModesLayer = new PIXI.Container();
   viewport.addChild(terrainLayer);
   viewport.addChild(textLayer);
   viewport.addChild(drainageBasinLayer);
-  viewport.addChild(overlayLayer);
+  viewport.addChild(mapModesLayer);
   viewport.addChild(arrowLayer);
-  const overlays: { [name: string]: PIXI.Sprite } = {};
+  const mapModeSprites: Record<string, PIXI.Sprite> = {};
 
   // draw cell overlays
   console.time('building overlay')
-  for (const [name, overlay] of Object.entries(cellOverlays)) {
-    const overlaySprite = makeCellOverlay(world, overlay);
-    overlaySprite.name = name;
-    overlays[name] = overlaySprite;
-    overlayLayer.addChild(overlaySprite);
+  for (const [name, mapMode] of Object.entries(mapModes)) {
+    if (!(mapMode.renderFunc in mapModeRenderFunctions)) {
+      throw new Error(`Map mode render function "${mapMode.renderFunc}" not found`);
+    }
+    const func = mapModeRenderFunctions[mapMode.renderFunc];
+    const mapModeSprite = func(world, mapMode.options);
+    mapModeSprite.name = name;
+    mapModeSprites[name] = mapModeSprite;
+    mapModesLayer.addChild(mapModeSprite);
   }
   console.timeEnd('building overlay')
 
@@ -443,7 +458,7 @@ function createWorldViewer({
     textLayer,
     arrowLayer,
     drainageBasinLayer,
-    overlays,
+    mapModeSprites,
     coastlineBorder,
     gridLines,
     biomeSprite,
@@ -495,12 +510,12 @@ export default class WorldViewer extends React.Component<IWorldViewerProps> {
     this.viewState.gridLines.visible = props.viewOptions.drawGrid;
     this.viewState.biomeSprite.visible = props.viewOptions.showBiomes;
     if (props.viewOptions.overlay === 'none') {
-      for (const name of Object.keys(cellOverlays)) {
-        this.viewState.overlays[name].visible = false;
+      for (const name of Object.keys(mapModes)) {
+        this.viewState.mapModeSprites[name].visible = false;
       }
     } else {
-      for (const name of Object.keys(cellOverlays)) {
-        this.viewState.overlays[name].visible = props.viewOptions.overlay === name;
+      for (const name of Object.keys(mapModes)) {
+        this.viewState.mapModeSprites[name].visible = props.viewOptions.overlay === name;
       }
     }
   }

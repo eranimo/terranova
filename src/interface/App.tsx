@@ -24,7 +24,7 @@ import {
   NumericInput,
 } from '@blueprintjs/core';
 import { Simulation } from '../simulation';
-import WorldViewer, { IViewOptions, cellOverlays } from './WorldViewer';
+import WorldViewer, { IViewOptions, mapModes } from './WorldViewer';
 import { BrowserRouter, Route, Switch, Link } from 'react-router-dom';
 import World from '../simulation/world';
 import { RouteComponentProps } from 'react-router'
@@ -58,7 +58,7 @@ class WorldViewerControls extends React.Component<{
     })
   }
 
-  onChangeOverlay = event => {
+  onChangeMapMode = event => {
     this.setState({
       viewOptions: {
         ...this.state.viewOptions,
@@ -129,18 +129,18 @@ class WorldViewerControls extends React.Component<{
                   </li>
                 </ul>
                 <RadioGroup
-                  label="Overlay"
-                  onChange={this.onChangeOverlay}
+                  label="Map Modes"
+                  onChange={this.onChangeMapMode}
                   selectedValue={this.state.viewOptions.overlay}
                 >
                   <Radio
                     label="None"
                     value={'none'}
                   />
-                  {Object.entries(cellOverlays).map(([name, overlay]) => (
+                  {Object.entries(mapModes).map(([name, mapMode]) => (
                     <Radio
                       key={name}
-                      label={overlay.title}
+                      label={mapMode.title}
                       value={name}
                     />
                   ))}

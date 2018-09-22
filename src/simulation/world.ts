@@ -1,5 +1,5 @@
 import ndarray from 'ndarray';
-import { IWorldgenOptions, IWorldgenWorkerOutput } from './simulation';
+import { IWorldgenWorkerOutput } from './simulation';
 
 
 
@@ -14,6 +14,7 @@ export enum ETerrainType {
 
 export enum EBiome {
   NONE,
+  GLACIAL,
   TUNDRA,
   BOREAL_FOREST,
   SHRUBLAND,
@@ -44,6 +45,7 @@ export enum ETemperatureZone {
 
 export const biomeTitles = {
   [EBiome.NONE]: 'None',
+  [EBiome.GLACIAL]: 'Glacial',
   [EBiome.TUNDRA]: 'Tundra',
   [EBiome.BOREAL_FOREST]: 'Boreal Forest',
   [EBiome.SHRUBLAND]: 'Scrubland',
@@ -58,6 +60,7 @@ export const biomeTitles = {
 
 export const biomeLabelColors = {
   [EBiome.NONE]: 0x4783A0,
+  [EBiome.GLACIAL]: 0xFFFFFF,
   [EBiome.TUNDRA]: 0x96D1C3,
   [EBiome.BOREAL_FOREST]: 0x006259,
   [EBiome.SHRUBLAND]: 0xB26A47,
@@ -68,6 +71,27 @@ export const biomeLabelColors = {
   [EBiome.TEMPERATE_RAINFOREST]: 0x6B842A,
   [EBiome.TROPICAL_FOREST]: 0x097309,
   [EBiome.TROPICAL_RAINFOREST]: 0x005100
+}
+
+export const terrainColors = {
+  ocean: {
+    deep: 0x3A52BB,
+    coast: 0x4E6AE6,
+  },
+  biomes: {
+    [EBiome.NONE]: 0x000000,
+    [EBiome.GLACIAL]: [0xFFFFFF],
+    [EBiome.TUNDRA]: [0x75805B],
+    [EBiome.BOREAL_FOREST]: [0x42562F],
+    [EBiome.SHRUBLAND]: [0xD7CC9E],
+    [EBiome.GRASSLAND]: [0xADB981],
+    [EBiome.SAVANNA]: [0xC9CD7C],
+    [EBiome.DESERT]: [0xE1CA9E],
+    [EBiome.TEMPERATE_FOREST]: [0x648C48],
+    [EBiome.TEMPERATE_RAINFOREST]: [0x425D27],
+    [EBiome.TROPICAL_FOREST]: [0x648C48],
+    [EBiome.TROPICAL_RAINFOREST]: [0x426D18],
+  },
 }
 
 export const moistureZoneRanges = {
@@ -99,25 +123,25 @@ export const biomeRanges = {
     [ETemperatureZone.ARCTIC]: EBiome.TUNDRA,
     [ETemperatureZone.SUBARCTIC]: EBiome.TUNDRA,
     [ETemperatureZone.TEMPERATE]: EBiome.SHRUBLAND,
-    [ETemperatureZone.SUBTROPICAL]: EBiome.SHRUBLAND,
+    [ETemperatureZone.SUBTROPICAL]: EBiome.SAVANNA,
     [ETemperatureZone.TROPICAL]: EBiome.DESERT,
   },
   [EMoistureZone.SEMIARID]: {
-    [ETemperatureZone.ARCTIC]: EBiome.TUNDRA,
+    [ETemperatureZone.ARCTIC]: EBiome.GLACIAL,
     [ETemperatureZone.SUBARCTIC]: EBiome.BOREAL_FOREST,
     [ETemperatureZone.TEMPERATE]: EBiome.TEMPERATE_FOREST,
     [ETemperatureZone.SUBTROPICAL]: EBiome.SHRUBLAND,
     [ETemperatureZone.TROPICAL]: EBiome.SAVANNA,
   },
   [EMoistureZone.SEMIWET]: {
-    [ETemperatureZone.ARCTIC]: EBiome.TUNDRA,
+    [ETemperatureZone.ARCTIC]: EBiome.GLACIAL,
     [ETemperatureZone.SUBARCTIC]: EBiome.BOREAL_FOREST,
     [ETemperatureZone.TEMPERATE]: EBiome.TEMPERATE_FOREST,
     [ETemperatureZone.SUBTROPICAL]: EBiome.TEMPERATE_FOREST,
     [ETemperatureZone.TROPICAL]: EBiome.TROPICAL_FOREST,
   },
   [EMoistureZone.WET]: {
-    [ETemperatureZone.ARCTIC]: EBiome.TUNDRA,
+    [ETemperatureZone.ARCTIC]: EBiome.GLACIAL,
     [ETemperatureZone.SUBARCTIC]: EBiome.BOREAL_FOREST,
     [ETemperatureZone.TEMPERATE]: EBiome.TEMPERATE_RAINFOREST,
     [ETemperatureZone.SUBTROPICAL]: EBiome.TEMPERATE_RAINFOREST,
