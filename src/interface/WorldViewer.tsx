@@ -1,16 +1,16 @@
 import React, { ReactElement } from 'react';
 import * as PIXI from 'pixi.js';
-import World, { Cell, ETerrainType, EDirection, biomeLabelColors, EBiome, terrainColors } from '../simulation/world';
+import World, { Cell, ETerrainType, EDirection, biomeLabelColors, climateColors } from '../simulation/world';
 import Viewport from 'pixi-viewport';
 import boxboxIntersection from 'intersects/box-box';
 import colormap from 'colormap';
-import * as _ from 'lodash';
+import { groupBy } from 'lodash';
 
 
 const CELL_WIDTH = 10;
 const CELL_HEIGHT = 10;
 
-const terrainTextureColors = {
+const terrainColors = {
   [ETerrainType.OCEAN]: 0x215b77,
   [ETerrainType.LAND]: 0x809973, // replace with Low and High land
   [ETerrainType.RIVER]: 0x5292B5,
@@ -28,6 +28,7 @@ const directionAngles = {
 }
 
 const mapModeRenderFunctions = {
+  climate: drawClimate,
   terrain: drawTerrain,
   overlay: makeCellOverlay,
   drainage: makeDrainageBasins,
@@ -41,6 +42,7 @@ interface IMapMode {
 }
 
 export enum EMapMode {
+  CLIMATE = "climate",
   TERRAIN = "terrain",
   HEIGHT = "height",
   TEMPERATURE = "temperature",
@@ -51,6 +53,10 @@ export enum EMapMode {
 }
 
 export const mapModes: Record<EMapMode, IMapMode> = {
+  [EMapMode.CLIMATE]: {
+    title: 'Climate',
+    renderFunc: 'climate',
+  },
   [EMapMode.TERRAIN]: {
     title: 'Terrain',
     renderFunc: 'terrain',
@@ -261,6 +267,30 @@ function drawTerrain(world: World, options: any): PIXI.Sprite {
   g.beginFill(0x000000);
   g.drawRect(0, 0, world.size.width, world.size.height);
   g.endFill();
+  const cellsByTerrainType = groupBy(Array.from(world.cells), (cell: Cell) => cell.terrainType);
+
+  for (const [terrain, cells] of Object.entries(cellsByTerrainType)) {
+    g.beginFill(terrainColors[terrain]);
+    for (const cell of cells) {
+      g.drawRect(
+        cell.x * CELL_WIDTH,
+        cell.y * CELL_HEIGHT,
+        CELL_WIDTH,
+        CELL_HEIGHT
+      );
+    }
+    g.endFill();
+  }
+
+  return new PIXI.Sprite(g.generateCanvasTexture());
+}
+
+function drawClimate(world: World, options: any): PIXI.Sprite {
+  const g = new PIXI.Graphics(true);
+
+  g.beginFill(0x000000);
+  g.drawRect(0, 0, world.size.width, world.size.height);
+  g.endFill();
 
   const deepOceanCells: Cell[] = [];
   const coastalOceanCells: Cell[] = [];
@@ -285,7 +315,7 @@ function drawTerrain(world: World, options: any): PIXI.Sprite {
   }
 
   // draw deep ocean
-  g.beginFill(terrainColors.ocean.deep);
+  g.beginFill(climateColors.ocean.deep);
   for (const cell of deepOceanCells) {
     g.drawRect(
       cell.x * CELL_WIDTH,
@@ -297,7 +327,7 @@ function drawTerrain(world: World, options: any): PIXI.Sprite {
   g.endFill();
 
   // draw coast, rivers, lakes
-  g.beginFill(terrainColors.ocean.coast);
+  g.beginFill(climateColors.ocean.coast);
   for (const cell of coastalOceanCells) {
     g.drawRect(
       cell.x * CELL_WIDTH,
@@ -310,7 +340,7 @@ function drawTerrain(world: World, options: any): PIXI.Sprite {
 
   // draw each biome
   for (const [biome, cells] of Object.entries(landCells)) {
-    g.beginFill(terrainColors.biomes[biome]);
+    g.beginFill(climateColors.biomes[biome]);
     for (const cell of cells) {
       g.drawRect(
         cell.x * CELL_WIDTH,
@@ -355,7 +385,6 @@ function createWorldViewer({
   world: World,
   element: HTMLElement,
   textures: {
-    terrainTextures: TextureMap
     arrowTexture: PIXI.Texture,
   },
 }): IViewState {
@@ -450,10 +479,8 @@ function createWorldViewer({
   console.time('building cells')
   for (const cell of world.cells) {
     // arrows
-    const arrowTexture = cell.terrainType === ETerrainType.OCEAN || cell.flowDir === EDirection.NONE
-      ? PIXI.Texture.EMPTY
-      : textures.arrowTexture;
-    const arrowSprite = new PIXI.Sprite(arrowTexture);
+    if (cell.terrainType !== ETerrainType.RIVER) continue;
+    const arrowSprite = new PIXI.Sprite(textures.arrowTexture);
     const PADDING = 3;
     arrowSprite.width = CELL_WIDTH - PADDING;
     arrowSprite.height = CELL_HEIGHT - PADDING;
@@ -522,9 +549,6 @@ export default class WorldViewer extends React.Component<IWorldViewerProps> {
     super(props);
     this.root = React.createRef();
     this.textures = {};
-    for (const [terrainType, color] of Object.entries(terrainTextureColors)) {
-      this.textures[terrainType] = makeTerrainTexture(CELL_WIDTH, CELL_HEIGHT, color);
-    }
     this.arrowTexture = makeArrowTexture(CELL_WIDTH, CELL_HEIGHT);
   }
 
@@ -533,7 +557,6 @@ export default class WorldViewer extends React.Component<IWorldViewerProps> {
       world: this.props.world,
       element: this.root.current,
       textures: {
-        terrainTextures: this.textures,
         arrowTexture: this.arrowTexture,
       },
     });

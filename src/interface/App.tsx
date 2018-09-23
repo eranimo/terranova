@@ -42,7 +42,7 @@ class WorldViewerControls extends React.Component<{
       showFlowArrows: false,
       drawCoastline: true,
       drawGrid: false,
-      mapMode: EMapMode.TERRAIN,
+      mapMode: EMapMode.CLIMATE,
     },
     isGenerating: false,
   }

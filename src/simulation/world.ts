@@ -73,7 +73,7 @@ export const biomeLabelColors = {
   [EBiome.TROPICAL_RAINFOREST]: 0x005100
 }
 
-export const terrainColors = {
+export const climateColors = {
   ocean: {
     deep: 0x3A52BB,
     coast: 0x4E6AE6,
