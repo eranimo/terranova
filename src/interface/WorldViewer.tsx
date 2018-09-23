@@ -10,6 +10,21 @@ import { groupBy } from 'lodash';
 const CELL_WIDTH = 10;
 const CELL_HEIGHT = 10;
 
+export interface IViewOptions {
+  showFlowArrows: boolean;
+  mapMode: EMapMode;
+  drawCoastline: boolean;
+  drawGrid: boolean;
+}
+
+interface IViewState {
+  app: PIXI.Application;
+  arrowLayer: PIXI.Container;
+  mapModeSprites: Record<string, PIXI.Sprite>;
+  coastlineBorder: PIXI.Sprite;
+  gridLines: PIXI.Sprite;
+}
+
 const terrainColors = {
   [ETerrainType.OCEAN]: 0x215b77,
   [ETerrainType.LAND]: 0x809973, // replace with Low and High land
@@ -103,21 +118,6 @@ export const mapModes: Record<EMapMode, IMapMode> = {
   }
 }
 
-export interface IViewOptions {
-  showFlowArrows: boolean;
-  mapMode: EMapMode;
-  drawCoastline: boolean;
-  drawGrid: boolean;
-}
-
-interface IViewState {
-  app: PIXI.Application;
-  arrowLayer: PIXI.Container;
-  mapModeSprites: Record<string, PIXI.Sprite>;
-  coastlineBorder: PIXI.Sprite;
-  gridLines: PIXI.Sprite;
-}
-
 function rgbToNumber(r: number, g: number, b: number): number {
   return 0x1000000 + b + 0x100 * g + 0x10000 * r;
 }
@@ -198,15 +198,18 @@ function makeCellOverlay(world: World, options: any): PIXI.Sprite {
     colorNum = rgbToNumber(color[0], color[1], color[2]);
     g.beginFill(colorNum);
     g.drawRect(
-      cell.x * CELL_WIDTH,
-      cell.y * CELL_HEIGHT,
-      CELL_WIDTH,
-      CELL_HEIGHT
+      cell.x,
+      cell.y,
+      1,
+      1
     );
     g.endFill();
   }
-
-  return new PIXI.Sprite(g.generateCanvasTexture());
+  const texture = g.generateCanvasTexture();
+  const sprite = new PIXI.Sprite(texture);
+  sprite.scale.x = CELL_WIDTH;
+  sprite.scale.y = CELL_HEIGHT;
+  return sprite;
 }
 
 function drawCoastlineBorder(
@@ -553,15 +556,14 @@ export default class WorldViewer extends React.Component<IWorldViewerProps> {
   }
 
   componentDidMount() {
-    this.viewState = createWorldViewer({
-      world: this.props.world,
-      element: this.root.current,
-      textures: {
-        arrowTexture: this.arrowTexture,
-      },
-    });
+    this.setup();
+    // add pixi to the DOM
     this.root.current.appendChild(this.viewState.app.view);
+
+    // directly manipulate the PIXI objects when state changes
     this.handleViewChanges(this.props);
+
+    (window as any).RERENDER = () => this.setup();
   }
 
   componentWillReceiveProps(nextProps: IWorldViewerProps) {
@@ -575,6 +577,16 @@ export default class WorldViewer extends React.Component<IWorldViewerProps> {
     for (const name of Object.keys(mapModes)) {
       this.viewState.mapModeSprites[name].visible = props.viewOptions.mapMode === name;
     }
+  }
+
+  setup() {
+    this.viewState = createWorldViewer({
+      world: this.props.world,
+      element: this.root.current,
+      textures: {
+        arrowTexture: this.arrowTexture,
+      },
+    });
   }
 
   componentWillUnmount() {
