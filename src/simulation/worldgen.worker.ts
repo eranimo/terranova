@@ -3,7 +3,7 @@ import Alea from 'alea';
 import SimplexNoise from 'simplex-noise';
 import fill from 'ndarray-fill';
 import ops from 'ndarray-ops';
-import { IWorldgenOptions, IWorldgenWorkerOutput } from './simulation';
+import { IWorldgenOptions, IWorldgenWorkerOutput, EWorldShape } from './simulation';
 import {
   ETerrainType,
   EDirection,
@@ -108,7 +108,7 @@ function isContinental(cell) {
 //////
 
 function generateHeightmap(options: IWorldgenOptions) {
-  const { seed, size: { width, height }, enforceOceanEdges } = options;
+  const { seed, size: { width, height }, worldShape, worldShapePower } = options;
 
   const heightmap = ndarray(new Uint8ClampedArray(width * height), [width, height]);
   const rng = new Alea(seed);
@@ -132,11 +132,16 @@ function generateHeightmap(options: IWorldgenOptions) {
     value = (value + 1) / 2;
 
     // decrease the height of cells farther away from the center to create an island
-    if (enforceOceanEdges) {
+    if (worldShape === EWorldShape.CIRCLE) {
       const distanceToCenter = Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2));
       const distanceRatio = distanceToCenter / maxDistanceToCenter;
-      const power = 3;
-      value = value * (1 - Math.pow(distanceRatio, power));
+      value = value * (1 - Math.pow(distanceRatio, worldShapePower));
+    } else if (worldShape === EWorldShape.RECTANGLE) {
+      const distanceRatio = Math.max(
+        Math.abs(x - centerX) / (width / 2),
+        Math.abs(y - centerY) / (height / 2),
+      );
+      value = value * (1 - Math.pow(distanceRatio, worldShapePower));
     }
     return value * 255;
   });

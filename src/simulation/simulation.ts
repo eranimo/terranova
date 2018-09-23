@@ -10,7 +10,14 @@ export interface IWorldgenOptions {
     width: number,
     height: number,
   },
-  enforceOceanEdges: boolean,
+  worldShape: EWorldShape,
+  worldShapePower: number,
+}
+
+export enum EWorldShape {
+  FREEFORM = 'freeform',
+  CIRCLE = 'circle',
+  RECTANGLE = 'rectangle',
 }
 
 export interface IWorldgenWorkerOutput {

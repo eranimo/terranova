@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import { Simulation } from '../../simulation';
 import World from '../../simulation/world';
 import { RouteComponentProps } from 'react-router'
-import { IWorldgenOptions } from '../../simulation/simulation';
+import { IWorldgenOptions, EWorldShape } from '../../simulation/simulation';
 import {
   NavbarGroup,
   Button,
@@ -25,7 +25,7 @@ import {
   Switch,
 } from '@blueprintjs/core';
 import { WorldViewerContainer } from '../components/WorldViewerContainer';
-import { set } from 'lodash';
+import { set, capitalize } from 'lodash';
 import styled from 'styled-components';
 import { clamp } from '@blueprintjs/core/lib/esm/common/utils';
 
@@ -85,6 +85,7 @@ class WorldConfigModal extends Component<{
         <Column>
           <FormGroup label="Sea level">
             <NumericInput
+              fill
               min={1}
               max={255}
               value={this.props.options.sealevel}
@@ -93,12 +94,42 @@ class WorldConfigModal extends Component<{
               }}
             />
           </FormGroup>
-          <Switch
-            label="Enforce ocean edges"
-            checked={this.props.options.enforceOceanEdges}
-            large
-            onChange={() => this.props.handleOptionChange('enforceOceanEdges', !this.props.options.enforceOceanEdges)}
-          />
+          <FormGroup label="World shape" inline>
+            <div className={Classes.SELECT}>
+              <select
+                onChange={event => this.props.handleOptionChange('worldShape', event.target.value)}
+              >
+                {Object.entries(EWorldShape).map(([key, value]) => (
+                  <option
+                    value={key}
+                    selected={this.props.options.worldShape == value}
+                  >
+                    {capitalize(value)}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </FormGroup>
+          {/*
+          Lower means a smaller world with a more natural shape. Higher means a larger world with a more regular shape.
+          */}
+          <FormGroup
+            label="World shape power"
+            inline
+          >
+            <NumericInput
+              style={{ width: '50px' }}
+              fill
+              min={1}
+              max={5}
+              stepSize={0.1}
+              majorStepSize={1}
+              value={this.props.options.worldShapePower}
+              onValueChange={value => {
+                this.props.handleOptionChange('worldShapePower', clamp(value, 1, 5));
+              }}
+            />
+          </FormGroup>
         </Column>
       </Row>
     );
@@ -139,7 +170,8 @@ const initialOptions: IWorldgenOptions = {
     width: 250,
     height: 200,
   },
-  enforceOceanEdges: true,
+  worldShape: EWorldShape.RECTANGLE,
+  worldShapePower: 2,
 };
 
 export class NewWorldView extends Component<RouteComponentProps<{}>, {
