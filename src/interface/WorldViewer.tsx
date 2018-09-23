@@ -1,6 +1,6 @@
 import React, { ReactElement } from 'react';
 import * as PIXI from 'pixi.js';
-import World, { Cell, ETerrainType, EDirection, biomeLabelColors, EBiome } from '../simulation/world';
+import World, { Cell, ETerrainType, EDirection, biomeLabelColors, EBiome, terrainColors } from '../simulation/world';
 import Viewport from 'pixi-viewport';
 import boxboxIntersection from 'intersects/box-box';
 import colormap from 'colormap';
@@ -28,6 +28,7 @@ const directionAngles = {
 }
 
 const mapModeRenderFunctions = {
+  terrain: drawTerrain,
   overlay: makeCellOverlay,
   drainage: makeDrainageBasins,
   biomes: drawBiomes,
@@ -40,6 +41,10 @@ interface IMapMode {
 }
 
 export const mapModes: Record<string, IMapMode> = {
+  terrain: {
+    title: 'Terrain',
+    renderFunc: 'terrain',
+  },
   height: {
     title: 'Height',
     renderFunc: 'overlay',
@@ -239,6 +244,76 @@ function drawGridLines(world: World): PIXI.Sprite {
       g.lineTo(world.size.width * CELL_WIDTH, y);
     }
   }
+  return new PIXI.Sprite(g.generateCanvasTexture());
+}
+
+function drawTerrain(world: World, options: any): PIXI.Sprite {
+  const g = new PIXI.Graphics(true);
+
+  g.beginFill(0x000000);
+  g.drawRect(0, 0, world.size.width, world.size.height);
+  g.endFill();
+
+  const deepOceanCells: Cell[] = [];
+  const coastalOceanCells: Cell[] = [];
+  const landCells: Record<number, Cell[]> = {};
+
+  for (const cell of world.cells) {
+    if (
+      cell.terrainType === ETerrainType.COAST ||
+      cell.terrainType === ETerrainType.LAKE ||
+      cell.terrainType === ETerrainType.RIVER
+    ) {
+      coastalOceanCells.push(cell);
+    } else if (cell.terrainType === ETerrainType.OCEAN) {
+      deepOceanCells.push(cell);
+    } else {
+      if (cell.biome in landCells) {
+        landCells[cell.biome].push(cell);
+      } else {
+        landCells[cell.biome] = [cell];
+      }
+    }
+  }
+
+  // draw deep ocean
+  g.beginFill(terrainColors.ocean.deep);
+  for (const cell of deepOceanCells) {
+    g.drawRect(
+      cell.x * CELL_WIDTH,
+      cell.y * CELL_HEIGHT,
+      CELL_WIDTH,
+      CELL_HEIGHT
+    );
+  }
+  g.endFill();
+
+  // draw coast, rivers, lakes
+  g.beginFill(terrainColors.ocean.coast);
+  for (const cell of coastalOceanCells) {
+    g.drawRect(
+      cell.x * CELL_WIDTH,
+      cell.y * CELL_HEIGHT,
+      CELL_WIDTH,
+      CELL_HEIGHT
+    );
+  }
+  g.endFill();
+
+  // draw each biome
+  for (const [biome, cells] of Object.entries(landCells)) {
+    g.beginFill(terrainColors.biomes[biome]);
+    for (const cell of cells) {
+      g.drawRect(
+        cell.x * CELL_WIDTH,
+        cell.y * CELL_HEIGHT,
+        CELL_WIDTH,
+        CELL_HEIGHT
+      );
+    }
+    g.endFill();
+  }
+
   return new PIXI.Sprite(g.generateCanvasTexture());
 }
 
