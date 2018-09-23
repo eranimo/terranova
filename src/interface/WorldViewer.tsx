@@ -29,12 +29,14 @@ const directionAngles = {
 
 const mapModeRenderFunctions = {
   overlay: makeCellOverlay,
+  drainage: makeDrainageBasins,
+  biomes: drawBiomes,
 };
 
 interface IMapMode {
   title: string;
   renderFunc: keyof typeof mapModeRenderFunctions;
-  options: Record<string, any>;
+  options?: Record<string, any>;
 }
 
 export const mapModes: Record<string, IMapMode> = {
@@ -69,16 +71,22 @@ export const mapModes: Record<string, IMapMode> = {
       datapoint: 'upstreamCount',
       colormap: 'velocity-blue',
     },
+  },
+  drainageBasins: {
+    title: 'Drainage Basins',
+    renderFunc: 'drainage'
+  },
+  biomes: {
+    title: 'Biomes',
+    renderFunc: 'biomes'
   }
 }
 
 export interface IViewOptions {
   showFlowArrows: boolean;
-  showDrainageBasinLabels: boolean;
-  overlay: string;
+  mapMode: string;
   drawCoastline: boolean;
   drawGrid: boolean;
-  showBiomes: boolean;
 }
 
 interface IViewState {
@@ -86,11 +94,9 @@ interface IViewState {
   terrainLayer: PIXI.Container;
   textLayer: PIXI.Container;
   arrowLayer: PIXI.Container;
-  drainageBasinLayer: PIXI.Container;
   mapModeSprites: Record<string, PIXI.Sprite>;
   coastlineBorder: PIXI.Sprite;
   gridLines: PIXI.Sprite;
-  biomeSprite: PIXI.Sprite;
 }
 
 function rgbToNumber(r: number, g: number, b: number): number {
@@ -100,7 +106,7 @@ function rgbToNumber(r: number, g: number, b: number): number {
 function makeArrowTexture(width: number, height: number): PIXI.Texture {
   const g = new PIXI.Graphics(true);
   g.lineColor = 0x000000;
-  g.lineWidth = 1;
+  g.lineWidth = 1.4;
   g.moveTo(width / 2, height);
   g.lineTo(width / 2, 0);
   g.lineTo(0, height / 2);
@@ -110,7 +116,6 @@ function makeArrowTexture(width: number, height: number): PIXI.Texture {
 }
 
 type TextureMap = { [name: string]: PIXI.Texture };
-let drainageTextureCache = {};
 
 function makeTerrainTexture(width: number, height: number, color: number): PIXI.Texture {
   const g = new PIXI.Graphics(true);
@@ -118,6 +123,28 @@ function makeTerrainTexture(width: number, height: number, color: number): PIXI.
   g.drawRect(0, 0, width, height);
   g.endFill();
   return g.generateCanvasTexture();
+}
+
+function makeDrainageBasins(world: World, options: any): PIXI.Sprite {
+  const g = new PIXI.Graphics(true);
+
+  g.beginFill(0x000000);
+  g.drawRect(0, 0, world.size.width, world.size.height);
+  g.endFill();
+
+  for (const basin of world.drainageBasins) {
+    g.beginFill(basin.color);
+    for (const cell of basin.cells) {
+      g.drawRect(
+        cell.x * CELL_WIDTH,
+        cell.y * CELL_HEIGHT,
+        CELL_WIDTH,
+        CELL_HEIGHT
+      );
+    }
+    g.endFill();
+  }
+  return new PIXI.Sprite(g.generateCanvasTexture());
 }
 
 function makeCellOverlay(world: World, options: any): PIXI.Sprite {
@@ -215,9 +242,13 @@ function drawGridLines(world: World): PIXI.Sprite {
   return new PIXI.Sprite(g.generateCanvasTexture());
 }
 
-function drawBiomes(world: World) {
+function drawBiomes(world: World, options: any): PIXI.Sprite {
   const g = new PIXI.Graphics(true);
-  g.drawRect(0, 0, 1, 1);
+
+  g.beginFill(0x000000);
+  g.drawRect(0, 0, world.size.width, world.size.height);
+  g.endFill();
+
   for (const [biome, color] of Object.entries(biomeLabelColors)) {
     g.beginFill(color);
     for (const cell of world.cells) {
@@ -302,17 +333,15 @@ function createWorldViewer({
   const terrainLayer = new PIXI.Container();
   const textLayer = new PIXI.Container();
   const arrowLayer = new PIXI.Container();
-  const drainageBasinLayer = new PIXI.Container();
   const mapModesLayer = new PIXI.Container();
   viewport.addChild(terrainLayer);
   viewport.addChild(textLayer);
-  viewport.addChild(drainageBasinLayer);
   viewport.addChild(mapModesLayer);
   viewport.addChild(arrowLayer);
   const mapModeSprites: Record<string, PIXI.Sprite> = {};
 
-  // draw cell overlays
-  console.time('building overlay')
+  // draw map modes
+  console.time('building map modes')
   for (const [name, mapMode] of Object.entries(mapModes)) {
     if (!(mapMode.renderFunc in mapModeRenderFunctions)) {
       throw new Error(`Map mode render function "${mapMode.renderFunc}" not found`);
@@ -323,7 +352,7 @@ function createWorldViewer({
     mapModeSprites[name] = mapModeSprite;
     mapModesLayer.addChild(mapModeSprite);
   }
-  console.timeEnd('building overlay')
+  console.timeEnd('building map modes')
 
   console.time('building coastline borders')
   const coastlineBorder = drawCoastlineBorder(world, (a: Cell, b: Cell) => (
@@ -331,12 +360,6 @@ function createWorldViewer({
   ));
   viewport.addChild(coastlineBorder);
   console.timeEnd('building coastline borders')
-
-
-  console.time('building biomes')
-  const biomeSprite = drawBiomes(world);
-  viewport.addChild(biomeSprite);
-  console.timeEnd('building biomes')
 
   console.time('building grid lines')
   const gridLines = drawGridLines(world);
@@ -364,8 +387,9 @@ function createWorldViewer({
       ? PIXI.Texture.EMPTY
       : textures.arrowTexture;
     const arrowSprite = new PIXI.Sprite(arrowTexture);
-    arrowSprite.width = CELL_WIDTH - 5;
-    arrowSprite.height = CELL_HEIGHT - 5;
+    const PADDING = 3;
+    arrowSprite.width = CELL_WIDTH - PADDING;
+    arrowSprite.height = CELL_HEIGHT - PADDING;
     arrowSprite.interactive = false;
     arrowSprite.position.set(
       cell.x * CELL_WIDTH + (CELL_WIDTH / 2),
@@ -377,56 +401,12 @@ function createWorldViewer({
     arrowSprite.rotation = directionAngles[cell.flowDir] * (Math.PI / 180);
     arrowLayer.addChild(arrowSprite);
 
-    // drainage basin labels
-    let overlayT;
-    if (cell.drainageBasin) {
-      if (cell.drainageBasin.id in drainageTextureCache) {
-        overlayT = drainageTextureCache[cell.drainageBasin.id];
-      } else {
-        const overlayG = new PIXI.Graphics();
-        overlayG.beginFill(cell.drainageBasin.color);
-        overlayG.drawRect(0, 0, CELL_WIDTH, CELL_HEIGHT);
-        overlayG.endFill();
-        overlayT = overlayG.generateCanvasTexture();
-        drainageTextureCache[cell.drainageBasin.id] = overlayT;
-      }
-    } else {
-      overlayT = PIXI.Texture.EMPTY;
-    }
-    const overlay = new PIXI.Sprite(overlayT);
-    overlay.width = CELL_WIDTH;
-    overlay.height = CELL_HEIGHT;
-    overlay.interactive = false;
-    overlay.position.set(
-      cell.x * CELL_WIDTH,
-      cell.y * CELL_HEIGHT,
-    );
-    drainageBasinLayer.addChild(overlay);
-
-
     cellSpriteMap.set(cell, [terrainSprite, arrowSprite]);
-
-    // if (cell.terrainType != ETerrainType.OCEAN) {
-    //   const text = new PIXI.Text(cell.height.toString(), { fontSize: 8 });
-    //   text.x = cell.x * CELL_WIDTH;
-    //   text.y = cell.y * CELL_HEIGHT;
-    //   text.width = CELL_WIDTH;
-    //   text.height = CELL_HEIGHT;
-    //   text.cacheAsBitmap = true;
-    //   text.interactiveChildren = false;
-    //   text.interactive = false;
-    //   textLayer.addChild(text);
-
-    //   cellSpriteMap.set(cell, [terrainSprite, text]);
-    // } else {
-    //   cellSpriteMap.set(cell, [terrainSprite]);
-    // }
   }
   console.timeEnd('building cells')
 
   terrainLayer.cacheAsBitmap = true;
   arrowLayer.cacheAsBitmap = true;
-  drainageBasinLayer.cacheAsBitmap = true;
 
   // viewport culling
   function cullOffscreenCells() {
@@ -457,11 +437,9 @@ function createWorldViewer({
     terrainLayer,
     textLayer,
     arrowLayer,
-    drainageBasinLayer,
     mapModeSprites,
     coastlineBorder,
     gridLines,
-    biomeSprite,
   };
 }
 
@@ -505,17 +483,15 @@ export default class WorldViewer extends React.Component<IWorldViewerProps> {
 
   handleViewChanges(props: IWorldViewerProps) {
     this.viewState.arrowLayer.visible = props.viewOptions.showFlowArrows;
-    this.viewState.drainageBasinLayer.visible = props.viewOptions.showDrainageBasinLabels;
     this.viewState.coastlineBorder.visible = props.viewOptions.drawCoastline;
     this.viewState.gridLines.visible = props.viewOptions.drawGrid;
-    this.viewState.biomeSprite.visible = props.viewOptions.showBiomes;
-    if (props.viewOptions.overlay === 'none') {
+    if (props.viewOptions.mapMode === 'none') {
       for (const name of Object.keys(mapModes)) {
         this.viewState.mapModeSprites[name].visible = false;
       }
     } else {
       for (const name of Object.keys(mapModes)) {
-        this.viewState.mapModeSprites[name].visible = props.viewOptions.overlay === name;
+        this.viewState.mapModeSprites[name].visible = props.viewOptions.mapMode === name;
       }
     }
   }

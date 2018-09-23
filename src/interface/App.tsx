@@ -40,11 +40,9 @@ class WorldViewerControls extends React.Component<{
   state = {
     viewOptions: {
       showFlowArrows: false,
-      showDrainageBasinLabels: false,
       drawCoastline: true,
       drawGrid: false,
-      overlay: 'none',
-      showBiomes: false,
+      mapMode: 'none',
     },
     isGenerating: false,
   }
@@ -62,7 +60,7 @@ class WorldViewerControls extends React.Component<{
     this.setState({
       viewOptions: {
         ...this.state.viewOptions,
-        overlay: event.target.value
+        mapMode: event.target.value
       },
     });
   }
@@ -86,55 +84,13 @@ class WorldViewerControls extends React.Component<{
                 icon={'settings'}
               />
               <div className='tn-popover'>
-                <ul className="pt-list-unstyled">
-                  <li>
-                    <Checkbox
-                      inline
-                      checked={this.state.viewOptions.showFlowArrows}
-                      onChange={this.onChangeField('showFlowArrows')}
-                      label='Show flow arrows'
-                    />
-                  </li>
-                  <li>
-                    <Checkbox
-                      inline
-                      checked={this.state.viewOptions.drawCoastline}
-                      onChange={this.onChangeField('drawCoastline')}
-                      label='Show coastline border'
-                    />
-                  </li>
-                  <li>
-                    <Checkbox
-                      inline
-                      checked={this.state.viewOptions.drawGrid}
-                      onChange={this.onChangeField('drawGrid')}
-                      label='Show grid'
-                    />
-                  </li>
-                  <li>
-                    <Checkbox
-                      inline
-                      checked={this.state.viewOptions.showDrainageBasinLabels}
-                      onChange={this.onChangeField('showDrainageBasinLabels')}
-                      label='Show drainage basin overlays'
-                    />
-                  </li>
-                  <li>
-                    <Checkbox
-                      inline
-                      checked={this.state.viewOptions.showBiomes}
-                      onChange={this.onChangeField('showBiomes')}
-                      label='Show biomes'
-                    />
-                  </li>
-                </ul>
                 <RadioGroup
                   label="Map Modes"
                   onChange={this.onChangeMapMode}
-                  selectedValue={this.state.viewOptions.overlay}
+                  selectedValue={this.state.viewOptions.mapMode}
                 >
                   <Radio
-                    label="None"
+                    label="Terrain Types"
                     value={'none'}
                   />
                   {Object.entries(mapModes).map(([name, mapMode]) => (
@@ -145,6 +101,33 @@ class WorldViewerControls extends React.Component<{
                     />
                   ))}
                 </RadioGroup>
+                <Label text="View Options" />
+                <ul className="pt-list-unstyled">
+                  <li>
+                    <Checkbox
+                      inline
+                      checked={this.state.viewOptions.showFlowArrows}
+                      onChange={this.onChangeField('showFlowArrows')}
+                      label='Flow direction arrows'
+                    />
+                  </li>
+                  <li>
+                    <Checkbox
+                      inline
+                      checked={this.state.viewOptions.drawCoastline}
+                      onChange={this.onChangeField('drawCoastline')}
+                      label='Coastline borders'
+                    />
+                  </li>
+                  <li>
+                    <Checkbox
+                      inline
+                      checked={this.state.viewOptions.drawGrid}
+                      onChange={this.onChangeField('drawGrid')}
+                      label='Grid Lines'
+                    />
+                  </li>
+                </ul>
               </div>
             </Popover>
           </NavbarGroup>
