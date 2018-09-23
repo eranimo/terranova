@@ -268,7 +268,7 @@ function decideTerrainTypes(
   flowDirections: ndarray,
   cellNeighbors: [number, number, number][][][],
 ) {
-  const { size: { width, height } } = options;
+  const { size: { width, height }, riverThreshold } = options;
 
   // calculate ocean cells by flood fill from the top-left of the map
   // cells which are below sea level and touch the edge of the map are ocean cells
@@ -344,13 +344,12 @@ function decideTerrainTypes(
 
   const data = Array.from(upstreamCells.data).filter(i => i > 0);
   // const upstreamCellsMax = ops.sup(upstreamCells);
-  const riverThreshold = Stats.quantile(data, 0.90);
-  console.log('riverThreshold', riverThreshold);
+  const riverThresholdAmount = Stats.quantile(data, riverThreshold);
 
   for (let x = 0; x < width; x++) {
     for (let y = 0; y < height; y++) {
       const upstreamCount = upstreamCells.get(x, y);
-      if (upstreamCount > riverThreshold) {
+      if (upstreamCount > riverThresholdAmount) {
         isRiver.set(x, y, 1);
       }
     }

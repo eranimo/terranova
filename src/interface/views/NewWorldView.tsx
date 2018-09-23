@@ -23,6 +23,7 @@ import {
   Tab,
   Tooltip,
   Switch,
+  TabId,
 } from '@blueprintjs/core';
 import { WorldViewerContainer } from '../components/WorldViewerContainer';
 import { set, capitalize } from 'lodash';
@@ -44,8 +45,12 @@ class WorldConfigModal extends Component<{
   handleOptionChange: (optionName: string, value: any) => void,
   generate: () => void,
   closeModal: () => void,
-}> {
-  renderCoreTab() {
+}, { activeTab: TabId }> {
+  state = {
+    activeTab: 't1',
+  };
+
+  renderTerrainOptions() {
     return (
       <Row>
         <Column>
@@ -134,14 +139,46 @@ class WorldConfigModal extends Component<{
       </Row>
     );
   }
+
+  renderRiverOptions() {
+    return (
+      <Row>
+        <Column>
+          <FormGroup
+            label="River threshold"
+            helperText="Higher value will generate less rivers"
+          >
+            <NumericInput
+              fill
+              min={0}
+              max={1}
+              minorStepSize={0.01}
+              stepSize={0.05}
+              majorStepSize={0.1}
+              value={this.props.options.riverThreshold}
+              onValueChange={value => {
+                this.props.handleOptionChange('riverThreshold', clamp(value, 0, 1));
+              }}
+            />
+          </FormGroup>
+        </Column>
+      </Row>
+    )
+  }
+
   render() {
     return (
       <form
         onSubmit={() => this.props.generate()}
       >
         <div className={Classes.DIALOG_BODY}>
-          <Tabs id="world-config-tabs">
-            <Tab id="t1" title="Core" panel={this.renderCoreTab()} />
+          <Tabs
+            id="world-config-tabs"
+            onChange={tabID => this.setState({ activeTab: tabID })}
+            selectedTabId={this.state.activeTab}
+          >
+            <Tab id="t1" title="Terrain" panel={this.renderTerrainOptions()} />
+            <Tab id="t2" title="Rivers" panel={this.renderRiverOptions()} />
           </Tabs>
         </div>
         <div className={Classes.DIALOG_FOOTER}>
@@ -172,6 +209,7 @@ const initialOptions: IWorldgenOptions = {
   },
   worldShape: EWorldShape.RECTANGLE,
   worldShapePower: 2,
+  riverThreshold: 0.9,
 };
 
 export class NewWorldView extends Component<RouteComponentProps<{}>, {

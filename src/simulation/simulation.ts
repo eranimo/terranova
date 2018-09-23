@@ -12,6 +12,7 @@ export interface IWorldgenOptions {
   },
   worldShape: EWorldShape,
   worldShapePower: number,
+  riverThreshold: number,
 }
 
 export enum EWorldShape {
