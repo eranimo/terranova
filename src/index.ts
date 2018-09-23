@@ -1,7 +1,6 @@
-import createApp from './interface';
-import createSimulation from './simulation';
+import { setupInterface } from './interface';
 
 
-createSimulation()
-  .then((simulation) => createApp(simulation))
+setupInterface();
+
 

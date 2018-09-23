@@ -1,6 +1,6 @@
 import React, { ReactElement } from 'react';
 import * as PIXI from 'pixi.js';
-import World, { Cell, ETerrainType, EDirection, biomeLabelColors, climateColors } from '../simulation/world';
+import World, { Cell, ETerrainType, EDirection, biomeLabelColors, climateColors } from '../../simulation/world';
 import Viewport from 'pixi-viewport';
 import boxboxIntersection from 'intersects/box-box';
 import colormap from 'colormap';
@@ -541,7 +541,7 @@ interface IWorldViewerProps {
   world: World,
   viewOptions: IViewOptions;
 }
-export default class WorldViewer extends React.Component<IWorldViewerProps> {
+export class WorldViewer extends React.Component<IWorldViewerProps> {
   viewState: IViewState;
   root: React.RefObject<HTMLDivElement>;
   textures: TextureMap;

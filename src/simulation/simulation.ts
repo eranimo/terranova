@@ -95,9 +95,3 @@ export class Simulation {
     this.world = new World(data.worldData as IWorldgenWorkerOutput);
   }
 }
-
-export async function createSimulation(): Promise<Simulation> {
-  const sim = new Simulation();
-  (window as any).simulation = sim;
-  return sim;
-}
