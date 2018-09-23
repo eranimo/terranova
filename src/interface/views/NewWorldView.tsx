@@ -67,12 +67,14 @@ class WorldConfigModal extends Component<{
           </FormGroup>
           <FormGroup label="Width">
             <NumericInput
+              min={0}
               value={this.props.options.size.width}
               onValueChange={value => this.props.handleOptionChange('size.width', value)}
             />
           </FormGroup>
           <FormGroup label="Height">
             <NumericInput
+              min={0}
               value={this.props.options.size.height}
               onValueChange={value => this.props.handleOptionChange('size.height', value)}
             />
@@ -81,6 +83,8 @@ class WorldConfigModal extends Component<{
         <Column>
           <FormGroup label="Sea level">
             <NumericInput
+              min={1}
+              max={255}
               value={this.props.options.sealevel}
               onValueChange={value => this.props.handleOptionChange('sealevel', value)}
             />
@@ -91,7 +95,9 @@ class WorldConfigModal extends Component<{
   }
   render() {
     return (
-      <div>
+      <form
+        onSubmit={() => this.props.generate()}
+      >
         <div className={Classes.DIALOG_BODY}>
           <Tabs id="world-config-tabs">
             <Tab id="t1" title="Core" panel={this.renderCoreTab()} />
@@ -104,13 +110,14 @@ class WorldConfigModal extends Component<{
                 onClick={() => this.props.closeModal()}
               />
               <Button
+                type="submit"
                 intent={Intent.PRIMARY}
                 text="Generate"
                 onClick={() => this.props.generate()}
               />
             </div>
           </div>
-      </div>
+      </form>
     );
   }
 }
