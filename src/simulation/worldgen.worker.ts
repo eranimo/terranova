@@ -477,10 +477,7 @@ function decideTemperature(
   sealevel: number,
   waterheight: ndarray
 ): ndarray {
-  const { size: { width, height } } = options;
-  const AVG_TEMP = 14; // average global temperature in celcius
-  const VOLITILITY = 5; // higher number means greater variation
-  const MIN_TEMP = -50; // Math.max(AVG_TEMP - VOLITILITY, BASE_TEMP);
+  const { size: { width, height }, temperature, elevationCoolingAmount } = options;
 
   const latitudeRatio = ndarray(new Float32Array(width * height), [width, height]);
   fill(latitudeRatio, (x, y) => {
@@ -493,12 +490,12 @@ function decideTemperature(
     return ratio;
   });
 
-  const temperature = ndarray(new Int16Array(width * height), [width, height]);
+  const temperatureMap = ndarray(new Int16Array(width * height), [width, height]);
   const maxAltitude = 255 - sealevel;
-  fill(temperature, (x, y) => {
+  fill(temperatureMap, (x, y) => {
     const ratio = latitudeRatio.get(x, y);
     // radiation is a function of latitude only
-    const radiation = (Math.abs(MIN_TEMP) + (AVG_TEMP + VOLITILITY)) * ratio + MIN_TEMP;
+    const radiation = (Math.abs(temperature.min) + (temperature.max - 10)) * ratio + temperature.min;
     // includes heights
     let part2 = 0;
     const altitude = waterheight.get(x, y) - sealevel;
@@ -508,12 +505,12 @@ function decideTemperature(
     } else {
       // higher is colder
       // lower is warmer
-      part2 = 10 + (altitude / maxAltitude) * -30;
+      part2 = 10 + (altitude / maxAltitude) * -elevationCoolingAmount;
     }
     return radiation + part2;
   });
 
-  return temperature;
+  return temperatureMap;
 }
 
 function generateMoisture(

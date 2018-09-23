@@ -24,6 +24,7 @@ import {
   Tooltip,
   Switch,
   TabId,
+  Label,
 } from '@blueprintjs/core';
 import { WorldViewerContainer } from '../components/WorldViewerContainer';
 import { set, capitalize } from 'lodash';
@@ -140,7 +141,7 @@ class WorldConfigModal extends Component<{
     );
   }
 
-  renderRiverOptions() {
+  renderClimateOptions() {
     return (
       <Row>
         <Column>
@@ -149,7 +150,6 @@ class WorldConfigModal extends Component<{
             helperText="Higher value will generate less rivers"
           >
             <NumericInput
-              fill
               min={0}
               max={1}
               minorStepSize={0.01}
@@ -159,6 +159,33 @@ class WorldConfigModal extends Component<{
               onValueChange={value => {
                 this.props.handleOptionChange('riverThreshold', clamp(value, 0, 1));
               }}
+            />
+          </FormGroup>
+        </Column>
+        <Column>
+          <Label text="Temperature" />
+          <FormGroup label="Min" inline>
+            <NumericInput
+              style={{ width: '50px' }}
+              value={this.props.options.temperature.min}
+              onValueChange={value => this.props.handleOptionChange('temperature.min', value)}
+            />
+          </FormGroup>
+          <FormGroup label="Max" inline>
+            <NumericInput
+              style={{ width: '50px' }}
+              value={this.props.options.temperature.max}
+              onValueChange={value => this.props.handleOptionChange('temperature.max', value)}
+            />
+          </FormGroup>
+          <FormGroup
+            label="Elevation cooling amount"
+            helperText="The amount of temperature lost due to elevation at highest peak"
+          >
+            <NumericInput
+              value={this.props.options.elevationCoolingAmount}
+              min={0}
+              onValueChange={value => this.props.handleOptionChange('elevationCoolingAmount', Math.max(0, value))}
             />
           </FormGroup>
         </Column>
@@ -178,7 +205,7 @@ class WorldConfigModal extends Component<{
             selectedTabId={this.state.activeTab}
           >
             <Tab id="t1" title="Terrain" panel={this.renderTerrainOptions()} />
-            <Tab id="t2" title="Rivers" panel={this.renderRiverOptions()} />
+            <Tab id="t2" title="Climate" panel={this.renderClimateOptions()} />
           </Tabs>
         </div>
         <div className={Classes.DIALOG_FOOTER}>
@@ -210,6 +237,8 @@ const initialOptions: IWorldgenOptions = {
   worldShape: EWorldShape.RECTANGLE,
   worldShapePower: 2,
   riverThreshold: 0.9,
+  temperature: { min: -50, max: 29 },
+  elevationCoolingAmount: 30,
 };
 
 export class NewWorldView extends Component<RouteComponentProps<{}>, {

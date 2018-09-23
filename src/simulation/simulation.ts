@@ -13,6 +13,11 @@ export interface IWorldgenOptions {
   worldShape: EWorldShape,
   worldShapePower: number,
   riverThreshold: number,
+  temperature: {
+    min: number,
+    max: number,
+  }
+  elevationCoolingAmount: number,
 }
 
 export enum EWorldShape {
