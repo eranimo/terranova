@@ -627,7 +627,7 @@ function decideMountains(
 
 onmessage = function (event: MessageEvent) {
   const options: IWorldgenOptions = event.data;
-  const sealevel = 102;
+  const sealevel = options.sealevel;
   console.time('Worldgen');
 
   console.time('step: generateHeightmap');

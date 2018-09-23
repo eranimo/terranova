@@ -19,38 +19,126 @@ import {
   Intent,
   NumericInput,
   Navbar,
+  Tabs,
+  Tab,
+  Tooltip,
 } from '@blueprintjs/core';
 import { WorldViewerContainer } from '../components/WorldViewerContainer';
+import { set } from 'lodash';
 import styled from 'styled-components';
-import { WorldViewer } from '../components/WorldViewer';
 
-
-const AppView = styled.div`
-  display: 'flex',
+const Row = styled.div`
+  display: flex;
+  flex-direction: row;
 `;
+
 const Column = styled.div`
-  display: 'flex',
+  flex: 0 0 50%;
 `;
+
+
+class WorldConfigModal extends Component<{
+  options: IWorldgenOptions,
+  handleOptionChange: (optionName: string, value: any) => void,
+  generate: () => void,
+  closeModal: () => void,
+}> {
+  renderCoreTab() {
+    return (
+      <Row>
+        <Column>
+          <FormGroup
+            label="Seed"
+            labelFor="control-seed"
+          >
+            <ControlGroup>
+              <InputGroup
+                value={this.props.options.seed.toString()}
+                onChange={event => this.props.handleOptionChange('seed', event.target.value)}
+              />
+              <Tooltip content="Click to randomize seed">
+                <Button
+                  icon={'random'}
+
+                  onClick={() => this.props.handleOptionChange('seed', Math.random().toString())}
+                />
+              </Tooltip>
+            </ControlGroup>
+          </FormGroup>
+          <FormGroup label="Width">
+            <NumericInput
+              value={this.props.options.size.width}
+              onValueChange={value => this.props.handleOptionChange('size.width', value)}
+            />
+          </FormGroup>
+          <FormGroup label="Height">
+            <NumericInput
+              value={this.props.options.size.height}
+              onValueChange={value => this.props.handleOptionChange('size.height', value)}
+            />
+          </FormGroup>
+        </Column>
+        <Column>
+          <FormGroup label="Sea level">
+            <NumericInput
+              value={this.props.options.sealevel}
+              onValueChange={value => this.props.handleOptionChange('sealevel', value)}
+            />
+          </FormGroup>
+        </Column>
+      </Row>
+    );
+  }
+  render() {
+    return (
+      <div>
+        <div className={Classes.DIALOG_BODY}>
+          <Tabs id="world-config-tabs">
+            <Tab id="t1" title="Core" panel={this.renderCoreTab()} />
+          </Tabs>
+        </div>
+        <div className={Classes.DIALOG_FOOTER}>
+            <div className={Classes.DIALOG_FOOTER_ACTIONS}>
+              <Button
+                text="Close"
+                onClick={() => this.props.closeModal()}
+              />
+              <Button
+                intent={Intent.PRIMARY}
+                text="Generate"
+                onClick={() => this.props.generate()}
+              />
+            </div>
+          </div>
+      </div>
+    );
+  }
+}
+
+const initialOptions: IWorldgenOptions = {
+  seed: 'fuck',
+  sealevel: 102,
+  size: {
+    width: 250,
+    height: 200,
+  },
+};
 
 export class NewWorldView extends Component<RouteComponentProps<{}>, {
   options: IWorldgenOptions,
   world?: World,
   saveName: string,
   saveDialogOpen: boolean,
+  configDialogOpen: boolean,
 }> {
   simulation: Simulation;
 
   state = {
-    options: {
-      seed: 'fuck',
-      size: {
-        width: 250,
-        height: 200,
-      },
-    },
+    options: initialOptions,
     world: null,
     saveName: '',
     saveDialogOpen: false,
+    configDialogOpen: false,
   }
 
   constructor(props) {
@@ -77,79 +165,13 @@ export class NewWorldView extends Component<RouteComponentProps<{}>, {
   renderControls = () => {
     return (
       <NavbarGroup align={Alignment.LEFT}>
-        <Popover
-          position={Position.BOTTOM}
-          interactionKind={PopoverInteractionKind.CLICK}
-        >
-          <Button
-            text='World Options'
-            minimal
-            icon={'cog'}
-            rightIcon={'caret-down'}
-          />
-          <div className='tn-popover'>
-            <FormGroup
-              label="Seed"
-              labelFor="control-seed"
-            >
-              <ControlGroup
-                fill
-              >
-                <InputGroup
-                  value={this.state.options.seed}
-                  onChange={event => this.setState({
-                    options: {
-                      ...this.state.options,
-                      seed: event.target.value
-                    },
-                  })}
-                />
-                <Button
-                  icon={'random'}
-                  onClick={() => this.setState({
-                    options: {
-                      ...this.state.options,
-                      seed: Math.random().toString(),
-                    }
-                  })}
-                />
-              </ControlGroup>
-            </FormGroup>
-            <FormGroup
-              label="Width"
-            >
-              <NumericInput
-                value={this.state.options.size.width}
-                onValueChange={value => this.setState({
-                  options: {
-                    ...this.state.options,
-                    size: {
-                      ...this.state.options.size,
-                      width: value,
-                    }
-                  },
-                })}
-              />
-            </FormGroup>
-            <FormGroup
-              label="Height"
-            >
-              <NumericInput
-                value={this.state.options.size.height}
-                onValueChange={value => this.setState({
-                  options: {
-                    ...this.state.options,
-                    size: {
-                      ...this.state.options.size,
-                      height: value,
-                    }
-                  },
-                })}
-              />
-            </FormGroup>
-          </div>
-        </Popover>
-
+        <Button
+          text='World Config'
+          minimal
+          icon={'cog'}
+          rightIcon={'caret-down'}
+          onClick={() => this.setState({ configDialogOpen: true })}
+        />
         <Button
           text="Generate"
           icon={'refresh'}
@@ -196,6 +218,22 @@ export class NewWorldView extends Component<RouteComponentProps<{}>, {
               />
             </div>
           </div>
+        </Dialog>
+        <Dialog
+          title="World Config"
+          isOpen={this.state.configDialogOpen}
+          onClose={() => this.setState({ configDialogOpen: false })}
+        >
+          <WorldConfigModal
+            options={this.state.options}
+            closeModal={() => this.setState({ configDialogOpen: false })}
+            generate={() => this.load()}
+            handleOptionChange={(optionName, value) => {
+              this.setState({
+                options: set(this.state.options, optionName, value),
+              });
+            }}
+          />
         </Dialog>
         <WorldViewerContainer renderControls={this.renderControls} world={this.state.world} />
       </div>

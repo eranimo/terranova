@@ -5,6 +5,7 @@ import localforage from 'localforage';
 
 export interface IWorldgenOptions {
   seed: string | number,
+  sealevel: number,
   size: {
     width: number,
     height: number,

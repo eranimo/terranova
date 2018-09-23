@@ -4,9 +4,7 @@ import World from '../../simulation/world';
 import {
   Navbar,
   NavbarGroup,
-  NavbarDivider,
   Button,
-  NavbarHeading,
   Alignment,
   Checkbox,
   RadioGroup,
@@ -63,9 +61,10 @@ export class WorldViewerContainer extends React.Component<{
     return (
       <WorldViewerWrapper>
         <Navbar>
-          <NavbarGroup align={Alignment.LEFT}>
-            <NavbarHeading>Terra Nova</NavbarHeading>
-            <NavbarDivider />
+          {renderControls
+                ? renderControls()
+                : null}
+          <NavbarGroup align={Alignment.RIGHT}>
             <Popover
               position={Position.BOTTOM}
               interactionKind={PopoverInteractionKind.CLICK}
@@ -119,11 +118,7 @@ export class WorldViewerContainer extends React.Component<{
                 </ul>
               </div>
             </Popover>
-            <NavbarDivider />
           </NavbarGroup>
-          {renderControls
-              ? renderControls()
-              : null}
         </Navbar>
         <div>
           <WorldViewer world={world} viewOptions={this.state.viewOptions} />
