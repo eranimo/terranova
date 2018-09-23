@@ -269,6 +269,8 @@ function decideTerrainTypes(
   const seenCells = ndarray(new Int16Array(width * height), [width, height]);
   fill(seenCells, () => 0);
 
+  // inland ocean cells should be considered lakes
+  // NOTE: assumes top-left cell of the map is an ocean cell
   const isOcean = ndarray(new Int16Array(width * height), [width, height]);
   fill(isOcean, () => 0);
   const q = new Collections.Queue<[number, number]>();
@@ -300,8 +302,13 @@ function decideTerrainTypes(
   const isCoastalCell = ndarray(new Int16Array(width * height), [width, height]);
   for (let x = 0; x < width; x++) {
     for (let y = 0; y < height; y++) {
-      const isCoastalOcean = isOcean.get(x, y) === 0 && cellNeighbors[x][y].some(([nx, ny]) => isOcean.get(nx, ny) === 1);
-      if (isCoastalOcean) {
+      // cell is coastal if it's a land cell next to lake or ocean
+      const isCoastal = (
+        (isOcean.get(x, y) === 0 && isLake.get(x, y) === 0) &&
+        (cellNeighbors[x][y].some(([nx, ny]) => isOcean.get(nx, ny) === 1) ||
+         cellNeighbors[x][y].some(([nx, ny]) => isLake.get(nx, ny) === 1))
+      );
+      if (isCoastal) {
         coastalCells.push([x, y]);
         isCoastalCell.set(x, y, 1);
       } else {
