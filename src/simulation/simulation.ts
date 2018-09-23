@@ -9,7 +9,8 @@ export interface IWorldgenOptions {
   size: {
     width: number,
     height: number,
-  }
+  },
+  enforceOceanEdges: boolean,
 }
 
 export interface IWorldgenWorkerOutput {

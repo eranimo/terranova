@@ -103,7 +103,7 @@ export const moistureZoneRanges = {
 }
 
 export const temperatureZoneRanges = {
-  [ETemperatureZone.ARCTIC]: { start: -50, end: -10 },
+  [ETemperatureZone.ARCTIC]: { start: -Infinity, end: -10 },
   [ETemperatureZone.SUBARCTIC]: { start: -10, end: 2 },
   [ETemperatureZone.TEMPERATE]: { start: 2, end: 15 },
   [ETemperatureZone.SUBTROPICAL]: { start: 15, end: 20 },

@@ -108,15 +108,15 @@ function isContinental(cell) {
 //////
 
 function generateHeightmap(options: IWorldgenOptions) {
-  const { seed, size: { width, height } } = options;
+  const { seed, size: { width, height }, enforceOceanEdges } = options;
 
   const heightmap = ndarray(new Uint8ClampedArray(width * height), [width, height]);
   const rng = new Alea(seed);
   const simplex = new SimplexNoise(rng);
   const noise = (nx, ny) => simplex.noise2D(nx, ny);
-  const centerX = Math.floor(width / 2);
-  const centerY = Math.floor(height / 2);
-  const maxDistanceToCenter = 2 * Math.sqrt(Math.pow(width, 2) + Math.pow(width, 2));
+  const centerX = width / 2;
+  const centerY = height / 2;
+  const maxDistanceToCenter = Math.min(width / 2, height / 2);
 
   fill(heightmap, (x, y) => {
     // use simplex noise to create random terrain
@@ -132,11 +132,12 @@ function generateHeightmap(options: IWorldgenOptions) {
     value = (value + 1) / 2;
 
     // decrease the height of cells farther away from the center to create an island
-    const d = (2 * Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2)) / maxDistanceToCenter) / 0.5;
-    const a = 0;
-    const b = 1.8;
-    const c = 2.2;
-    value = (value + a) * (1 - b * Math.pow(d, c));
+    if (enforceOceanEdges) {
+      const distanceToCenter = Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2));
+      const distanceRatio = distanceToCenter / maxDistanceToCenter;
+      const power = 3;
+      value = value * (1 - Math.pow(distanceRatio, power));
+    }
     return value * 255;
   });
 

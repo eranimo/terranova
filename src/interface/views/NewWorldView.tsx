@@ -22,10 +22,12 @@ import {
   Tabs,
   Tab,
   Tooltip,
+  Switch,
 } from '@blueprintjs/core';
 import { WorldViewerContainer } from '../components/WorldViewerContainer';
 import { set } from 'lodash';
 import styled from 'styled-components';
+import { clamp } from '@blueprintjs/core/lib/esm/common/utils';
 
 const Row = styled.div`
   display: flex;
@@ -86,9 +88,17 @@ class WorldConfigModal extends Component<{
               min={1}
               max={255}
               value={this.props.options.sealevel}
-              onValueChange={value => this.props.handleOptionChange('sealevel', value)}
+              onValueChange={value => {
+                this.props.handleOptionChange('sealevel', clamp(value, 1, 255));
+              }}
             />
           </FormGroup>
+          <Switch
+            label="Enforce ocean edges"
+            checked={this.props.options.enforceOceanEdges}
+            large
+            onChange={() => this.props.handleOptionChange('enforceOceanEdges', !this.props.options.enforceOceanEdges)}
+          />
         </Column>
       </Row>
     );
@@ -129,6 +139,7 @@ const initialOptions: IWorldgenOptions = {
     width: 250,
     height: 200,
   },
+  enforceOceanEdges: true,
 };
 
 export class NewWorldView extends Component<RouteComponentProps<{}>, {
