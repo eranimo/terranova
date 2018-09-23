@@ -35,6 +35,10 @@ export interface IWorldSaveData {
   worldData: IWorldgenWorkerOutput;
 }
 
+class WorldGenerator {
+
+}
+
 export class Simulation {
   ticks: number;
   world?: World;
@@ -49,18 +53,27 @@ export class Simulation {
   }
 
   async generate(options: IWorldgenOptions) {
+    console.group('WorldGenerator worker');
+    console.time('worldgen.worker execution time');
     // make a new World
     return new Promise((resolve, reject) => {
       const worker = new Worker('./worldgen.worker.ts');
       worker.postMessage(options);
       worker.onmessage = (message: MessageEvent) => {
-        console.log('[worker]', message.data);
+        console.log('worldgen.worker result:', message.data);
         const world = new World(message.data as IWorldgenWorkerOutput);
-        console.log('World init', world);
+        console.log('World object:', world);
         this.world = world;
+        console.timeEnd('worldgen.worker execution time');
+        console.groupEnd();
         resolve();
       }
-      worker.onerror = error => reject(error);
+      worker.onerror = error => {
+        console.error('worldgen.worker error:', error);
+        console.timeEnd('worldgen.worker execution time');
+        console.groupEnd();
+        reject(error);
+      }
     });
   }
 

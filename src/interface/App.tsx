@@ -82,6 +82,7 @@ class WorldViewerControls extends React.Component<{
                 text='View Options'
                 minimal
                 icon={'settings'}
+                rightIcon={'caret-down'}
               />
               <div className='tn-popover'>
                 <RadioGroup
@@ -229,6 +230,7 @@ class NewWorldView extends Component<RouteComponentProps<{}>, {
             text='World Options'
             minimal
             icon={'cog'}
+            rightIcon={'caret-down'}
           />
           <div className='tn-popover'>
             <FormGroup

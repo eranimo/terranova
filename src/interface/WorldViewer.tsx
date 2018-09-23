@@ -442,7 +442,6 @@ function createWorldViewer({
     // });
   viewport.moveCenter(worldWidth / 2, worldHeight / 2);
   viewport.zoom(4);
-
   (window as any).viewport = viewport;
 
   const arrowLayer = new PIXI.Container();
