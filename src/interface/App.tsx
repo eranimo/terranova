@@ -24,7 +24,7 @@ import {
   NumericInput,
 } from '@blueprintjs/core';
 import { Simulation } from '../simulation';
-import WorldViewer, { IViewOptions, mapModes } from './WorldViewer';
+import WorldViewer, { IViewOptions, mapModes, EMapMode } from './WorldViewer';
 import { BrowserRouter, Route, Switch, Link } from 'react-router-dom';
 import World from '../simulation/world';
 import { RouteComponentProps } from 'react-router'
@@ -42,7 +42,7 @@ class WorldViewerControls extends React.Component<{
       showFlowArrows: false,
       drawCoastline: true,
       drawGrid: false,
-      mapMode: 'none',
+      mapMode: EMapMode.TERRAIN,
     },
     isGenerating: false,
   }
@@ -89,10 +89,6 @@ class WorldViewerControls extends React.Component<{
                   onChange={this.onChangeMapMode}
                   selectedValue={this.state.viewOptions.mapMode}
                 >
-                  <Radio
-                    label="Terrain Types"
-                    value={'none'}
-                  />
                   {Object.entries(mapModes).map(([name, mapMode]) => (
                     <Radio
                       key={name}

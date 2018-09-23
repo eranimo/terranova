@@ -40,12 +40,22 @@ interface IMapMode {
   options?: Record<string, any>;
 }
 
-export const mapModes: Record<string, IMapMode> = {
-  terrain: {
+export enum EMapMode {
+  TERRAIN = "terrain",
+  HEIGHT = "height",
+  TEMPERATURE = "temperature",
+  MOISTURE = "moisture",
+  UPSTREAMCOUNT = "upstream_count",
+  DRAINAGEBASINS = "drainage_basins",
+  BIOMES = "biomes",
+}
+
+export const mapModes: Record<EMapMode, IMapMode> = {
+  [EMapMode.TERRAIN]: {
     title: 'Terrain',
     renderFunc: 'terrain',
   },
-  height: {
+  [EMapMode.HEIGHT]: {
     title: 'Height',
     renderFunc: 'overlay',
     options: {
@@ -53,7 +63,7 @@ export const mapModes: Record<string, IMapMode> = {
       colormap: 'bathymetry'
     }
   },
-  temperature: {
+  [EMapMode.TEMPERATURE]: {
     title: 'Temperature',
     renderFunc: 'overlay',
     options: {
@@ -61,7 +71,7 @@ export const mapModes: Record<string, IMapMode> = {
       colormap: 'jet',
     },
   },
-  moisture: {
+  [EMapMode.MOISTURE]: {
     title: 'Moisture',
     renderFunc: 'overlay',
     options: {
@@ -69,7 +79,7 @@ export const mapModes: Record<string, IMapMode> = {
       colormap: 'cool',
     },
   },
-  upstreamCount: {
+  [EMapMode.UPSTREAMCOUNT]: {
     title: 'Upstream Cell Count',
     renderFunc: 'overlay',
     options: {
@@ -77,11 +87,11 @@ export const mapModes: Record<string, IMapMode> = {
       colormap: 'velocity-blue',
     },
   },
-  drainageBasins: {
+  [EMapMode.DRAINAGEBASINS]: {
     title: 'Drainage Basins',
     renderFunc: 'drainage'
   },
-  biomes: {
+  [EMapMode.BIOMES]: {
     title: 'Biomes',
     renderFunc: 'biomes'
   }
@@ -89,15 +99,13 @@ export const mapModes: Record<string, IMapMode> = {
 
 export interface IViewOptions {
   showFlowArrows: boolean;
-  mapMode: string;
+  mapMode: EMapMode;
   drawCoastline: boolean;
   drawGrid: boolean;
 }
 
 interface IViewState {
   app: PIXI.Application;
-  terrainLayer: PIXI.Container;
-  textLayer: PIXI.Container;
   arrowLayer: PIXI.Container;
   mapModeSprites: Record<string, PIXI.Sprite>;
   coastlineBorder: PIXI.Sprite;
@@ -405,12 +413,8 @@ function createWorldViewer({
 
   (window as any).viewport = viewport;
 
-  const terrainLayer = new PIXI.Container();
-  const textLayer = new PIXI.Container();
   const arrowLayer = new PIXI.Container();
   const mapModesLayer = new PIXI.Container();
-  viewport.addChild(terrainLayer);
-  viewport.addChild(textLayer);
   viewport.addChild(mapModesLayer);
   viewport.addChild(arrowLayer);
   const mapModeSprites: Record<string, PIXI.Sprite> = {};
@@ -445,18 +449,6 @@ function createWorldViewer({
   const cellSpriteMap = new Map();
   console.time('building cells')
   for (const cell of world.cells) {
-    // terrain
-    const terrainTexture = textures.terrainTextures[cell.terrainType];
-    const terrainSprite = new PIXI.Sprite(terrainTexture);
-    terrainSprite.width = CELL_WIDTH;
-    terrainSprite.height = CELL_HEIGHT;
-    terrainSprite.interactive = false;
-    terrainSprite.position.set(
-      cell.x * CELL_WIDTH,
-      cell.y * CELL_HEIGHT,
-    );
-    terrainLayer.addChild(terrainSprite);
-
     // arrows
     const arrowTexture = cell.terrainType === ETerrainType.OCEAN || cell.flowDir === EDirection.NONE
       ? PIXI.Texture.EMPTY
@@ -476,11 +468,10 @@ function createWorldViewer({
     arrowSprite.rotation = directionAngles[cell.flowDir] * (Math.PI / 180);
     arrowLayer.addChild(arrowSprite);
 
-    cellSpriteMap.set(cell, [terrainSprite, arrowSprite]);
+    cellSpriteMap.set(cell, [arrowSprite]);
   }
   console.timeEnd('building cells')
 
-  terrainLayer.cacheAsBitmap = true;
   arrowLayer.cacheAsBitmap = true;
 
   // viewport culling
@@ -509,8 +500,6 @@ function createWorldViewer({
 
   return {
     app,
-    terrainLayer,
-    textLayer,
     arrowLayer,
     mapModeSprites,
     coastlineBorder,
@@ -560,14 +549,8 @@ export default class WorldViewer extends React.Component<IWorldViewerProps> {
     this.viewState.arrowLayer.visible = props.viewOptions.showFlowArrows;
     this.viewState.coastlineBorder.visible = props.viewOptions.drawCoastline;
     this.viewState.gridLines.visible = props.viewOptions.drawGrid;
-    if (props.viewOptions.mapMode === 'none') {
-      for (const name of Object.keys(mapModes)) {
-        this.viewState.mapModeSprites[name].visible = false;
-      }
-    } else {
-      for (const name of Object.keys(mapModes)) {
-        this.viewState.mapModeSprites[name].visible = props.viewOptions.mapMode === name;
-      }
+    for (const name of Object.keys(mapModes)) {
+      this.viewState.mapModeSprites[name].visible = props.viewOptions.mapMode === name;
     }
   }
 
