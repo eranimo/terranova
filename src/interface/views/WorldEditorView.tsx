@@ -25,9 +25,11 @@ import {
   Switch,
   TabId,
   Label,
+  NavbarHeading,
+  NavbarDivider,
 } from '@blueprintjs/core';
 import { WorldViewerContainer } from '../components/WorldViewerContainer';
-import { set, capitalize } from 'lodash';
+import { set, capitalize, cloneDeep } from 'lodash';
 import styled from 'styled-components';
 import { clamp } from '@blueprintjs/core/lib/esm/common/utils';
 
@@ -40,10 +42,26 @@ const Column = styled.div`
   flex: 0 0 50%;
 `;
 
+const initialOptions: IWorldgenOptions = {
+  seed: 'fuck',
+  sealevel: 102,
+  size: {
+    width: 250,
+    height: 200,
+  },
+  worldShape: EWorldShape.RECTANGLE,
+  worldShapePower: 2,
+  riverThreshold: 0.9,
+  temperature: { min: -50, max: 29 },
+  elevationCoolingAmount: 30,
+};
+Object.freeze(initialOptions);
+
 
 class WorldConfigModal extends Component<{
   options: IWorldgenOptions,
   handleOptionChange: (optionName: string, value: any) => void,
+  resetOptions: () => void,
   generate: () => void,
   closeModal: () => void,
 }, { activeTab: TabId }> {
@@ -196,7 +214,11 @@ class WorldConfigModal extends Component<{
   render() {
     return (
       <form
-        onSubmit={() => this.props.generate()}
+        onSubmit={(event) => {
+          this.props.generate();
+          event.preventDefault();
+          return false;
+        }}
       >
         <div className={Classes.DIALOG_BODY}>
           <Tabs
@@ -211,8 +233,8 @@ class WorldConfigModal extends Component<{
         <div className={Classes.DIALOG_FOOTER}>
             <div className={Classes.DIALOG_FOOTER_ACTIONS}>
               <Button
-                text="Close"
-                onClick={() => this.props.closeModal()}
+                text="Reset"
+                onClick={() => this.props.resetOptions()}
               />
               <Button
                 type="submit"
@@ -227,23 +249,10 @@ class WorldConfigModal extends Component<{
   }
 }
 
-const initialOptions: IWorldgenOptions = {
-  seed: 'fuck',
-  sealevel: 102,
-  size: {
-    width: 250,
-    height: 200,
-  },
-  worldShape: EWorldShape.RECTANGLE,
-  worldShapePower: 2,
-  riverThreshold: 0.9,
-  temperature: { min: -50, max: 29 },
-  elevationCoolingAmount: 30,
-};
-
-export class NewWorldView extends Component<RouteComponentProps<{}>, {
+export class WorldEditorView extends Component<RouteComponentProps<{}>, {
   options: IWorldgenOptions,
   world?: World,
+  isLoading: boolean,
   saveName: string,
   saveDialogOpen: boolean,
   configDialogOpen: boolean,
@@ -251,8 +260,9 @@ export class NewWorldView extends Component<RouteComponentProps<{}>, {
   simulation: Simulation;
 
   state = {
-    options: initialOptions,
+    options: cloneDeep(initialOptions),
     world: null,
+    isLoading: true,
     saveName: '',
     saveDialogOpen: false,
     configDialogOpen: false,
@@ -266,10 +276,10 @@ export class NewWorldView extends Component<RouteComponentProps<{}>, {
   }
 
   async load() {
-    this.setState({ world: null });
+    this.setState({ isLoading: true });
     await this.simulation.generate(this.state.options);
     const world = this.simulation.world;
-    this.setState({ world });
+    this.setState({ world, isLoading: false });
   }
 
   saveWorld = async () => {
@@ -282,6 +292,8 @@ export class NewWorldView extends Component<RouteComponentProps<{}>, {
   renderControls = () => {
     return (
       <NavbarGroup align={Alignment.LEFT}>
+        <NavbarHeading>World Editor</NavbarHeading>
+        <NavbarDivider />
         <Button
           text='World Config'
           minimal
@@ -302,12 +314,12 @@ export class NewWorldView extends Component<RouteComponentProps<{}>, {
           minimal
         />
       </NavbarGroup>
-    )
+    );
   }
 
   render() {
     if (this.state.world === null) {
-      return <Spinner/>;
+      return <Spinner />;
     }
     return (
       <div>
@@ -345,6 +357,11 @@ export class NewWorldView extends Component<RouteComponentProps<{}>, {
             options={this.state.options}
             closeModal={() => this.setState({ configDialogOpen: false })}
             generate={() => this.load()}
+            resetOptions={() => {
+              this.setState({
+                options: cloneDeep(initialOptions),
+              });
+            }}
             handleOptionChange={(optionName, value) => {
               this.setState({
                 options: set(this.state.options, optionName, value),
@@ -352,7 +369,11 @@ export class NewWorldView extends Component<RouteComponentProps<{}>, {
             }}
           />
         </Dialog>
-        <WorldViewerContainer renderControls={this.renderControls} world={this.state.world} />
+        <WorldViewerContainer
+          isLoading={this.state.isLoading}
+          renderControls={this.renderControls}
+          world={this.state.world}
+        />
       </div>
     )
   }

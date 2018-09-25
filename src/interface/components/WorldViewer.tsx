@@ -18,7 +18,6 @@ export interface IViewOptions {
 }
 
 interface IViewState {
-  app: PIXI.Application;
   arrowLayer: PIXI.Container;
   mapModeSprites: Record<string, PIXI.Sprite>;
   coastlineBorder: PIXI.Sprite;
@@ -197,12 +196,7 @@ function makeCellOverlay(world: World, options: any): PIXI.Sprite {
     }
     colorNum = rgbToNumber(color[0], color[1], color[2]);
     g.beginFill(colorNum);
-    g.drawRect(
-      cell.x,
-      cell.y,
-      1,
-      1
-    );
+    g.drawRect(cell.x, cell.y, 1, 1);
     g.endFill();
   }
   const texture = g.generateCanvasTexture();
@@ -320,24 +314,14 @@ function drawClimate(world: World, options: any): PIXI.Sprite {
   // draw deep ocean
   g.beginFill(climateColors.ocean.deep);
   for (const cell of deepOceanCells) {
-    g.drawRect(
-      cell.x * CELL_WIDTH,
-      cell.y * CELL_HEIGHT,
-      CELL_WIDTH,
-      CELL_HEIGHT
-    );
+    g.drawRect(cell.x, cell.y, 1, 1);
   }
   g.endFill();
 
   // draw coast, rivers, lakes
   g.beginFill(climateColors.ocean.coast);
   for (const cell of coastalOceanCells) {
-    g.drawRect(
-      cell.x * CELL_WIDTH,
-      cell.y * CELL_HEIGHT,
-      CELL_WIDTH,
-      CELL_HEIGHT
-    );
+    g.drawRect(cell.x, cell.y, 1, 1);
   }
   g.endFill();
 
@@ -345,17 +329,16 @@ function drawClimate(world: World, options: any): PIXI.Sprite {
   for (const [biome, cells] of Object.entries(landCells)) {
     g.beginFill(climateColors.biomes[biome]);
     for (const cell of cells) {
-      g.drawRect(
-        cell.x * CELL_WIDTH,
-        cell.y * CELL_HEIGHT,
-        CELL_WIDTH,
-        CELL_HEIGHT
-      );
+      g.drawRect(cell.x, cell.y, 1, 1);
     }
     g.endFill();
   }
 
-  return new PIXI.Sprite(g.generateCanvasTexture());
+  const texture = g.generateCanvasTexture();
+  const sprite = new PIXI.Sprite(texture);
+  sprite.scale.x = CELL_WIDTH;
+  sprite.scale.y = CELL_HEIGHT;
+  return sprite;
 }
 
 function drawBiomes(world: World, options: any): PIXI.Sprite {
@@ -369,171 +352,218 @@ function drawBiomes(world: World, options: any): PIXI.Sprite {
     g.beginFill(color);
     for (const cell of world.cells) {
       if (cell.biome === parseInt(biome, 10)) {
-        g.drawRect(
-          cell.x * CELL_WIDTH,
-          cell.y * CELL_HEIGHT,
-          CELL_WIDTH,
-          CELL_HEIGHT
-        );
+        g.drawRect(cell.x, cell.y, 1, 1);
       }
     }
     g.endFill();
   }
-  return new PIXI.Sprite(g.generateCanvasTexture());
+  const texture = g.generateCanvasTexture();
+  const sprite = new PIXI.Sprite(texture);
+  sprite.scale.x = CELL_WIDTH;
+  sprite.scale.y = CELL_HEIGHT;
+  return sprite;
 }
 
-function createWorldViewer({
-  world, textures, element,
-}: {
-  world: World,
-  element: HTMLElement,
-  textures: {
-    arrowTexture: PIXI.Texture,
-  },
-}): IViewState {
-  console.group('World viewer');
-  console.time('total time');
-  const screenWidth = window.innerWidth;
-  const screenHeight = (window.innerHeight - 50);
-  const app = new PIXI.Application({
-    width: screenWidth,
-    height: screenHeight,
-    antialias: false,
-    roundPixels: true,
-    forceCanvas: false,
-    legacy: true,
-  });
-  (window as any).pixi = app;
-  PIXI.settings.SCALE_MODE = PIXI.SCALE_MODES.NEAREST;
-  const worldWidth = world.size.width * CELL_WIDTH;
-  const worldHeight = world.size.height * CELL_HEIGHT;
-  const viewport = new Viewport({
-    screenWidth,
-    screenHeight,
-    worldWidth,
-    worldHeight,
-    divWheel: element,
-  });
-  window.addEventListener('resize', () => {
-    app.renderer.resize(
-      window.innerWidth,
-      window.innerHeight - 50
-    );
-    (viewport.resize as any)(
-      window.innerWidth,
-      window.innerHeight - 50
-    );
-  }, true);
-  app.stage.addChild(viewport);
-  viewport
-    .drag()
-    .wheel()
-    .on('drag-end', () => {
-      viewport.moveCorner(
-        Math.round(viewport.left),
-        Math.round(viewport.top),
+class WorldViewRenderer {
+  app: PIXI.Application;
+  viewport: Viewport;
+  layers: Record<string, PIXI.Container>;
+  world: World;
+  textures: Record<string, PIXI.Texture>;
+
+  constructor({
+    world, element, textures
+  }: {
+    world: World,
+    element: HTMLElement,
+    textures: Record<string, PIXI.Texture>,
+  }) {
+    console.group('World viewer init');
+    console.time('init time');
+    const screenWidth = window.innerWidth;
+    const screenHeight = (window.innerHeight - 50);
+    const app = new PIXI.Application({
+      width: screenWidth,
+      height: screenHeight,
+      antialias: false,
+      roundPixels: true,
+      forceCanvas: false,
+      legacy: true,
+    });
+    (window as any).pixi = app;
+    PIXI.settings.SCALE_MODE = PIXI.SCALE_MODES.NEAREST;
+    const worldWidth = world.size.width * CELL_WIDTH;
+    const worldHeight = world.size.height * CELL_HEIGHT;
+    const viewport = new Viewport({
+      screenWidth,
+      screenHeight,
+      worldWidth,
+      worldHeight,
+      divWheel: element,
+    });
+    window.addEventListener('resize', () => {
+      app.renderer.resize(
+        window.innerWidth,
+        window.innerHeight - 50
       );
-    })
-    // .clampZoom({
-    //   minWidth: worldWidth / 4,
-    //   minHeight: worldHeight / 4,
-    //   maxWidth: worldWidth * 20,
-    //   maxHeight: worldHeight * 20,
-    // });
-  viewport.moveCenter(worldWidth / 2, worldHeight / 2);
-  viewport.zoom(4);
-  (window as any).viewport = viewport;
-
-  const arrowLayer = new PIXI.Container();
-  const mapModesLayer = new PIXI.Container();
-  viewport.addChild(mapModesLayer);
-  viewport.addChild(arrowLayer);
-  const mapModeSprites: Record<string, PIXI.Sprite> = {};
-
-  // draw map modes
-  console.time('building map modes')
-  for (const [name, mapMode] of Object.entries(mapModes)) {
-    if (!(mapMode.renderFunc in mapModeRenderFunctions)) {
-      throw new Error(`Map mode render function "${mapMode.renderFunc}" not found`);
-    }
-    const func = mapModeRenderFunctions[mapMode.renderFunc];
-    const mapModeSprite = func(world, mapMode.options);
-    mapModeSprite.name = name;
-    mapModeSprites[name] = mapModeSprite;
-    mapModesLayer.addChild(mapModeSprite);
-  }
-  console.timeEnd('building map modes')
-
-  console.time('building coastline borders')
-  const coastlineBorder = drawCoastlineBorder(world, (a: Cell, b: Cell) => (
-    a.isLand && !b.isLand
-  ));
-  viewport.addChild(coastlineBorder);
-  console.timeEnd('building coastline borders')
-
-  console.time('building grid lines')
-  const gridLines = drawGridLines(world);
-  gridLines.alpha = 0.5;
-  viewport.addChild(gridLines);
-  console.timeEnd('building grid lines')
-
-  const cellSpriteMap = new Map();
-  console.time('building cells')
-  for (const cell of world.cells) {
-    // arrows
-    if (cell.terrainType !== ETerrainType.RIVER) continue;
-    const arrowSprite = new PIXI.Sprite(textures.arrowTexture);
-    const PADDING = 3;
-    arrowSprite.width = CELL_WIDTH - PADDING;
-    arrowSprite.height = CELL_HEIGHT - PADDING;
-    arrowSprite.interactive = false;
-    arrowSprite.position.set(
-      cell.x * CELL_WIDTH + (CELL_WIDTH / 2),
-      cell.y * CELL_HEIGHT + (CELL_HEIGHT / 2),
-    );
-    arrowSprite.anchor.set(
-      0.5, 0.5
-    )
-    arrowSprite.rotation = directionAngles[cell.flowDir] * (Math.PI / 180);
-    arrowLayer.addChild(arrowSprite);
-
-    cellSpriteMap.set(cell, [arrowSprite]);
-  }
-  console.timeEnd('building cells')
-
-  arrowLayer.cacheAsBitmap = true;
-
-  // viewport culling
-  function cullOffscreenCells() {
-    for (const [cell, sprites ] of cellSpriteMap.entries()) {
-      for (const sprite of sprites) {
-        sprite.visible = boxboxIntersection(
-          viewport.left,
-          viewport.top,
-          viewport.worldScreenWidth,
-          viewport.worldScreenHeight,
-          cell.x * CELL_WIDTH,
-          cell.y * CELL_HEIGHT,
-          CELL_WIDTH,
-          CELL_HEIGHT,
+      (viewport.resize as any)(
+        window.innerWidth,
+        window.innerHeight - 50
+      );
+    }, true);
+    app.stage.addChild(viewport);
+    element.style.cursor = 'grab';
+    viewport
+      .drag()
+      .wheel()
+      .on('drag-end', () => {
+        element.style.cursor = 'grab';
+        viewport.moveCorner(
+          Math.round(viewport.left),
+          Math.round(viewport.top),
         );
+      })
+      .on('drag-start', () => {
+        element.style.cursor = 'grabbing';
+      })
+      .on('clicked', event => {
+        console.log('[viewport event] click', event);
+        const cx = Math.floor(event.world.x / CELL_WIDTH);
+        const cy = Math.floor(event.world.y / CELL_HEIGHT);
+      })
+      .clampZoom({
+        minWidth: worldWidth / 15,
+        minHeight: worldHeight / 15,
+        maxWidth: worldWidth * 5,
+        maxHeight: worldHeight * 5,
+      });
+    viewport.moveCenter(worldWidth / 2, worldHeight / 2);
+    viewport.zoom(4);
+    (window as any).viewport = viewport;
+
+    const arrowLayer = new PIXI.Container();
+    const mapModesLayer = new PIXI.Container();
+    arrowLayer.cacheAsBitmap = true;
+
+    this.app = app;
+    this.viewport = viewport;
+    this.world = world;
+    this.textures = textures;
+    this.layers = {
+      arrows: arrowLayer,
+      mapModes: mapModesLayer,
+    };
+    console.timeEnd('init time');
+    console.groupEnd();
+  }
+
+  private clean(container) {
+    while (container.children[0]) {
+      container.removeChild(container.children[0]);
+    }
+  }
+
+  private setup() {
+    this.clean(this.viewport);
+    this.clean(this.layers.arrows);
+    this.clean(this.layers.mapModes);
+    this.viewport.addChild(this.layers.mapModes);
+    this.viewport.addChild(this.layers.arrows);
+  }
+
+  render(): IViewState {
+    const mapModeSprites: Record<string, PIXI.Sprite> = {};
+    this.setup();
+
+    console.group('World viewer render');
+    console.time('render time');
+
+    // draw map modes
+    console.time('building map modes')
+    for (const [name, mapMode] of Object.entries(mapModes)) {
+      if (!(mapMode.renderFunc in mapModeRenderFunctions)) {
+        throw new Error(`Map mode render function "${mapMode.renderFunc}" not found`);
+      }
+      const func = mapModeRenderFunctions[mapMode.renderFunc];
+      console.time(`rendering map mode "${name}"`);
+      const mapModeSprite = func(this.world, mapMode.options);
+      console.timeEnd(`rendering map mode "${name}"`);
+      mapModeSprite.name = name;
+      mapModeSprites[name] = mapModeSprite;
+      this.layers.mapModes.addChild(mapModeSprite);
+    }
+    console.timeEnd('building map modes')
+
+    console.time('building coastline borders')
+    const coastlineBorder = drawCoastlineBorder(this.world, (a: Cell, b: Cell) => (
+      a.isLand && !b.isLand
+    ));
+    this.viewport.addChild(coastlineBorder);
+    console.timeEnd('building coastline borders')
+
+    console.time('building grid lines')
+    const gridLines = drawGridLines(this.world);
+    gridLines.alpha = 0.75;
+    gridLines.interactive = false;
+    gridLines.cacheAsBitmap = true;
+    this.viewport.addChild(gridLines);
+    console.timeEnd('building grid lines')
+
+    const cellSpriteMap = new Map();
+    console.time('building cells')
+    for (const cell of this.world.cells) {
+      // arrows
+      if (cell.terrainType !== ETerrainType.RIVER) continue;
+      const arrowSprite = new PIXI.Sprite(this.textures.arrowTexture);
+      const PADDING = 3;
+      arrowSprite.width = CELL_WIDTH - PADDING;
+      arrowSprite.height = CELL_HEIGHT - PADDING;
+      arrowSprite.interactive = false;
+      arrowSprite.position.set(
+        cell.x * CELL_WIDTH + (CELL_WIDTH / 2),
+        cell.y * CELL_HEIGHT + (CELL_HEIGHT / 2),
+      );
+      arrowSprite.anchor.set(
+        0.5, 0.5
+      )
+      arrowSprite.rotation = directionAngles[cell.flowDir] * (Math.PI / 180);
+      this.layers.arrows.addChild(arrowSprite);
+
+      cellSpriteMap.set(cell, [arrowSprite]);
+    }
+    console.timeEnd('building cells')
+
+    // viewport culling
+    function cullOffscreenCells() {
+      for (const [cell, sprites ] of cellSpriteMap.entries()) {
+        for (const sprite of sprites) {
+          sprite.visible = boxboxIntersection(
+            this.viewport.left,
+            this.viewport.top,
+            this.viewport.worldScreenWidth,
+            this.viewport.worldScreenHeight,
+            cell.x * CELL_WIDTH,
+            cell.y * CELL_HEIGHT,
+            CELL_WIDTH,
+            CELL_HEIGHT,
+          );
+        }
       }
     }
+    // viewport.on('moved', cullOffscreenCells);
+    // // viewport.zoomPercent(0.25);
+    // cullOffscreenCells();
+
+    console.timeEnd('render time');
+    console.groupEnd();
+
+    return {
+      arrowLayer: this.layers.arrows,
+      mapModeSprites,
+      coastlineBorder,
+      gridLines,
+    };
   }
-  // viewport.on('moved', cullOffscreenCells);
-  // // viewport.zoomPercent(0.25);
-  // cullOffscreenCells();
-
-  console.timeEnd('total time');
-  console.groupEnd();
-
-  return {
-    app,
-    arrowLayer,
-    mapModeSprites,
-    coastlineBorder,
-    gridLines,
-  };
 }
 
 
@@ -546,6 +576,7 @@ export class WorldViewer extends React.Component<IWorldViewerProps> {
   root: React.RefObject<HTMLDivElement>;
   textures: TextureMap;
   arrowTexture: PIXI.Texture;
+  renderer: WorldViewRenderer;
 
   constructor(props) {
     super(props);
@@ -555,14 +586,34 @@ export class WorldViewer extends React.Component<IWorldViewerProps> {
   }
 
   componentDidMount() {
-    this.setup();
+    console.log('MOUNT');
+    this.renderer = new WorldViewRenderer({
+      world: this.props.world,
+      element: this.root.current,
+      textures: {
+        arrowTexture: this.arrowTexture,
+      },
+    });
+    this.viewState = this.renderer.render();
+    console.log(this.viewState);
+
     // add pixi to the DOM
-    this.root.current.appendChild(this.viewState.app.view);
+    this.root.current.appendChild(this.renderer.app.view);
 
     // directly manipulate the PIXI objects when state changes
     this.handleViewChanges(this.props);
+  }
 
-    (window as any).RERENDER = () => this.setup();
+  componentDidUpdate() {
+    console.log('UPDATE');
+    this.viewState = this.renderer.render();
+    this.handleViewChanges(this.props);
+    console.log(this.viewState);
+  }
+
+
+  shouldComponentUpdate(nextProps) {
+    return nextProps.world != this.props.world;
   }
 
   componentWillReceiveProps(nextProps: IWorldViewerProps) {
@@ -578,18 +629,8 @@ export class WorldViewer extends React.Component<IWorldViewerProps> {
     }
   }
 
-  setup() {
-    this.viewState = createWorldViewer({
-      world: this.props.world,
-      element: this.root.current,
-      textures: {
-        arrowTexture: this.arrowTexture,
-      },
-    });
-  }
-
   componentWillUnmount() {
-    this.viewState.app.destroy();
+    this.renderer.app.destroy();
   }
 
   render() {

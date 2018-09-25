@@ -25,7 +25,7 @@ import {
 } from '@blueprintjs/core';
 import { BrowserRouter, Route, Switch } from 'react-router-dom';
 
-import { NewWorldView } from './views/NewWorldView';
+import { WorldEditorView } from './views/WorldEditorView';
 import { SelectWorldView } from './views/SelectWorldView';
 import { LoadWorldView } from './views/LoadWorldView';
 
@@ -37,7 +37,7 @@ export class Application extends Component {
           <Route
             exact
             path="/"
-            component={NewWorldView}
+            component={WorldEditorView}
           />
           <Route
             path="/worldSelect"

@@ -374,7 +374,7 @@ function decideTerrainTypes(
     }
     return ETerrainType.LAND;
   });
-  console.log('Ocean percent', oceanCellCount / (width * height));
+  // console.log('Ocean percent', oceanCellCount / (width * height));
   return { terrainTypes, upstreamCells };
 }
 
@@ -676,10 +676,10 @@ onmessage = function (event: MessageEvent) {
   console.timeEnd('step: generateBiomes');
 
 
-  console.log('upstreamCells', ndarrayStats(upstreamCells));
-  console.log('moistureMap', ndarrayStats(moistureMap));
-  console.log('temperatures', ndarrayStats(temperatures));
-  console.log('biomes', countUnique(biomes));
+  // console.log('upstreamCells', ndarrayStats(upstreamCells));
+  // console.log('moistureMap', ndarrayStats(moistureMap));
+  // console.log('temperatures', ndarrayStats(temperatures));
+  // console.log('biomes', countUnique(biomes));
   console.timeEnd('Worldgen');
 
   const output: IWorldgenWorkerOutput = {
