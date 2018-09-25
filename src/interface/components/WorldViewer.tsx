@@ -400,16 +400,7 @@ class WorldViewRenderer {
       worldHeight,
       divWheel: element,
     });
-    window.addEventListener('resize', () => {
-      app.renderer.resize(
-        window.innerWidth,
-        window.innerHeight - 50
-      );
-      (viewport.resize as any)(
-        window.innerWidth,
-        window.innerHeight - 50
-      );
-    }, true);
+    window.addEventListener('resize', this.onResize, true);
     app.stage.addChild(viewport);
     element.style.cursor = 'grab';
     viewport
@@ -453,6 +444,17 @@ class WorldViewRenderer {
     };
     console.timeEnd('init time');
     console.groupEnd();
+  }
+
+  onResize = () => {
+    this.app.renderer.resize(
+      window.innerWidth,
+      window.innerHeight - 50
+    );
+    (this.viewport.resize as any)(
+      window.innerWidth,
+      window.innerHeight - 50
+    );
   }
 
   private clean(container) {
