@@ -240,7 +240,6 @@ class WorldConfigModal extends Component<{
                 type="submit"
                 intent={Intent.PRIMARY}
                 text="Generate"
-                onClick={() => this.props.generate()}
               />
             </div>
           </div>

@@ -534,24 +534,25 @@ function generateMoisture(
     return 0;
   });
   let cells = [];
+  const scale = Math.max(width, height) / 250;
   for (let x = 0; x < width; x++) {
     for (let y = 0; y < height; y++) {
       if (terrainTypes.get(x, y) === ETerrainType.RIVER) {
         const inlandRatio = (heightmap.get(x, y) - sealevel) / (255 - sealevel);
         const riverAdd = (1 - inlandRatio) * 15;
-        let size = 15 + Math.round(rng() * 10); // 15 to 25
+        let size = scale * 15 + Math.round(rng() * 10); // 15 to 25
         cells = loopGridCircle(x, y, size);
         for (const [cx, cy] of cells) {
           moistureMap.set(cx, cy, moistureMap.get(cx, cy) + riverAdd);
         }
 
-        size = 5 + Math.round(rng() * 10); // 5 to 15
+        size = scale * 5 + Math.round(rng() * 10); // 5 to 15
         cells = loopGridCircle(x, y, size);
         for (const [cx, cy] of cells) {
           moistureMap.set(cx, cy, moistureMap.get(cx, cy) + (riverAdd * 2));
         }
 
-        size = 5 + Math.round(rng() * 5); // 5 to 10
+        size = scale * 5 + Math.round(rng() * 5); // 5 to 10
         cells = loopGridCircle(x, y, size);
         for (const [cx, cy] of cells) {
           moistureMap.set(cx, cy, moistureMap.get(cx, cy) + (riverAdd * 3));

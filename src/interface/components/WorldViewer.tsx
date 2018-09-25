@@ -368,7 +368,6 @@ class WorldViewRenderer {
   app: PIXI.Application;
   viewport: Viewport;
   layers: Record<string, PIXI.Container>;
-  world: World;
   textures: Record<string, PIXI.Texture>;
 
   constructor({
@@ -447,7 +446,6 @@ class WorldViewRenderer {
 
     this.app = app;
     this.viewport = viewport;
-    this.world = world;
     this.textures = textures;
     this.layers = {
       arrows: arrowLayer,
@@ -471,9 +469,11 @@ class WorldViewRenderer {
     this.viewport.addChild(this.layers.arrows);
   }
 
-  render(): IViewState {
+  render(world: World): IViewState {
     const mapModeSprites: Record<string, PIXI.Sprite> = {};
     this.setup();
+    this.viewport.worldWidth = world.size.width * CELL_WIDTH;
+    this.viewport.worldHeight = world.size.height * CELL_HEIGHT;
 
     console.group('World viewer render');
     console.time('render time');
@@ -486,7 +486,7 @@ class WorldViewRenderer {
       }
       const func = mapModeRenderFunctions[mapMode.renderFunc];
       console.time(`rendering map mode "${name}"`);
-      const mapModeSprite = func(this.world, mapMode.options);
+      const mapModeSprite = func(world, mapMode.options);
       console.timeEnd(`rendering map mode "${name}"`);
       mapModeSprite.name = name;
       mapModeSprites[name] = mapModeSprite;
@@ -495,14 +495,14 @@ class WorldViewRenderer {
     console.timeEnd('building map modes')
 
     console.time('building coastline borders')
-    const coastlineBorder = drawCoastlineBorder(this.world, (a: Cell, b: Cell) => (
+    const coastlineBorder = drawCoastlineBorder(world, (a: Cell, b: Cell) => (
       a.isLand && !b.isLand
     ));
     this.viewport.addChild(coastlineBorder);
     console.timeEnd('building coastline borders')
 
     console.time('building grid lines')
-    const gridLines = drawGridLines(this.world);
+    const gridLines = drawGridLines(world);
     gridLines.alpha = 0.75;
     gridLines.interactive = false;
     gridLines.cacheAsBitmap = true;
@@ -511,7 +511,7 @@ class WorldViewRenderer {
 
     const cellSpriteMap = new Map();
     console.time('building cells')
-    for (const cell of this.world.cells) {
+    for (const cell of world.cells) {
       // arrows
       if (cell.terrainType !== ETerrainType.RIVER) continue;
       const arrowSprite = new PIXI.Sprite(this.textures.arrowTexture);
@@ -586,7 +586,6 @@ export class WorldViewer extends React.Component<IWorldViewerProps> {
   }
 
   componentDidMount() {
-    console.log('MOUNT');
     this.renderer = new WorldViewRenderer({
       world: this.props.world,
       element: this.root.current,
@@ -594,33 +593,30 @@ export class WorldViewer extends React.Component<IWorldViewerProps> {
         arrowTexture: this.arrowTexture,
       },
     });
-    this.viewState = this.renderer.render();
+    this.viewState = this.renderer.render(this.props.world);
     console.log(this.viewState);
 
     // add pixi to the DOM
     this.root.current.appendChild(this.renderer.app.view);
 
     // directly manipulate the PIXI objects when state changes
-    this.handleViewChanges(this.props);
+    this.updateView(this.props);
   }
 
   componentDidUpdate() {
-    console.log('UPDATE');
-    this.viewState = this.renderer.render();
-    this.handleViewChanges(this.props);
-    console.log(this.viewState);
+    this.viewState = this.renderer.render(this.props.world);
+    this.updateView(this.props);
   }
-
 
   shouldComponentUpdate(nextProps) {
     return nextProps.world != this.props.world;
   }
 
   componentWillReceiveProps(nextProps: IWorldViewerProps) {
-    this.handleViewChanges(nextProps);
+    this.updateView(nextProps);
   }
 
-  handleViewChanges(props: IWorldViewerProps) {
+  updateView(props: IWorldViewerProps) {
     this.viewState.arrowLayer.visible = props.viewOptions.showFlowArrows;
     this.viewState.coastlineBorder.visible = props.viewOptions.drawCoastline;
     this.viewState.gridLines.visible = props.viewOptions.drawGrid;
