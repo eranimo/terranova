@@ -414,6 +414,8 @@ class WorldViewRenderer {
   layers: Record<string, PIXI.Container>;
   textures: Record<string, PIXI.Texture>;
   cellEvents: Record<string, (cell: Cell) => void>;
+  hoverCursor: PIXI.Sprite;
+  selectedCursor: PIXI.Sprite;
 
   constructor({
     world,
@@ -455,6 +457,44 @@ class WorldViewRenderer {
     window.addEventListener('resize', this.onResize, true);
     app.stage.addChild(viewport);
     element.style.cursor = 'default';
+
+    const cursors = new PIXI.Container();
+    viewport.addChild(cursors);
+    const hoverCursor = drawHoverCursor(CELL_WIDTH, CELL_HEIGHT);
+    hoverCursor.width = CELL_WIDTH;
+    hoverCursor.height = CELL_HEIGHT;
+    hoverCursor.position.set(0, 0);
+    hoverCursor.interactive = false;
+    hoverCursor.alpha = 0;
+    cursors.addChild(hoverCursor);
+
+    const selectedCursor = drawSelectCursor(CELL_WIDTH, CELL_HEIGHT);
+    selectedCursor.width = CELL_WIDTH;
+    selectedCursor.height = CELL_HEIGHT;
+    selectedCursor.position.set(0, 0);
+    selectedCursor.interactive = false;
+    selectedCursor.alpha = 0;
+    cursors.addChild(selectedCursor);
+    this.hoverCursor = hoverCursor;
+    this.selectedCursor = selectedCursor;
+
+    viewport.on('mouseout', () => {
+      hoverCursor.alpha = 0;
+    });
+    viewport.on('mouseover', () => {
+      hoverCursor.alpha = 1;
+    });
+    viewport.on('mousemove', (event: PIXI.interaction.InteractionEvent) => {
+      const { offsetX, offsetY } = event.data.originalEvent as MouseEvent;
+      const worldPos = viewport.toWorld(new PIXI.Point(offsetX, offsetY));
+      const cx = Math.floor(worldPos.x / CELL_WIDTH);
+      const cy = Math.floor(worldPos.y / CELL_HEIGHT);
+      hoverCursor.position.set(
+        cx * CELL_WIDTH,
+        cy * CELL_HEIGHT,
+      );
+    });
+
     viewport
       .drag()
       .wheel()
@@ -464,9 +504,11 @@ class WorldViewRenderer {
           Math.round(viewport.left),
           Math.round(viewport.top),
         );
+        hoverCursor.alpha = 1;
       })
       .on('drag-start', () => {
         element.style.cursor = 'grabbing';
+        hoverCursor.alpha = 0;
       })
       .on('clicked', event => {
         console.log('[viewport event] click', event);
@@ -495,6 +537,7 @@ class WorldViewRenderer {
     this.layers = {
       arrows: arrowLayer,
       mapModes: mapModesLayer,
+      cursors: cursors,
     };
     console.timeEnd('init time');
     console.groupEnd();
@@ -523,6 +566,7 @@ class WorldViewRenderer {
     this.clean(this.layers.mapModes);
     this.viewport.addChild(this.layers.mapModes);
     this.viewport.addChild(this.layers.arrows);
+    this.viewport.addChild(this.layers.cursors);
   }
 
   render(world: World): IViewState {
@@ -610,41 +654,6 @@ class WorldViewRenderer {
     // // viewport.zoomPercent(0.25);
     // cullOffscreenCells();
 
-    const cursors = new PIXI.Container();
-    this.viewport.addChild(cursors);
-    const hoverCursor = drawHoverCursor(CELL_WIDTH, CELL_HEIGHT);
-    hoverCursor.width = CELL_WIDTH;
-    hoverCursor.height = CELL_HEIGHT;
-    hoverCursor.position.set(0, 0);
-    hoverCursor.interactive = false;
-    hoverCursor.alpha = 0;
-    cursors.addChild(hoverCursor);
-
-    const selectedCursor = drawSelectCursor(CELL_WIDTH, CELL_HEIGHT);
-    selectedCursor.width = CELL_WIDTH;
-    selectedCursor.height = CELL_HEIGHT;
-    selectedCursor.position.set(0, 0);
-    selectedCursor.interactive = false;
-    selectedCursor.alpha = 0;
-    cursors.addChild(selectedCursor);
-
-    this.viewport.on('mouseout', () => {
-      hoverCursor.alpha = 0;
-    });
-    this.viewport.on('mouseover', () => {
-      hoverCursor.alpha = 1;
-    });
-    this.viewport.on('mousemove', (event: PIXI.interaction.InteractionEvent) => {
-      const { offsetX, offsetY } = event.data.originalEvent as MouseEvent;
-      const worldPos = this.viewport.toWorld(new PIXI.Point(offsetX, offsetY));
-      const cx = Math.floor(worldPos.x / CELL_WIDTH);
-      const cy = Math.floor(worldPos.y / CELL_HEIGHT);
-      hoverCursor.position.set(
-        cx * CELL_WIDTH,
-        cy * CELL_HEIGHT,
-      );
-    });
-
     console.timeEnd('render time');
     console.groupEnd();
 
@@ -653,8 +662,8 @@ class WorldViewRenderer {
       mapModeSprites,
       coastlineBorder,
       gridLines,
-      hoverCursor,
-      selectedCursor,
+      hoverCursor: this.hoverCursor,
+      selectedCursor: this.selectedCursor,
     };
   }
 }
