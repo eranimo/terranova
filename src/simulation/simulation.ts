@@ -50,20 +50,26 @@ export interface IWorldSaveData {
   worldData: IWorldgenWorkerOutput;
 }
 
-class WorldGenerator {
-
+export interface IWorldSave {
+  name: string;
+  date: number;
+  options: IWorldgenOptions;
 }
 
 export class Simulation {
   ticks: number;
   world?: World;
   saveStore: LocalForage;
+  saveDataStore: LocalForage;
 
   constructor() {
     this.ticks = 0;
     this.world = null;
     this.saveStore = localforage.createInstance({
       name: 'world-saves'
+    });
+    this.saveDataStore = localforage.createInstance({
+      name: 'worlds'
     });
   }
 
@@ -92,21 +98,38 @@ export class Simulation {
     });
   }
 
-  async getWorldSaves(): Promise<string[]> {
-    return await this.saveStore.keys();
+  async getWorldSaves(): Promise<IWorldSave[]> {
+    const saves = [];
+    const saveNames = await this.saveStore.keys();
+    for (const key of saveNames) {
+      const save = await this.saveStore.getItem(key);
+      saves.push(save);
+    }
+    return saves;
   }
 
   async saveWorld(name: string): Promise<void> {
-    const data: IWorldSaveData = {
+    const saveData: IWorldSaveData = {
       name,
       saveDate: Date.now(),
       worldData: this.world.params,
     };
-    await this.saveStore.setItem(name, data);
+    const save = {
+      name,
+      date: Date.now(),
+      options: this.world.params.options,
+    };
+    await this.saveStore.setItem(name, save);
+    await this.saveDataStore.setItem(name, saveData);
   }
 
   async loadWorld(name: string): Promise<void> {
-    const data = await this.saveStore.getItem(name) as IWorldSaveData;
+    const data = await this.saveDataStore.getItem(name) as IWorldSaveData;
     this.world = new World(data.worldData as IWorldgenWorkerOutput);
+  }
+
+  async removeSave(name: string): Promise<void> {
+    await this.saveStore.removeItem(name);
+    await this.saveDataStore.removeItem(name);
   }
 }

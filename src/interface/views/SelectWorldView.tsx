@@ -8,8 +8,11 @@ import {
   Card,
   Button,
   Icon,
+  Spinner,
+  Alert,
 } from '@blueprintjs/core';
 import styled from 'styled-components';
+import { IWorldSave } from '../../simulation/simulation';
 
 const Container = styled.div`
   width: 60%;
@@ -18,20 +21,89 @@ const Container = styled.div`
 `;
 
 export class SelectWorldView extends Component<RouteComponentProps<{}>, {
-  saves: string[],
+  saves: IWorldSave[],
+  isLoading: boolean,
+  deleteModalSaveName: string | null,
 }> {
   simulation: Simulation;
 
   state = {
+    isLoading: true,
     saves: [],
+    deleteModalSaveName: null,
   }
 
   constructor(props) {
     super(props);
 
     this.simulation = new Simulation();
+    this.loadSaves();
+  }
+
+  loadSaves() {
     this.simulation.getWorldSaves()
-      .then(saves => this.setState({ saves }))
+      .then(saves => this.setState({ isLoading: false, saves }))
+  }
+
+  deleteSave() {
+    this.setState({ isLoading: true });
+    this.simulation.removeSave(this.state.deleteModalSaveName)
+    this.loadSaves();
+    this.setState({ deleteModalSaveName: null });
+  }
+
+  renderSaves() {
+    if (this.state.isLoading) {
+      return (
+        <Spinner />
+      );
+    }
+    if (this.state.saves.length === 0) {
+      return (
+        <div>
+          No saves
+        </div>
+      );
+    }
+    return (
+      <table className={[Classes.HTML_TABLE].join(' ')}>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Date</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {this.state.saves.map((save: IWorldSave) => (
+            <tr key={save.name}>
+              <td>
+                <Link
+                  to={`/world/${save.name}`}
+                  className={Classes.TEXT_LARGE}
+                >
+                  {save.name}
+                </Link>
+              </td>
+              <td>
+                {new Date(save.date).toLocaleDateString()}
+              </td>
+              <td>
+                <Button
+                  minimal
+                  small
+                  style={{ minHeight: 17 }}
+                  className={Classes.INTENT_DANGER}
+                  onClick={() => this.setState({ deleteModalSaveName: save.name })}
+                >
+                  <Icon icon="delete" iconSize={12} />
+                </Button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    );
   }
 
   render() {
@@ -49,18 +121,19 @@ export class SelectWorldView extends Component<RouteComponentProps<{}>, {
           <br />
           <br />
           <h4 className={Classes.HEADING}>Load Saved World</h4>
-          <ul className={Classes.LIST}>
-            {this.state.saves.map(saveName => (
-              <li key={saveName}>
-                <Link
-                  to={`/world/${saveName}`}
-                >
-                  {saveName}
-                </Link>
-              </li>
-            ))}
-          </ul>
+          {this.renderSaves()}
         </Card>
+        <Alert
+          isOpen={this.state.deleteModalSaveName !== null}
+          onCancel={() => this.setState({ deleteModalSaveName: null })}
+          onConfirm={() => this.deleteSave()}
+          icon="trash"
+          intent="danger"
+          confirmButtonText="Delete"
+          cancelButtonText="Cancel"
+        >
+          <p>Are you sure you want to delete world save <b>{this.state.deleteModalSaveName}</b>?</p>
+        </Alert>
       </Container>
     )
   }
