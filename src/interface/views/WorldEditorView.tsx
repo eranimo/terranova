@@ -310,6 +310,19 @@ export class WorldEditorView extends Component<RouteComponentProps<{}>, {
           minimal
         />
         <Button
+          text="Randomize"
+          icon={'random'}
+          onClick={() => {
+            this.setState({
+              options: {
+                ...this.state.options,
+                seed: Math.random(),
+              },
+            }, this.load)
+          }}
+          minimal
+        />
+        <Button
           text="Save World"
           icon={'floppy-disk'}
           onClick={() => this.setState({ saveDialogOpen: true })}
