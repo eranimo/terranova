@@ -1,6 +1,7 @@
 import ndarray from 'ndarray';
 import { IWorldgenWorkerOutput } from './simulation';
 import { mapValues } from 'lodash';
+import ops from 'ndarray-ops';
 
 
 export enum ETerrainType {
@@ -241,8 +242,21 @@ export class DrainageBasin {
   }
 }
 
+interface IRange {
+  min: number,
+  max: number
+}
+
 interface IWorldStats {
   biomePercents: Record<EBiome, number>;
+  ranges: Record<string, IRange>;
+}
+
+function ndarrayRange(array: ndarray): IRange {
+  return {
+    min: ops.inf(array),
+    max: ops.sup(array),
+  }
 }
 
 export default class World {
@@ -308,7 +322,14 @@ export default class World {
       }
     }
     const biomePercents = mapValues(biomeCounts, i => i / landCount) as Record<EBiome, number>;
-    this.stats = { biomePercents };
+
+    const ranges = {
+      temperature: ndarrayRange(temperatures),
+      moisture: ndarrayRange(moistureMap),
+      height: ndarrayRange(heightmap),
+    };
+
+    this.stats = { biomePercents, ranges };
   }
 
   get cellCount() {

@@ -46,12 +46,35 @@ export default class WorldStats extends Component<{ world: World }> {
     );
   }
 
+  renderClimateTab() {
+    const { world } = this.props;
+    return (
+      <table className="detail-table">
+        <tbody>
+          <tr>
+            <td>Temperature Range</td>
+            <td>{world.stats.ranges.temperature.min} / {world.stats.ranges.temperature.max}</td>
+          </tr>
+          <tr>
+            <td>Height Range</td>
+            <td>{world.stats.ranges.height.min} / {world.stats.ranges.height.max}</td>
+          </tr>
+          <tr>
+            <td>Moisture Range</td>
+            <td>{world.stats.ranges.moisture.min} / {world.stats.ranges.moisture.max}</td>
+          </tr>
+        </tbody>
+      </table>
+    );
+  }
+
   render() {
     return (
       <div className='tn-popover'>
         <Tabs id="world-stats" onChange={tabID => this.setState({ activeTab: tabID })}>
           <Tab id="settings" title="Settings" panel={this.renderSettingsTab()} />
           <Tab id="biomes" title="Biomes" panel={this.renderBiomesTab()} />
+          <Tab id="climate" title="Climate" panel={this.renderClimateTab()} />
         </Tabs>
       </div>
     )
