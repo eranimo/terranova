@@ -15,6 +15,7 @@ export interface IViewOptions {
   mapMode: EMapMode;
   drawCoastline: boolean;
   drawGrid: boolean;
+  showCursor: boolean;
 }
 
 interface IViewState {
@@ -22,6 +23,8 @@ interface IViewState {
   mapModeSprites: Record<string, PIXI.Sprite>;
   coastlineBorder: PIXI.Sprite;
   gridLines: PIXI.Sprite;
+  hoverCursor: PIXI.Sprite;
+  selectedCursor: PIXI.Sprite;
 }
 
 const terrainColors = {
@@ -258,6 +261,47 @@ function drawGridLines(world: World): PIXI.Sprite {
   return new PIXI.Sprite(g.generateCanvasTexture());
 }
 
+function drawHoverCursor(width: number, height: number): PIXI.Sprite {
+  const g = new PIXI.Graphics(true);
+  g.lineColor = 0xFFFFFF;
+  g.lineWidth = 1;
+  const thirdWidth = width / 3;
+  const thirdHeight = height / 3;
+  // top left corner
+  g.moveTo(0, thirdHeight);
+  g.lineTo(0, 0);
+  g.lineTo(thirdWidth, 0);
+
+  // top right
+  g.moveTo(width - thirdWidth, 0);
+  g.lineTo(width, 0);
+  g.lineTo(width, thirdHeight);
+
+  // bottom right
+  g.moveTo(width, height - thirdHeight);
+  g.lineTo(width, height);
+  g.lineTo(width - thirdWidth, height);
+
+  // bottom left
+  g.moveTo(thirdWidth, height);
+  g.lineTo(0, height);
+  g.lineTo(0, height - thirdHeight);
+
+  return new PIXI.Sprite(g.generateCanvasTexture());
+}
+
+function drawSelectCursor(width: number, height: number): PIXI.Sprite {
+  const g = new PIXI.Graphics(true);
+  g.lineColor = 0xFFFFFF;
+  g.lineWidth = 1;
+  g.moveTo(0, 0);
+  g.lineTo(0, height - 1);
+  g.lineTo(width - 1, height - 1)
+  g.lineTo(width - 1, 0);
+  g.lineTo(0, 0);
+  return new PIXI.Sprite(g.generateCanvasTexture());
+}
+
 function drawTerrain(world: World, options: any): PIXI.Sprite {
   const g = new PIXI.Graphics(true);
 
@@ -369,16 +413,24 @@ class WorldViewRenderer {
   viewport: Viewport;
   layers: Record<string, PIXI.Container>;
   textures: Record<string, PIXI.Texture>;
+  cellEvents: Record<string, (cell: Cell) => void>;
 
   constructor({
-    world, element, textures
+    world,
+    element,
+    textures,
+    cellEvents,
   }: {
     world: World,
     element: HTMLElement,
     textures: Record<string, PIXI.Texture>,
+    cellEvents: {
+      onCellClick: (cell: Cell) => void,
+    },
   }) {
     console.group('World viewer init');
     console.time('init time');
+    this.cellEvents = cellEvents;
     const screenWidth = window.innerWidth;
     const screenHeight = (window.innerHeight - 50);
     const app = new PIXI.Application({
@@ -402,12 +454,12 @@ class WorldViewRenderer {
     });
     window.addEventListener('resize', this.onResize, true);
     app.stage.addChild(viewport);
-    element.style.cursor = 'grab';
+    element.style.cursor = 'default';
     viewport
       .drag()
       .wheel()
       .on('drag-end', () => {
-        element.style.cursor = 'grab';
+        element.style.cursor = 'default';
         viewport.moveCorner(
           Math.round(viewport.left),
           Math.round(viewport.top),
@@ -420,6 +472,8 @@ class WorldViewRenderer {
         console.log('[viewport event] click', event);
         const cx = Math.floor(event.world.x / CELL_WIDTH);
         const cy = Math.floor(event.world.y / CELL_HEIGHT);
+        const cell = world.getCell(cx, cy);
+        this.cellEvents.onCellClick(cell);
       })
       .clampZoom({
         minWidth: worldWidth / 15,
@@ -556,6 +610,41 @@ class WorldViewRenderer {
     // // viewport.zoomPercent(0.25);
     // cullOffscreenCells();
 
+    const cursors = new PIXI.Container();
+    this.viewport.addChild(cursors);
+    const hoverCursor = drawHoverCursor(CELL_WIDTH, CELL_HEIGHT);
+    hoverCursor.width = CELL_WIDTH;
+    hoverCursor.height = CELL_HEIGHT;
+    hoverCursor.position.set(0, 0);
+    hoverCursor.interactive = false;
+    hoverCursor.alpha = 0;
+    cursors.addChild(hoverCursor);
+
+    const selectedCursor = drawSelectCursor(CELL_WIDTH, CELL_HEIGHT);
+    selectedCursor.width = CELL_WIDTH;
+    selectedCursor.height = CELL_HEIGHT;
+    selectedCursor.position.set(0, 0);
+    selectedCursor.interactive = false;
+    selectedCursor.alpha = 0;
+    cursors.addChild(selectedCursor);
+
+    this.viewport.on('mouseout', () => {
+      hoverCursor.alpha = 0;
+    });
+    this.viewport.on('mouseover', () => {
+      hoverCursor.alpha = 1;
+    });
+    this.viewport.on('mousemove', (event: PIXI.interaction.InteractionEvent) => {
+      const { offsetX, offsetY } = event.data.originalEvent as MouseEvent;
+      const worldPos = this.viewport.toWorld(new PIXI.Point(offsetX, offsetY));
+      const cx = Math.floor(worldPos.x / CELL_WIDTH);
+      const cy = Math.floor(worldPos.y / CELL_HEIGHT);
+      hoverCursor.position.set(
+        cx * CELL_WIDTH,
+        cy * CELL_HEIGHT,
+      );
+    });
+
     console.timeEnd('render time');
     console.groupEnd();
 
@@ -564,6 +653,8 @@ class WorldViewRenderer {
       mapModeSprites,
       coastlineBorder,
       gridLines,
+      hoverCursor,
+      selectedCursor,
     };
   }
 }
@@ -572,6 +663,8 @@ class WorldViewRenderer {
 interface IWorldViewerProps {
   world: World,
   viewOptions: IViewOptions;
+  selectedCell: Cell | null;
+  onCellClick: (cell: Cell) => void;
 }
 export class WorldViewer extends React.Component<IWorldViewerProps> {
   viewState: IViewState;
@@ -594,6 +687,9 @@ export class WorldViewer extends React.Component<IWorldViewerProps> {
       textures: {
         arrowTexture: this.arrowTexture,
       },
+      cellEvents: {
+        onCellClick: this.props.onCellClick,
+      }
     });
     this.viewState = this.renderer.render(this.props.world);
     console.log(this.viewState);
@@ -611,6 +707,10 @@ export class WorldViewer extends React.Component<IWorldViewerProps> {
   }
 
   shouldComponentUpdate(nextProps) {
+    if (nextProps.selectedCell !== this.props.selectedCell) {
+      console.log('select', nextProps.selectedCell);
+      this.selectCell(nextProps.selectedCell);
+    }
     return nextProps.world != this.props.world;
   }
 
@@ -622,6 +722,8 @@ export class WorldViewer extends React.Component<IWorldViewerProps> {
     this.viewState.arrowLayer.visible = props.viewOptions.showFlowArrows;
     this.viewState.coastlineBorder.visible = props.viewOptions.drawCoastline;
     this.viewState.gridLines.visible = props.viewOptions.drawGrid;
+    this.viewState.hoverCursor.visible = props.viewOptions.showCursor;
+    this.viewState.selectedCursor.visible = props.viewOptions.showCursor;
     for (const name of Object.keys(mapModes)) {
       this.viewState.mapModeSprites[name].visible = props.viewOptions.mapMode === name;
     }
@@ -629,6 +731,18 @@ export class WorldViewer extends React.Component<IWorldViewerProps> {
 
   componentWillUnmount() {
     this.renderer.app.destroy();
+  }
+
+  selectCell(cell: Cell) {
+    if (cell === null) {
+      this.viewState.selectedCursor.alpha = 0;
+    } else {
+      this.viewState.selectedCursor.alpha = 1;
+      this.viewState.selectedCursor.position.set(
+        cell.x * CELL_WIDTH,
+        cell.y * CELL_HEIGHT
+      );
+    }
   }
 
   render() {

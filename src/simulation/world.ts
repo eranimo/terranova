@@ -12,6 +12,15 @@ export enum ETerrainType {
   MOUNTAIN,
 }
 
+export const terrainTypeLabels = {
+  [ETerrainType.OCEAN]: 'Ocean',
+  [ETerrainType.LAND]: 'Land',
+  [ETerrainType.RIVER]: 'River',
+  [ETerrainType.LAKE]: 'Lake',
+  [ETerrainType.COAST]: 'Coastal water',
+  [ETerrainType.MOUNTAIN]: 'Mountain',
+}
+
 export enum EBiome {
   NONE,
   GLACIAL,
@@ -155,6 +164,14 @@ export enum EDirection {
   DOWN,
   LEFT,
   RIGHT,
+}
+
+export const directionLabels = {
+  [EDirection.NONE]: 'None',
+  [EDirection.UP]: 'Up',
+  [EDirection.DOWN]: 'Down',
+  [EDirection.LEFT]: 'Left',
+  [EDirection.RIGHT]: 'Right',
 }
 
 export class Cell {

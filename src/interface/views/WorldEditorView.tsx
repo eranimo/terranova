@@ -181,7 +181,7 @@ class WorldConfigModal extends Component<{
           </FormGroup>
         </Column>
         <Column>
-          <Label text="Temperature" />
+          <Label>Temperature</Label>
           <FormGroup label="Min" inline>
             <NumericInput
               style={{ width: '50px' }}

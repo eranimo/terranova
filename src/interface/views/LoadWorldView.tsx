@@ -37,7 +37,10 @@ export class LoadWorldView extends Component<RouteComponentProps<{
       return <Spinner/>;
     }
     return (
-      <WorldViewerContainer world={this.state.world} isLoading={this.state.world === null} />
+      <WorldViewerContainer
+        world={this.state.world}
+        isLoading={this.state.world === null}
+      />
     );
   }
 }

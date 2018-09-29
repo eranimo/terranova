@@ -1,6 +1,6 @@
 import React, { Component, ReactNode } from 'react';
 import { WorldViewer, IViewOptions, mapModes, EMapMode } from './WorldViewer';
-import World from '../../simulation/world';
+import World, { Cell, biomeTitles, directionLabels, terrainTypeLabels } from '../../simulation/world';
 import {
   Navbar,
   NavbarGroup,
@@ -14,6 +14,10 @@ import {
   Position,
   Label,
   Spinner,
+  Colors,
+  HotkeysTarget,
+  Hotkeys,
+  Hotkey,
 } from '@blueprintjs/core';
 import styled from 'styled-components';
 
@@ -63,7 +67,7 @@ class WorldViewerHeader extends Component <{
                   />
                 ))}
               </RadioGroup>
-              <Label text="View Options" />
+              <Label>View Options</Label>
               <ul className="bp3-list-unstyled">
                 <li>
                   <Checkbox
@@ -89,6 +93,14 @@ class WorldViewerHeader extends Component <{
                     label='Grid Lines'
                   />
                 </li>
+                <li>
+                  <Checkbox
+                    inline
+                    checked={viewOptions.showCursor}
+                    onChange={onChangeField('showCursor')}
+                    label='Show cursor'
+                  />
+                </li>
               </ul>
             </div>
           </Popover>
@@ -98,13 +110,79 @@ class WorldViewerHeader extends Component <{
   }
 }
 
+const CellDetailContainer = styled.div`
+  position: absolute;
+  bottom: 0;
+  background-color: rgba(57, 75, 89, 0.90);
+  border-top: 1px solid ${Colors.DARK_GRAY3};
+  border-right: 1px solid ${Colors.DARK_GRAY3};
+  border-top-right-radius: 5px;
+  padding: 1rem;
+  width: 320px;
+  height: 180px;
+  overflow-y: auto;
+  box-shadow: 0 0 4px 2px rgba(16, 22, 26, 0.2);
+`;
 
+class CellDetail extends Component<{
+  cell: Cell,
+  handleClose: () => void,
+}> {
+  render() {
+    const { cell, handleClose } = this.props;
+
+    return (
+      <CellDetailContainer>
+        <h3 className="bp3-heading">
+          Cell ({cell.x}, {cell.y})
+          <Button
+            icon="cross"
+            style={{ float: 'right' }}
+            minimal
+            onClick={handleClose}
+          />
+        </h3>
+        <table className="detail-table">
+          <tbody>
+            <tr>
+              <td>Terrain type</td>
+              <td>{terrainTypeLabels[cell.terrainType]}</td>
+            </tr>
+            <tr>
+              <td>Biome</td>
+              <td>{biomeTitles[cell.biome]}</td>
+            </tr>
+            <tr>
+              <td>Temperature</td>
+              <td>{cell.temperature} &deg;C</td>
+            </tr>
+            <tr>
+              <td>Moisture</td>
+              <td>{cell.moisture.toLocaleString()}</td>
+            </tr>
+            <tr>
+              <td>Upstream count</td>
+              <td>{cell.upstreamCount.toLocaleString()}</td>
+            </tr>
+            <tr>
+              <td>Flow Direction</td>
+              <td>{directionLabels[cell.flowDir]}</td>
+            </tr>
+          </tbody>
+        </table>
+      </CellDetailContainer>
+    )
+  }
+}
+
+@HotkeysTarget
 export class WorldViewerContainer extends Component<{
   world: World,
   isLoading: boolean,
   renderControls?: () => React.ReactNode,
 }, {
   viewOptions: IViewOptions;
+  selectedCell: Cell | null;
 }> {
   state = {
     viewOptions: {
@@ -112,7 +190,9 @@ export class WorldViewerContainer extends Component<{
       drawCoastline: true,
       drawGrid: false,
       mapMode: EMapMode.CLIMATE,
+      showCursor: true,
     },
+    selectedCell: null,
     isGenerating: false,
   }
 
@@ -133,6 +213,56 @@ export class WorldViewerContainer extends Component<{
       },
     });
   }
+  onCellClick = (cell: Cell) => {
+    if (this.state.selectedCell == cell) {
+      // deselect
+      this.setState({ selectedCell: null });
+    } else {
+      // select
+      this.setState({ selectedCell: cell });
+    }
+  }
+
+  deselect = () => {
+    this.setState({ selectedCell: null })
+  }
+
+  renderHotkeys() {
+    return (
+      <Hotkeys>
+        <Hotkey
+          global
+          combo="esc"
+          label="Deselect current cell"
+          onKeyDown={this.deselect}
+        />
+        <Hotkey
+          global
+          combo="shift + g"
+          label="Toggle grid"
+          onKeyDown={this.onChangeField('drawGrid')}
+        />
+        <Hotkey
+          global
+          combo="shift + c"
+          label="Toggle cursor"
+          onKeyDown={this.onChangeField('showCursor')}
+        />
+        <Hotkey
+          global
+          combo="shift + f"
+          label="Toggle flow directions"
+          onKeyDown={this.onChangeField('showFlowArrows')}
+        />
+        <Hotkey
+          global
+          combo="shift + o"
+          label="Toggle coastline border"
+          onKeyDown={this.onChangeField('drawCoastline')}
+        />
+      </Hotkeys>
+    )
+  }
 
   render() {
     const { world, isLoading, renderControls } = this.props;
@@ -149,6 +279,8 @@ export class WorldViewerContainer extends Component<{
           <WorldViewer
             world={world}
             viewOptions={this.state.viewOptions}
+            selectedCell={this.state.selectedCell}
+            onCellClick={this.onCellClick}
           />
         </div>
       );
@@ -169,6 +301,12 @@ export class WorldViewerContainer extends Component<{
           renderControls={renderControls}
         />
         {viewer}
+        {this.state.selectedCell !== null
+          ? <CellDetail
+              cell={this.state.selectedCell}
+              handleClose={this.deselect}
+            />
+          : null}
       </div>
     )
   }

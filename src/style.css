@@ -26,3 +26,13 @@ body {
   left: 0;
   bottom: 0;
 }
+
+table.detail-table {
+  font-size: 14px;
+  border-spacing: 0;
+}
+
+table.detail-table tr td:first-child {
+  font-weight: bold;
+  padding-right: 1rem;
+}
