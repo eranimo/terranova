@@ -3,9 +3,10 @@ import { Simulation } from '../../simulation';
 import World from '../../simulation/world';
 import { RouteComponentProps } from 'react-router'
 import {
-  Spinner,
+  Spinner, NavbarGroup, Alignment, NavbarHeading, NavbarDivider
 } from '@blueprintjs/core';
 import { WorldViewerContainer } from '../components/WorldViewerContainer';
+import BackButton from '../components/BackButton';
 
 
 export class LoadWorldView extends Component<RouteComponentProps<{
@@ -32,12 +33,21 @@ export class LoadWorldView extends Component<RouteComponentProps<{
     this.setState({ world });
   }
 
+
+
   render() {
     if (this.state.world === null) {
       return <Spinner/>;
     }
     return (
       <WorldViewerContainer
+        renderControls={() => [
+          <NavbarGroup align={Alignment.LEFT}>
+            <BackButton />
+            <NavbarDivider />
+            <NavbarHeading>World Viewer</NavbarHeading>
+          </NavbarGroup>
+        ]}
         world={this.state.world}
         isLoading={this.state.world === null}
       />

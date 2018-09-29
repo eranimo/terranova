@@ -32,6 +32,7 @@ import { WorldViewerContainer } from '../components/WorldViewerContainer';
 import { set, capitalize, cloneDeep } from 'lodash';
 import styled from 'styled-components';
 import { clamp } from '@blueprintjs/core/lib/esm/common/utils';
+import BackButton from '../components/BackButton';
 
 const Row = styled.div`
   display: flex;
@@ -291,6 +292,8 @@ export class WorldEditorView extends Component<RouteComponentProps<{}>, {
   renderControls = () => {
     return (
       <NavbarGroup align={Alignment.LEFT}>
+        <BackButton />
+        <NavbarDivider />
         <NavbarHeading>World Editor</NavbarHeading>
         <NavbarDivider />
         <Button

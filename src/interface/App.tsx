@@ -37,11 +37,11 @@ export class Application extends Component {
           <Route
             exact
             path="/"
-            component={WorldEditorView}
+            component={SelectWorldView}
           />
           <Route
-            path="/worldSelect"
-            component={SelectWorldView}
+            path="/editor"
+            component={WorldEditorView}
           />
           <Route
             path="/world/:saveName"
