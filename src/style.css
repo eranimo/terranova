@@ -21,3 +21,8 @@ body {
 .tn-popover {
   padding: 1rem;
 }
+
+.world-config {
+  left: 0;
+  bottom: 0;
+}

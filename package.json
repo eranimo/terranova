@@ -17,7 +17,8 @@
     "typescript": "^3.0.1"
   },
   "dependencies": {
-    "@blueprintjs/core": "2",
+    "@blueprintjs/core": "3.6.1",
+    "@blueprintjs/icons": "3.1.0",
     "@types/lodash": "^4.14.116",
     "@types/ndarray": "^1.0.6",
     "@types/pixi.js": "^4.8.0",
@@ -34,7 +35,6 @@
     "ndarray": "^1.0.18",
     "ndarray-fill": "^1.0.2",
     "ndarray-ops": "^1.2.2",
-    "parcel-plugin-typescript": "^1.0.0",
     "pixi-viewport": "^3.3.0",
     "pixi.js": "^4.8.1",
     "react": "^16.4.2",

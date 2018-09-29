@@ -64,7 +64,7 @@ class WorldViewerHeader extends Component <{
                 ))}
               </RadioGroup>
               <Label text="View Options" />
-              <ul className="pt-list-unstyled">
+              <ul className="bp3-list-unstyled">
                 <li>
                   <Checkbox
                     inline
