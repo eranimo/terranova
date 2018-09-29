@@ -1,4 +1,4 @@
-import React, { Component, ReactNode } from 'react';
+import React, { Component } from 'react';
 import { WorldViewer, IViewOptions, mapModes, EMapMode } from './WorldViewer';
 import World, { Cell, biomeTitles, directionLabels, terrainTypeLabels } from '../../simulation/world';
 import {
@@ -20,6 +20,8 @@ import {
   Hotkey,
 } from '@blueprintjs/core';
 import styled from 'styled-components';
+import WorldStats from '../components/WorldStats';
+
 
 const LoadingWorld = styled.div`
   position: absolute;
@@ -32,17 +34,31 @@ const LoadingWorld = styled.div`
 `;
 
 class WorldViewerHeader extends Component <{
+  world: World,
   viewOptions: IViewOptions,
   onChangeMapMode: (event: any) => any,
   onChangeField: (field: string) => any,
   renderControls?: () => React.ReactNode,
 }> {
   render() {
-    const { renderControls, viewOptions, onChangeMapMode, onChangeField } = this.props;
+    const { renderControls, viewOptions, onChangeMapMode, onChangeField, world } = this.props;
     return (
       <Navbar>
         {renderControls ? renderControls() : null}
         <NavbarGroup align={Alignment.RIGHT}>
+          <Popover
+            position={Position.BOTTOM}
+            interactionKind={PopoverInteractionKind.CLICK}
+          >
+            <Button
+              text='World Stats'
+              minimal
+              icon={'panel-stats'}
+              rightIcon={'caret-down'}
+              disabled={world === null}
+            />
+            {world ? <WorldStats world={world} /> : null}
+          </Popover>
           <Popover
             position={Position.BOTTOM}
             interactionKind={PopoverInteractionKind.CLICK}
@@ -295,6 +311,7 @@ export class WorldViewerContainer extends Component<{
     return (
       <div style={{ position: 'relative' }}>
         <WorldViewerHeader
+          world={world}
           viewOptions={this.state.viewOptions}
           onChangeField={this.onChangeField}
           onChangeMapMode={this.onChangeMapMode}

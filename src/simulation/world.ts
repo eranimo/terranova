@@ -1,6 +1,6 @@
 import ndarray from 'ndarray';
 import { IWorldgenWorkerOutput } from './simulation';
-
+import { mapValues } from 'lodash';
 
 
 export enum ETerrainType {
@@ -241,6 +241,10 @@ export class DrainageBasin {
   }
 }
 
+interface IWorldStats {
+  biomePercents: Record<EBiome, number>;
+}
+
 export default class World {
   grid: Cell[][];
   cells: Set<Cell>;
@@ -251,6 +255,7 @@ export default class World {
   sealevel: number;
   drainageBasins: DrainageBasin[];
   params: IWorldgenWorkerOutput;
+  stats: IWorldStats;
 
   constructor(params: IWorldgenWorkerOutput) {
     this.params = params;
@@ -288,6 +293,26 @@ export default class World {
         new DrainageBasin(parseInt(id, 10), color, cells.map(([x, y]) => this.grid[x][y])
       ));
     };
+
+    // make stats
+    const biomeCounts: any = {};
+    let landCount = 0;
+    for (const cell of this.cells) {
+      if (cell.biome !== EBiome.NONE) {
+        landCount++;
+        if (cell.biome in biomeCounts) {
+          biomeCounts[cell.biome]++;
+        } else {
+          biomeCounts[cell.biome] = 1;
+        }
+      }
+    }
+    const biomePercents = mapValues(biomeCounts, i => i / landCount) as Record<EBiome, number>;
+    this.stats = { biomePercents };
+  }
+
+  get cellCount() {
+    return this.size.width * this.size.height;
   }
 
   getCell(x: number, y: number): Cell | null {
