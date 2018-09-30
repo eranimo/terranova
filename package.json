@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "parcel build ./src/index.html --out-dir docs/",
+    "build": "parcel build ./src/index.html --out-dir docs/ --public-url ./terranova/",
     "dev": "parcel serve ./src/index.html"
   },
   "author": "",
