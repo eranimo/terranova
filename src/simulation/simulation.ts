@@ -54,6 +54,7 @@ export interface IWorldSave {
   name: string;
   date: number;
   options: IWorldgenOptions;
+  worldString: string;
 }
 
 export class Simulation {
@@ -98,6 +99,11 @@ export class Simulation {
     });
   }
 
+  import(worldString: string) {
+    const options: IWorldgenOptions = JSON.parse(atob(decodeURIComponent(worldString)));
+    return this.generate(options);
+  }
+
   async getWorldSaves(): Promise<IWorldSave[]> {
     const saves = [];
     const saveNames = await this.saveStore.keys();
@@ -114,10 +120,11 @@ export class Simulation {
       saveDate: Date.now(),
       worldData: this.world.params,
     };
-    const save = {
+    const save: IWorldSave = {
       name,
       date: Date.now(),
       options: this.world.params.options,
+      worldString: this.world.exportString,
     };
     await this.saveStore.setItem(name, save);
     await this.saveDataStore.setItem(name, saveData);

@@ -18,9 +18,13 @@ import {
   HotkeysTarget,
   Hotkeys,
   Hotkey,
+  ControlGroup,
+  InputGroup,
+  FormGroup,
 } from '@blueprintjs/core';
 import styled from 'styled-components';
 import WorldStats from '../components/WorldStats';
+import copy from 'clipboard-copy';
 
 
 const LoadingWorld = styled.div`
@@ -46,6 +50,33 @@ class WorldViewerHeader extends Component <{
       <Navbar>
         {renderControls ? renderControls() : null}
         <NavbarGroup align={Alignment.RIGHT}>
+          <Popover
+            position={Position.BOTTOM}
+            interactionKind={PopoverInteractionKind.CLICK}
+          >
+            <Button
+              text="Export"
+              minimal
+              icon="export"
+              rightIcon={'caret-down'}
+              disabled={world === null}
+            />
+            <div className='tn-popover'>
+              <FormGroup
+                label="Export world config"
+                helperText={<span>The above string can be used to<br />replicate this world</span>}
+              >
+                <ControlGroup>
+                  <InputGroup value={world.exportString} />
+                  <Button
+                    icon="clipboard"
+                    style={{ width: 50 }}
+                    onClick={() => copy(world.exportString)}
+                  />
+                </ControlGroup>
+              </FormGroup>
+            </div>
+          </Popover>
           <Popover
             position={Position.BOTTOM}
             interactionKind={PopoverInteractionKind.CLICK}

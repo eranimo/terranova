@@ -336,6 +336,10 @@ export default class World {
     return this.size.width * this.size.height;
   }
 
+  get exportString() {
+    return encodeURIComponent(btoa(JSON.stringify(this.params.options)));
+  }
+
   getCell(x: number, y: number): Cell | null {
     if (x < 0 || y < 0 || x >= this.size.width || y >= this.size.height) {
       return null;

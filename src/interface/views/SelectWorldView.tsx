@@ -10,6 +10,7 @@ import {
   Icon,
   Spinner,
   Alert,
+  Tooltip,
 } from '@blueprintjs/core';
 import styled from 'styled-components';
 import { IWorldSave } from '../../simulation/simulation';
@@ -89,15 +90,31 @@ export class SelectWorldView extends Component<RouteComponentProps<{}>, {
                 {new Date(save.date).toLocaleDateString()}
               </td>
               <td>
-                <Button
-                  minimal
-                  small
-                  style={{ minHeight: 17 }}
-                  className={Classes.INTENT_DANGER}
-                  onClick={() => this.setState({ deleteModalSaveName: save.name })}
+                <Tooltip
+                  content="Delete save"
+                  intent="danger"
                 >
-                  <Icon icon="delete" iconSize={12} />
-                </Button>
+                  <Button
+                    minimal
+                    small
+                    style={{ minHeight: 17 }}
+                    className={Classes.INTENT_DANGER}
+                    onClick={() => this.setState({ deleteModalSaveName: save.name })}
+                  >
+                    <Icon icon="delete" iconSize={12} />
+                  </Button>
+                </Tooltip>
+                <Tooltip
+                  content="Edit world"
+                >
+                  <Link
+                    to={`/editor?ws=${save.worldString}`}
+                    className={[Classes.BUTTON, Classes.MINIMAL].join(' ')}
+                    style={{ minHeight: 17 }}
+                  >
+                    <Icon icon="edit" iconSize={12} />
+                  </Link>
+                </Tooltip>
               </td>
             </tr>
           ))}

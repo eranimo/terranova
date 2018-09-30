@@ -33,6 +33,7 @@ import { set, capitalize, cloneDeep } from 'lodash';
 import styled from 'styled-components';
 import { clamp } from '@blueprintjs/core/lib/esm/common/utils';
 import BackButton from '../components/BackButton';
+import { parse } from 'query-string';
 
 const Row = styled.div`
   display: flex;
@@ -270,14 +271,18 @@ export class WorldEditorView extends Component<RouteComponentProps<{}>, {
 
   constructor(props) {
     super(props);
-
     this.simulation = new Simulation();
     this.load();
   }
 
   async load() {
+    const { ws } = parse(this.props.location.search);
     this.setState({ isLoading: true });
-    await this.simulation.generate(this.state.options);
+    if (ws) {
+      await this.simulation.import(ws);
+    } else {
+      await this.simulation.generate(this.state.options);
+    }
     const world = this.simulation.world;
     this.setState({ world, isLoading: false });
   }
@@ -343,25 +348,34 @@ export class WorldEditorView extends Component<RouteComponentProps<{}>, {
           isOpen={this.state.saveDialogOpen}
           onClose={() => this.setState({ saveDialogOpen: false })}
         >
-          <div className={Classes.DIALOG_BODY}>
-            <FormGroup
-              label="World name"
-            >
-              <InputGroup
-                value={this.state.saveName}
-                onChange={(event) => this.setState({ saveName: event.target.value })}
-              />
-            </FormGroup>
-          </div>
-          <div className={Classes.DIALOG_FOOTER}>
-            <div className={Classes.DIALOG_FOOTER_ACTIONS}>
-              <Button
-                intent={Intent.PRIMARY}
-                text="Save"
-                onClick={() => this.saveWorld()}
-              />
+          <form
+            onSubmit={event => {
+              this.saveWorld();
+              this.setState({ saveDialogOpen: false });
+              event.preventDefault();
+            }}
+          >
+            <div className={Classes.DIALOG_BODY}>
+              <FormGroup
+                label="World name"
+              >
+                <InputGroup
+                  value={this.state.saveName}
+                  autoFocus
+                  onChange={(event) => this.setState({ saveName: event.target.value })}
+                />
+              </FormGroup>
             </div>
-          </div>
+            <div className={Classes.DIALOG_FOOTER}>
+              <div className={Classes.DIALOG_FOOTER_ACTIONS}>
+                <Button
+                  intent={Intent.PRIMARY}
+                  text="Save"
+                  type="submit"
+                />
+              </div>
+            </div>
+          </form>
         </Dialog>
         <Dialog
           title="World Config"
