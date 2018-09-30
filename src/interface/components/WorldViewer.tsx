@@ -497,6 +497,7 @@ class WorldViewRenderer {
 
     viewport
       .drag()
+      .pinch()
       .wheel()
       .on('drag-end', () => {
         element.style.cursor = 'default';
