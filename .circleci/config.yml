@@ -34,6 +34,10 @@ jobs:
           key: v1-dependencies-{{ checksum "package.json" }}
 
       - run: yarn run build
+      - persist_to_workspace:
+        root: ./
+        paths:
+          - public
   deploy:
     machine:
       enabled: true
@@ -44,7 +48,7 @@ jobs:
       - run:
           name: Deploy Over SSH
           command: |
-            ssh $SSH_USER@$SSH_HOST "cd /var/www/terranova.kaelan.org && git pull && yarn run build"
+            scp -r public "$SSH_USER@$SSH_HOST:/var/www/terranova.kaelan.org/public"
 workflows:
   version: 2
   build-and-deploy:
