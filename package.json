@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "parcel build ./src/index.html --out-dir docs/ --public-url http://blog.kaelan.org/terranova/",
+    "build": "parcel build ./src/index.html --out-dir public/",
     "dev": "parcel serve ./src/index.html"
   },
   "author": "",
