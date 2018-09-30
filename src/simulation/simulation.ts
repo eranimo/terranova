@@ -99,9 +99,14 @@ export class Simulation {
     });
   }
 
-  import(worldString: string) {
+  async importFromString(worldString: string) {
     const options: IWorldgenOptions = JSON.parse(atob(decodeURIComponent(worldString)));
-    return this.generate(options);
+    return await this.generate(options);
+  }
+
+  async importFromSave(saveName: string): Promise<IWorldgenOptions> {
+    await this.loadWorld(saveName);
+    return this.world.params.options;
   }
 
   async getWorldSaves(): Promise<IWorldSave[]> {

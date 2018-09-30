@@ -108,7 +108,7 @@ export class SelectWorldView extends Component<RouteComponentProps<{}>, {
                   content="Edit world"
                 >
                   <Link
-                    to={`/editor?ws=${save.worldString}`}
+                    to={`/editor?saveName=${save.name}`}
                     className={[Classes.BUTTON, Classes.MINIMAL].join(' ')}
                     style={{ minHeight: 17 }}
                   >

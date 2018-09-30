@@ -35,6 +35,8 @@ import styled from 'styled-components';
 import { clamp } from '@blueprintjs/core/lib/esm/common/utils';
 import BackButton from '../components/BackButton';
 import { parse } from 'query-string';
+import { AppNotifications } from '../notifications';
+
 
 const Row = styled.div`
   display: flex;
@@ -255,7 +257,8 @@ export class WorldEditorView extends Component<RouteComponentProps<{}>, {
   options: IWorldgenOptions,
   world?: World,
   isLoading: boolean,
-  saveName: string,
+  currentSaveName: string | null,
+  saveNameInput: string,
   saveDialogOpen: boolean,
   configDialogOpen: boolean,
 }> {
@@ -265,7 +268,8 @@ export class WorldEditorView extends Component<RouteComponentProps<{}>, {
     options: cloneDeep(initialOptions),
     world: null,
     isLoading: true,
-    saveName: '',
+    currentSaveName: null,
+    saveNameInput: '',
     saveDialogOpen: false,
     configDialogOpen: false,
   }
@@ -273,14 +277,20 @@ export class WorldEditorView extends Component<RouteComponentProps<{}>, {
   constructor(props) {
     super(props);
     this.simulation = new Simulation();
-    this.load();
+    this.start();
   }
 
-  async load() {
-    const { ws } = parse(this.props.location.search);
+  async start() {
     this.setState({ isLoading: true });
+    const { ws, saveName } = parse(this.props.location.search);
     if (ws) {
-      await this.simulation.import(ws);
+      await this.simulation.importFromString(ws);
+    } else if (saveName) {
+      const optionsFromSave = await this.simulation.importFromSave(saveName);
+      this.setState({
+        options: optionsFromSave,
+        currentSaveName: saveName,
+      });
     } else {
       await this.simulation.generate(this.state.options);
     }
@@ -288,10 +298,24 @@ export class WorldEditorView extends Component<RouteComponentProps<{}>, {
     this.setState({ world, isLoading: false });
   }
 
-  saveWorld = async () => {
-    if (this.state.saveName === '') return;
+  async generate() {
+    this.setState({ isLoading: true });
+    await this.simulation.generate(this.state.options);
+    const world = this.simulation.world;
+    this.setState({world, isLoading: false });
+  }
 
-    await this.simulation.saveWorld(this.state.saveName);
+  saveWorld = async () => {
+    if (this.state.saveNameInput === '') return;
+    AppNotifications.show({
+      message: `World "${this.state.saveNameInput}" saved`,
+      intent: 'primary',
+    });
+    await this.simulation.saveWorld(this.state.saveNameInput);
+    this.setState({
+      currentSaveName: this.state.saveNameInput,
+      saveNameInput: '',
+    });
     console.log('world saved');
   }
 
@@ -306,13 +330,12 @@ export class WorldEditorView extends Component<RouteComponentProps<{}>, {
           <Button
             text='World Config'
             icon={'cog'}
-            rightIcon={'caret-down'}
             onClick={() => this.setState({ configDialogOpen: true })}
           />
           <Button
             text="Generate"
             icon={'refresh'}
-            onClick={this.load.bind(this)}
+            onClick={this.generate.bind(this)}
           />
           <Button
             text="Randomize"
@@ -323,7 +346,7 @@ export class WorldEditorView extends Component<RouteComponentProps<{}>, {
                   ...this.state.options,
                   seed: Math.random(),
                 },
-              }, this.load)
+              }, this.generate)
             }}
           />
           <Button
@@ -359,17 +382,27 @@ export class WorldEditorView extends Component<RouteComponentProps<{}>, {
                 label="World name"
               >
                 <InputGroup
-                  value={this.state.saveName}
+                  value={this.state.saveNameInput}
                   autoFocus
-                  onChange={(event) => this.setState({ saveName: event.target.value })}
+                  onChange={(event) => this.setState({
+                    saveNameInput: event.target.value
+                  })}
                 />
               </FormGroup>
             </div>
             <div className={Classes.DIALOG_FOOTER}>
               <div className={Classes.DIALOG_FOOTER_ACTIONS}>
                 <Button
-                  intent={Intent.PRIMARY}
-                  text="Save"
+                  intent={
+                    this.state.currentSaveName === this.state.saveNameInput
+                      ? Intent.DANGER
+                      : Intent.PRIMARY
+                  }
+                  text={
+                    this.state.currentSaveName === this.state.saveNameInput
+                      ? 'Overwrite world'
+                      : 'Save world'
+                  }
                   type="submit"
                 />
               </div>
@@ -384,7 +417,7 @@ export class WorldEditorView extends Component<RouteComponentProps<{}>, {
           <WorldConfigModal
             options={this.state.options}
             closeModal={() => this.setState({ configDialogOpen: false })}
-            generate={() => this.load()}
+            generate={() => this.generate()}
             resetOptions={() => {
               this.setState({
                 options: cloneDeep(initialOptions),
