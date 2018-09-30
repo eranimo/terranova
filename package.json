@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "parcel build ./src/index.html --out-dir public/",
+    "build": "parcel build ./src/index.html --out-dir public/ --no-minify",
     "dev": "parcel serve ./src/index.html"
   },
   "author": "",
