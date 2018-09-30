@@ -45,8 +45,14 @@ jobs:
       - add_ssh_keys:
           fingerprints:
             - "3b:19:75:dd:79:ef:76:9a:80:a2:c5:ce:5d:76:d9:69"
+      - attach_workspace:
+          at: ./
       - run:
-          name: Deploy Over SSH
+          name: Remove files
+          command: |
+            ssh "$SSH_USER@$SSH_HOST" "rm -rf /var/www/terranova.kaelan.org/public/*"
+      - run:
+          name: Copy files
           command: |
             scp -r public "$SSH_USER@$SSH_HOST:/var/www/terranova.kaelan.org/public"
 workflows:
