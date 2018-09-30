@@ -32,7 +32,9 @@ import { LoadWorldView } from './views/LoadWorldView';
 export class Application extends Component {
   render() {
     return (
-      <BrowserRouter>
+      <BrowserRouter basename={
+        process.env.NODE_ENV !== 'development' ? '/terranova/' : ''
+      }>
         <Switch>
           <Route
             exact
