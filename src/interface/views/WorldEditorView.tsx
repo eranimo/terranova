@@ -27,6 +27,7 @@ import {
   Label,
   NavbarHeading,
   NavbarDivider,
+  ButtonGroup,
 } from '@blueprintjs/core';
 import { WorldViewerContainer } from '../components/WorldViewerContainer';
 import { set, capitalize, cloneDeep } from 'lodash';
@@ -127,7 +128,7 @@ class WorldConfigModal extends Component<{
               >
                 {Object.entries(EWorldShape).map(([key, value]) => (
                   <option
-                    value={key}
+                    value={value}
                     selected={this.props.options.worldShape == value}
                   >
                     {capitalize(value)}
@@ -301,38 +302,36 @@ export class WorldEditorView extends Component<RouteComponentProps<{}>, {
         <NavbarDivider />
         <NavbarHeading>World Editor</NavbarHeading>
         <NavbarDivider />
-        <Button
-          text='World Config'
-          minimal
-          icon={'cog'}
-          rightIcon={'caret-down'}
-          onClick={() => this.setState({ configDialogOpen: true })}
-        />
-        <Button
-          text="Generate"
-          icon={'refresh'}
-          onClick={this.load.bind(this)}
-          minimal
-        />
-        <Button
-          text="Randomize"
-          icon={'random'}
-          onClick={() => {
-            this.setState({
-              options: {
-                ...this.state.options,
-                seed: Math.random(),
-              },
-            }, this.load)
-          }}
-          minimal
-        />
-        <Button
-          text="Save World"
-          icon={'floppy-disk'}
-          onClick={() => this.setState({ saveDialogOpen: true })}
-          minimal
-        />
+        <ButtonGroup minimal>
+          <Button
+            text='World Config'
+            icon={'cog'}
+            rightIcon={'caret-down'}
+            onClick={() => this.setState({ configDialogOpen: true })}
+          />
+          <Button
+            text="Generate"
+            icon={'refresh'}
+            onClick={this.load.bind(this)}
+          />
+          <Button
+            text="Randomize"
+            icon={'random'}
+            onClick={() => {
+              this.setState({
+                options: {
+                  ...this.state.options,
+                  seed: Math.random(),
+                },
+              }, this.load)
+            }}
+          />
+          <Button
+            text="Save World"
+            icon={'floppy-disk'}
+            onClick={() => this.setState({ saveDialogOpen: true })}
+          />
+        </ButtonGroup>
       </NavbarGroup>
     );
   }

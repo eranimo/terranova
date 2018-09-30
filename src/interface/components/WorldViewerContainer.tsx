@@ -21,6 +21,7 @@ import {
   ControlGroup,
   InputGroup,
   FormGroup,
+  ButtonGroup,
 } from '@blueprintjs/core';
 import styled from 'styled-components';
 import WorldStats from '../components/WorldStats';
@@ -50,107 +51,106 @@ class WorldViewerHeader extends Component <{
       <Navbar>
         {renderControls ? renderControls() : null}
         <NavbarGroup align={Alignment.RIGHT}>
-          <Popover
-            position={Position.BOTTOM}
-            interactionKind={PopoverInteractionKind.CLICK}
-          >
-            <Button
-              text="Export"
-              minimal
-              icon="export"
-              rightIcon={'caret-down'}
-              disabled={world === null}
-            />
-            <div className='tn-popover'>
-              <FormGroup
-                label="Export world config"
-                helperText={<span>The above string can be used to<br />replicate this world</span>}
-              >
-                <ControlGroup>
-                  <InputGroup value={world.exportString} />
-                  <Button
-                    icon="clipboard"
-                    style={{ width: 50 }}
-                    onClick={() => copy(world.exportString)}
-                  />
-                </ControlGroup>
-              </FormGroup>
-            </div>
-          </Popover>
-          <Popover
-            position={Position.BOTTOM}
-            interactionKind={PopoverInteractionKind.CLICK}
-          >
-            <Button
-              text='World Stats'
-              minimal
-              icon={'panel-stats'}
-              rightIcon={'caret-down'}
-              disabled={world === null}
-            />
-            {world ? <WorldStats world={world} /> : null}
-          </Popover>
-          <Popover
-            position={Position.BOTTOM}
-            interactionKind={PopoverInteractionKind.CLICK}
-          >
-            <Button
-              text='View Options'
-              minimal
-              icon={'settings'}
-              rightIcon={'caret-down'}
-            />
-            <div className='tn-popover'>
-              <RadioGroup
-                label="Map Modes"
-                onChange={onChangeMapMode}
-                selectedValue={viewOptions.mapMode}
-              >
-                {Object.entries(mapModes).map(([name, mapMode]) => (
-                  <Radio
-                    key={name}
-                    label={mapMode.title}
-                    value={name}
-                  />
-                ))}
-              </RadioGroup>
-              <Label>View Options</Label>
-              <ul className="bp3-list-unstyled">
-                <li>
-                  <Checkbox
-                    inline
-                    checked={viewOptions.showFlowArrows}
-                    onChange={onChangeField('showFlowArrows')}
-                    label='Flow direction arrows'
-                  />
-                </li>
-                <li>
-                  <Checkbox
-                    inline
-                    checked={viewOptions.drawCoastline}
-                    onChange={onChangeField('drawCoastline')}
-                    label='Coastline borders'
-                  />
-                </li>
-                <li>
-                  <Checkbox
-                    inline
-                    checked={viewOptions.drawGrid}
-                    onChange={onChangeField('drawGrid')}
-                    label='Grid Lines'
-                  />
-                </li>
-                <li>
-                  <Checkbox
-                    inline
-                    checked={viewOptions.showCursor}
-                    onChange={onChangeField('showCursor')}
-                    label='Show cursor'
-                  />
-                </li>
-              </ul>
-            </div>
-          </Popover>
+          <ButtonGroup minimal>
+            <Popover
+              position={Position.BOTTOM}
+              interactionKind={PopoverInteractionKind.CLICK}
+            >
+              <Button
+                text="Export"
+                icon="export"
+                rightIcon={'caret-down'}
+                disabled={world === null}
+              />
+              <div className='tn-popover'>
+                <FormGroup
+                  label="Export world config"
+                  helperText={<span>The above string can be used to<br />replicate this world</span>}
+                >
+                  <ControlGroup>
+                    <InputGroup value={world.exportString} />
+                    <Button
+                      icon="clipboard"
+                      style={{ width: 50 }}
+                      onClick={() => copy(world.exportString)}
+                    />
+                  </ControlGroup>
+                </FormGroup>
+              </div>
+            </Popover>
+            <Popover
+              position={Position.BOTTOM}
+              interactionKind={PopoverInteractionKind.CLICK}
+            >
+              <Button
+                text='World Stats'
+                icon={'panel-stats'}
+                rightIcon={'caret-down'}
+                disabled={world === null}
+              />
+              {world ? <WorldStats world={world} /> : null}
+            </Popover>
+            <Popover
+              position={Position.BOTTOM}
+              interactionKind={PopoverInteractionKind.CLICK}
+            >
+              <Button
+                text='View Options'
+                icon={'settings'}
+                rightIcon={'caret-down'}
+              />
+              <div className='tn-popover'>
+                <RadioGroup
+                  label="Map Modes"
+                  onChange={onChangeMapMode}
+                  selectedValue={viewOptions.mapMode}
+                >
+                  {Object.entries(mapModes).map(([name, mapMode]) => (
+                    <Radio
+                      key={name}
+                      label={mapMode.title}
+                      value={name}
+                    />
+                  ))}
+                </RadioGroup>
+                <Label>View Options</Label>
+                <ul className="bp3-list-unstyled">
+                  <li>
+                    <Checkbox
+                      inline
+                      checked={viewOptions.showFlowArrows}
+                      onChange={onChangeField('showFlowArrows')}
+                      label='Flow direction arrows'
+                    />
+                  </li>
+                  <li>
+                    <Checkbox
+                      inline
+                      checked={viewOptions.drawCoastline}
+                      onChange={onChangeField('drawCoastline')}
+                      label='Coastline borders'
+                    />
+                  </li>
+                  <li>
+                    <Checkbox
+                      inline
+                      checked={viewOptions.drawGrid}
+                      onChange={onChangeField('drawGrid')}
+                      label='Grid Lines'
+                    />
+                  </li>
+                  <li>
+                    <Checkbox
+                      inline
+                      checked={viewOptions.showCursor}
+                      onChange={onChangeField('showCursor')}
+                      label='Show cursor'
+                    />
+                  </li>
+                </ul>
+              </div>
+            </Popover>
+          </ButtonGroup>
         </NavbarGroup>
       </Navbar>
     )
