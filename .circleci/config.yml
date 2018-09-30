@@ -54,7 +54,7 @@ jobs:
       - run:
           name: Copy files
           command: |
-            scp -r public "$SSH_USER@$SSH_HOST:/var/www/terranova.kaelan.org/public"
+            scp -r public "$SSH_USER@$SSH_HOST:/var/www/terranova.kaelan.org/"
 workflows:
   version: 2
   build-and-deploy:
