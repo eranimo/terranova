@@ -283,8 +283,9 @@ export class WorldEditorView extends Component<RouteComponentProps<{}>, {
   async start() {
     this.setState({ isLoading: true });
     const { ws, saveName } = parse(this.props.location.search);
+    let world;
     if (ws) {
-      await this.simulation.importFromString(ws);
+      world = await this.simulation.importFromString(ws);
     } else if (saveName) {
       const optionsFromSave = await this.simulation.importFromSave(saveName);
       this.setState({
@@ -292,17 +293,17 @@ export class WorldEditorView extends Component<RouteComponentProps<{}>, {
         currentSaveName: saveName,
       });
     } else {
-      await this.simulation.generate(this.state.options);
+      world = await this.simulation.generate(this.state.options);
     }
-    const world = this.simulation.world;
+    console.log('start', world);
     this.setState({ world, isLoading: false });
   }
 
   async generate() {
     this.setState({ isLoading: true });
-    await this.simulation.generate(this.state.options);
-    const world = this.simulation.world;
-    this.setState({world, isLoading: false });
+    const world = await this.simulation.generate(this.state.options);
+    console.log('generate', world);
+    this.setState({ world, isLoading: false });
   }
 
   saveWorld = async () => {
@@ -311,7 +312,7 @@ export class WorldEditorView extends Component<RouteComponentProps<{}>, {
       message: `World "${this.state.saveNameInput}" saved`,
       intent: 'primary',
     });
-    await this.simulation.saveWorld(this.state.saveNameInput);
+    await this.simulation.saveWorld(this.state.world, this.state.saveNameInput);
     this.setState({
       currentSaveName: this.state.saveNameInput,
       saveNameInput: '',

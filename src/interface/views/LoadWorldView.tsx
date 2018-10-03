@@ -27,8 +27,7 @@ export class LoadWorldView extends Component<RouteComponentProps<{
 
   async load() {
     const { saveName } = this.props.match.params;
-    await this.simulation.loadWorld(saveName);
-    const world = this.simulation.world;
+    const world = await this.simulation.loadWorld(saveName);
     console.log('World loaded', world);
     this.setState({ world });
   }

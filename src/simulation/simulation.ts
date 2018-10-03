@@ -59,13 +59,11 @@ export interface IWorldSave {
 
 export class Simulation {
   ticks: number;
-  world?: World;
   saveStore: LocalForage;
   saveDataStore: LocalForage;
 
   constructor() {
     this.ticks = 0;
-    this.world = null;
     this.saveStore = localforage.createInstance({
       name: 'world-saves'
     });
@@ -74,7 +72,7 @@ export class Simulation {
     });
   }
 
-  async generate(options: IWorldgenOptions) {
+  generate(options: IWorldgenOptions): Promise<World> {
     console.group('WorldGenerator worker');
     console.time('worldgen.worker execution time');
     // make a new World
@@ -83,12 +81,11 @@ export class Simulation {
       worker.postMessage(options);
       worker.onmessage = (message: MessageEvent) => {
         console.log('worldgen.worker result:', message.data);
-        const world = new World(message.data as IWorldgenWorkerOutput);
+        const world: World = new World(message.data as IWorldgenWorkerOutput);
         console.log('World object:', world);
-        this.world = world;
         console.timeEnd('worldgen.worker execution time');
         console.groupEnd();
-        resolve();
+        resolve(world);
       }
       worker.onerror = error => {
         console.error('worldgen.worker error:', error);
@@ -99,14 +96,14 @@ export class Simulation {
     });
   }
 
-  async importFromString(worldString: string) {
+  async importFromString(worldString: string): Promise<World> {
     const options: IWorldgenOptions = JSON.parse(atob(decodeURIComponent(worldString)));
     return await this.generate(options);
   }
 
   async importFromSave(saveName: string): Promise<IWorldgenOptions> {
-    await this.loadWorld(saveName);
-    return this.world.params.options;
+    const world: World = await this.loadWorld(saveName);
+    return world.params.options;
   }
 
   async getWorldSaves(): Promise<IWorldSave[]> {
@@ -119,25 +116,25 @@ export class Simulation {
     return saves;
   }
 
-  async saveWorld(name: string): Promise<void> {
+  async saveWorld(world: World, name: string): Promise<void> {
     const saveData: IWorldSaveData = {
       name,
       saveDate: Date.now(),
-      worldData: this.world.params,
+      worldData: world.params,
     };
     const save: IWorldSave = {
       name,
       date: Date.now(),
-      options: this.world.params.options,
-      worldString: this.world.exportString,
+      options: world.params.options,
+      worldString: world.exportString,
     };
     await this.saveStore.setItem(name, save);
     await this.saveDataStore.setItem(name, saveData);
   }
 
-  async loadWorld(name: string): Promise<void> {
+  async loadWorld(name: string): Promise<World> {
     const data = await this.saveDataStore.getItem(name) as IWorldSaveData;
-    this.world = new World(data.worldData as IWorldgenWorkerOutput);
+    return new World(data.worldData as IWorldgenWorkerOutput);
   }
 
   async removeSave(name: string): Promise<void> {

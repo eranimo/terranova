@@ -274,6 +274,13 @@ export class WorldViewerContainer extends Component<{
     this.setState({ selectedCell: null })
   }
 
+  shouldComponentUpdate(nextProps) {
+    if (this.props.world != nextProps.world) {
+      this.setState({ selectedCell: null });
+    }
+    return true;
+  }
+
   renderHotkeys() {
     return (
       <Hotkeys>
@@ -324,6 +331,7 @@ export class WorldViewerContainer extends Component<{
             </LoadingWorld>
           )}
           <WorldViewer
+            key={world.exportString}
             world={world}
             viewOptions={this.state.viewOptions}
             selectedCell={this.state.selectedCell}
@@ -342,6 +350,7 @@ export class WorldViewerContainer extends Component<{
     return (
       <div style={{ position: 'relative' }}>
         <WorldViewerHeader
+          key={world.exportString}
           world={world}
           viewOptions={this.state.viewOptions}
           onChangeField={this.onChangeField}

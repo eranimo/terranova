@@ -7,8 +7,10 @@ import colormap from 'colormap';
 import { groupBy } from 'lodash';
 
 
-const CELL_WIDTH = 10;
-const CELL_HEIGHT = 10;
+const CELL_WIDTH = 5;
+const CELL_HEIGHT = 5;
+
+const PIXELLATED_MOVEMENT = false;
 
 export interface IViewOptions {
   showFlowArrows: boolean;
@@ -458,6 +460,10 @@ class WorldViewRenderer {
     app.stage.addChild(viewport);
     element.style.cursor = 'default';
 
+    const arrowLayer = new PIXI.Container();
+    const mapModesLayer = new PIXI.Container();
+    arrowLayer.cacheAsBitmap = true;
+
     const cursors = new PIXI.Container();
     viewport.addChild(cursors);
     const hoverCursor = drawHoverCursor(CELL_WIDTH, CELL_HEIGHT);
@@ -501,10 +507,6 @@ class WorldViewRenderer {
       .wheel()
       .on('drag-end', () => {
         element.style.cursor = 'default';
-        viewport.moveCorner(
-          Math.round(viewport.left),
-          Math.round(viewport.top),
-        );
         hoverCursor.alpha = 1;
       })
       .on('drag-start', () => {
@@ -524,13 +526,25 @@ class WorldViewRenderer {
         maxWidth: worldWidth * 5,
         maxHeight: worldHeight * 5,
       });
+
+    if (PIXELLATED_MOVEMENT) {
+      viewport
+        .on('drag-end', () => {
+          viewport.moveCorner(
+            Math.round(viewport.left),
+            Math.round(viewport.top),
+          );
+        })
+        .on('moved', () => {
+          viewport.moveCorner(
+            Math.round(viewport.left),
+            Math.round(viewport.top),
+          );
+      });
+    }
     viewport.moveCenter(worldWidth / 2, worldHeight / 2);
     viewport.zoom(4);
     (window as any).viewport = viewport;
-
-    const arrowLayer = new PIXI.Container();
-    const mapModesLayer = new PIXI.Container();
-    arrowLayer.cacheAsBitmap = true;
 
     this.app = app;
     this.viewport = viewport;
@@ -711,21 +725,18 @@ export class WorldViewer extends React.Component<IWorldViewerProps> {
     this.updateView(this.props);
   }
 
-  componentDidUpdate() {
-    this.viewState = this.renderer.render(this.props.world);
-    this.updateView(this.props);
-  }
-
   shouldComponentUpdate(nextProps) {
     if (nextProps.selectedCell !== this.props.selectedCell) {
       console.log('select', nextProps.selectedCell);
       this.selectCell(nextProps.selectedCell);
     }
-    return nextProps.world != this.props.world;
-  }
-
-  componentWillReceiveProps(nextProps: IWorldViewerProps) {
+    if (nextProps.world != this.props.world) {
+      console.log('update WorldViewer', this.props.world);
+      this.viewState = this.renderer.render(this.props.world);
+      this.updateView(this.props);
+    }
     this.updateView(nextProps);
+    return false;
   }
 
   updateView(props: IWorldViewerProps) {
