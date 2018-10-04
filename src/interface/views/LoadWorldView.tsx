@@ -32,8 +32,6 @@ export class LoadWorldView extends Component<RouteComponentProps<{
     this.setState({ world });
   }
 
-
-
   render() {
     if (this.state.world === null) {
       return <Spinner/>;

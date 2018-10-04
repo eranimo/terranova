@@ -9,6 +9,8 @@ import { groupBy } from 'lodash';
 
 const CELL_WIDTH = 10;
 const CELL_HEIGHT = 10;
+const TILE_WIDTH = 5;
+const TILE_HEIGHT = 5;
 
 const PIXELLATED_MOVEMENT = false;
 
@@ -51,7 +53,6 @@ const mapModeRenderFunctions = {
   terrain: drawTerrain,
   overlay: makeCellOverlay,
   drainage: makeDrainageBasins,
-  biomes: drawBiomes,
 };
 
 interface IMapMode {
@@ -68,7 +69,6 @@ export enum EMapMode {
   MOISTURE = "moisture",
   UPSTREAMCOUNT = "upstream_count",
   DRAINAGEBASINS = "drainage_basins",
-  BIOMES = "biomes",
 }
 
 export const mapModes: Record<EMapMode, IMapMode> = {
@@ -115,10 +115,6 @@ export const mapModes: Record<EMapMode, IMapMode> = {
   [EMapMode.DRAINAGEBASINS]: {
     title: 'Drainage Basins',
     renderFunc: 'drainage'
-  },
-  [EMapMode.BIOMES]: {
-    title: 'Biomes',
-    renderFunc: 'biomes'
   }
 }
 
@@ -380,29 +376,6 @@ function drawClimate(world: World, options: any): PIXI.Sprite {
     g.endFill();
   }
 
-  const texture = g.generateCanvasTexture();
-  const sprite = new PIXI.Sprite(texture);
-  sprite.scale.x = CELL_WIDTH;
-  sprite.scale.y = CELL_HEIGHT;
-  return sprite;
-}
-
-function drawBiomes(world: World, options: any): PIXI.Sprite {
-  const g = new PIXI.Graphics(true);
-
-  g.beginFill(0x000000);
-  g.drawRect(0, 0, world.size.width, world.size.height);
-  g.endFill();
-
-  for (const [biome, color] of Object.entries(biomeLabelColors)) {
-    g.beginFill(color);
-    for (const cell of world.cells) {
-      if (cell.biome === parseInt(biome, 10)) {
-        g.drawRect(cell.x, cell.y, 1, 1);
-      }
-    }
-    g.endFill();
-  }
   const texture = g.generateCanvasTexture();
   const sprite = new PIXI.Sprite(texture);
   sprite.scale.x = CELL_WIDTH;

@@ -14,7 +14,7 @@ import {
 } from './world';
 import * as Collections from 'typescript-collections';
 import * as Stats from 'simple-statistics';
-import { groupBy, mapValues } from 'lodash';
+import { groupBy, mapValues, memoize } from 'lodash';
 
 
 /**
@@ -42,19 +42,15 @@ function countUnique(ndarray: ndarray) {
   return mapValues(groupBy(data, i => i), i => i.length);
 }
 
-const getNeighbors = (x: number, y: number): number[][] => [
-  [x - 1, y],
-  [x + 1, y],
-  [x, y - 1],
-  [x, y + 1],
-]
-
-const getNeighborsLabelled = (x: number, y: number): number[][] => [
+const _getNeighborsLabelled = (x: number, y: number): number[][] => [
   [x - 1, y, EDirection.LEFT],
   [x + 1, y, EDirection.RIGHT],
   [x, y - 1, EDirection.UP],
   [x, y + 1, EDirection.DOWN],
-]
+];
+
+const getNeighborsLabelled = memoize(_getNeighborsLabelled, (x: number, y: number) => `${x},${y}`);
+
 
 const neighborForDirection = {
   [EDirection.UP]: (x: number, y: number) => [x, y - 1],
@@ -71,9 +67,19 @@ const oppositeDirections = {
   [EDirection.RIGHT]: EDirection.LEFT,
 }
 
-function isValidCell(x: number, y: number, width: number, height: number): boolean {
+const isValidCell = (x: number, y: number, width: number, height: number): boolean => {
   return x >= 0 && y >= 0 && x < width && y < height;
-}
+};
+
+const getValidNeighborsLabelled = (
+  x: number,
+  y: number,
+  width: number,
+  height: number
+): number[][] => (
+  getNeighborsLabelled(x, y)
+    .filter(([x, y]) => x >= 0 && y >= 0 && x < width && y < height)
+);
 
 
 function loopGridCircle(x, y, radius) {
@@ -173,20 +179,19 @@ function removeDepressions(options: IWorldgenOptions, heightmap: ndarray) {
   // add all edges to the open queue
   // set them as "closed"
   // calculate all cell neighbors
-  const cellNeighbors = []
+  const cellNeighbors = [];
   for (let x = 0; x < width; x++) {
     cellNeighbors[x] = [];
     for (let y = 0; y < height; y++) {
-      const neighbors = getNeighborsLabelled(x, y).filter(([nx, ny]) => nx >= 0 && ny >= 0 && nx < width && ny < height);
-      cellNeighbors[x][y] = neighbors;
-      const isEdge = neighbors.length != 4;
+      cellNeighbors[x][y] = getValidNeighborsLabelled(x, y, width, height);
+      const isEdge = cellNeighbors[x][y].length != 4;
       if (isEdge) {
         open.add([x, y, heightmap.get(x, y)]);
         closed.set(x, y, 1);
       }
     }
   }
-  let lakeCount = 0;
+
   while(!open.isEmpty() || !pit.isEmpty()) {
     let cell;
     if (!pit.isEmpty()) {
@@ -200,7 +205,6 @@ function removeDepressions(options: IWorldgenOptions, heightmap: ndarray) {
       if (closed.get(nx, ny) === 1) continue;
       closed.set(nx, ny, 1);
       if (waterheight.get(nx, ny) <= waterheight.get(cx, cy)) {
-        lakeCount++;
         waterheight.set(nx, ny, waterheight.get(cx, cy));
         pit.add([nx, ny, waterheight.get(nx, ny)]);
       } else {
@@ -208,7 +212,6 @@ function removeDepressions(options: IWorldgenOptions, heightmap: ndarray) {
       }
     }
   }
-  // console.log('lakeCount', lakeCount);
 
   return { waterheight, cellNeighbors };
 }
@@ -235,8 +238,16 @@ function determineFlowDirections(options: IWorldgenOptions, waterheight: ndarray
     cellNeighbors[x] = [];
     for (let y = 0; y < height; y++) {
       const allNeighbors = getNeighborsLabelled(x, y);
-      const validNeighbors = allNeighbors.filter(([nx, ny]) => isValidCell(nx, ny, width, height));
-      const invalidNeighbors = allNeighbors.filter(([nx, ny]) => !isValidCell(nx, ny, width, height));
+      const validNeighbors = [];
+      const invalidNeighbors = [];
+      for (const n of allNeighbors) {
+        if (isValidCell(n[0], n[1], width, height)) {
+          validNeighbors.push(n);
+        } else {
+          invalidNeighbors.push(n);
+        }
+      }
+
       cellNeighbors[x][y] = validNeighbors;
       if (invalidNeighbors.length > 0) { // on the edge of the map
         open.add([x, y, waterheight.get(x, y)]);
