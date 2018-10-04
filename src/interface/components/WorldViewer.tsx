@@ -173,13 +173,11 @@ function makeCellOverlay(world: World, options: any): PIXI.Sprite {
     format: 'rba',
     colormap: options.colormap
   });
-  const data = [];
   let item;
   let min = Infinity;
   let max = -Infinity;
   for (const cell of world.cells) {
     item = cell[options.datapoint];
-    data.push(item);
     if (item < min) {
       min = item;
     } else if (item > max) {
@@ -188,16 +186,26 @@ function makeCellOverlay(world: World, options: any): PIXI.Sprite {
   }
   let index: number;
   let color: number[];
-  let colorNum: number;
+  const cellsByColor: Record<number, Cell[]> = {};
   for (const cell of world.cells) {
     index = Math.round(((cell[options.datapoint] - min) / (max - min)) * 100);
     color = colors[index];
     if (!color) {
       throw new Error(`No color for index ${index}`);
     }
-    colorNum = rgbToNumber(color[0], color[1], color[2]);
-    g.beginFill(colorNum);
-    g.drawRect(cell.x, cell.y, 1, 1);
+
+    if (index in cellsByColor) {
+      cellsByColor[index].push(cell);
+    } else {
+      cellsByColor[index] = [cell];
+    }
+  }
+  for (const [index, cells] of Object.entries(cellsByColor)) {
+    color = colors[index];
+    g.beginFill(rgbToNumber(color[0], color[1], color[2]));
+    for (const cell of cells) {
+      g.drawRect(cell.x, cell.y, 1, 1);
+    }
     g.endFill();
   }
   const texture = g.generateCanvasTexture();
