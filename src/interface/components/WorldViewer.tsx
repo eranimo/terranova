@@ -7,8 +7,8 @@ import colormap from 'colormap';
 import { groupBy } from 'lodash';
 
 
-const CELL_WIDTH = 5;
-const CELL_HEIGHT = 5;
+const CELL_WIDTH = 10;
+const CELL_HEIGHT = 10;
 
 const PIXELLATED_MOVEMENT = false;
 
