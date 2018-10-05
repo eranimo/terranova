@@ -7,6 +7,7 @@ import Array2D from '../../utils/Array2D';
 
 
 interface IChunkData {
+  container: Container;
   position: Point,
   mapModes: Record<EMapMode, Sprite>;
   grid: Sprite;
@@ -102,7 +103,8 @@ export class ChunkRenderer {
     return this.chunkColumns * this.chunkRows;
   }
 
-  renderChunk(chunkX: number, chunkY: number) {
+
+  private renderChunk(chunkX: number, chunkY: number) {
     if (this.renderedChunks.has(chunkX, chunkY)) {
       return;
     }
@@ -144,13 +146,14 @@ export class ChunkRenderer {
     chunk.addChild(gridSprite);
 
     this.renderedChunks.set(chunkX, chunkY, {
+      container: chunk,
       position: chunkPosition,
       mapModes: mapModeLayers as Record<EMapMode, Sprite>,
       grid: gridSprite,
     });
   }
 
-  renderVisibleChunks() {
+  private renderVisibleChunks(): void {
     const { chunkX: x1, chunkY: y1 } = this.getChunkAtPoint(
       Math.max(0, this.viewport.left - this.overpaint.x),
       Math.max(0, this.viewport.top - this.overpaint.y),
@@ -164,9 +167,26 @@ export class ChunkRenderer {
     for (let x = x1; x < x2; x++) {
       for (let y = y1; y < y2; y++) {
         this.visibleChunks++;
-        this.renderChunk(x, y);
+        if (this.renderedChunks.has(x, y)) {
+          this.renderedChunks.get(x, y).container.visible = true;
+        } else {
+          this.renderChunk(x, y);
+        }
       }
     }
+  }
+
+  private hideAllChunks() {
+    for (let x = 0; x < this.chunkRows; x++) {
+      for (let y = 0; y < this.chunkColumns; y++) {
+        this.renderedChunks.get(x, y).container.visible = false;
+      }
+    }
+  }
+
+  public render(): void {
+    this.hideAllChunks();
+    this.renderVisibleChunks();
   }
 }
 
