@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
-import { WorldViewer, IViewOptions, mapModes, EMapMode } from './WorldViewer';
+import { WorldViewer, IViewOptions } from './WorldViewer';
+import { mapModes, EMapMode } from '../renderer/mapModes';
 import World, { Cell, biomeTitles, directionLabels, terrainTypeLabels } from '../../simulation/world';
 import {
   Navbar,
@@ -167,7 +168,6 @@ const CellDetailContainer = styled.div`
   padding: 1rem;
   width: 320px;
   height: 180px;
-  overflow-y: auto;
   box-shadow: 0 0 4px 2px rgba(16, 22, 26, 0.2);
 `;
 
