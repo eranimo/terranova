@@ -84,7 +84,7 @@ function renderClimate(
 
   const deepOceanCells: Cell[] = [];
   const coastalOceanCells: Cell[] = [];
-  const landCells: Record<number, Cell[]> = {};
+  const landCells: Record<string, Cell[]> = {};
 
   for (const cell of cells) {
     if (

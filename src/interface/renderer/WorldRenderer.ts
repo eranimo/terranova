@@ -73,21 +73,22 @@ export default class WorldRenderer {
     });
     this.app.stage.addChild(this.viewport);
     this.viewport.moveCenter(this.worldWidth / 2, this.worldHeight / 2);
-    this.viewport.zoomPercent(1);
+    this.viewport.zoomPercent(1/3);
     element.style.cursor = 'default';
 
     // create chunk renderer
-    this.chunkRenderer = new ChunkRenderer(world, options);
+    this.chunkRenderer = new ChunkRenderer(world, this.viewport, options);
     this.viewport.addChild(this.chunkRenderer.chunkContainer);
 
     // create UI
     this.worldUI = new WorldUI(this, eventCallbacks);
     this.viewport.addChild(this.worldUI.uiContainer);
 
-    console.log(this.viewport);
-
     this.setupEvents();
-    this.renderVisibleChunks();
+
+    console.time('initial chunk render time');
+    this.chunkRenderer.renderVisibleChunks();
+    console.timeEnd('initial chunk render time');
   }
 
   private setupEvents() {
@@ -119,28 +120,7 @@ export default class WorldRenderer {
         maxWidth: this.worldWidth * 5,
         maxHeight: this.worldHeight * 5,
       })
-      // .on('moved', this.renderVisibleChunks.bind(this));
-  }
-
-  private renderVisibleChunks() {
-    const { chunkX: x1, chunkY: y1 } = this.chunkRenderer.getChunkAtPoint(
-      this.viewport.left,
-      this.viewport.top,
-    );
-    const { chunkX: x2, chunkY: y2 } = this.chunkRenderer.getChunkAtPoint(
-      this.viewport.right,
-      this.viewport.bottom,
-    );
-
-    let visibleChunks = 0;
-    for (let x = x1; x < x2; x++) {
-      for (let y = y1; y < y2; y++) {
-        // console.log(`Chunk (${x},${y}) is visible`);
-        visibleChunks++;
-        this.chunkRenderer.renderChunk(x, y);
-      }
-    }
-    console.log('visible chunks', visibleChunks, this.chunkRenderer.chunkColumns * this.chunkRenderer.chunkRows);
+      .on('moved', () => this.chunkRenderer.renderVisibleChunks());
   }
 
   public update(props: IWorldViewerProps) {

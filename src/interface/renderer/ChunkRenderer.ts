@@ -9,7 +9,7 @@ import Array2D from '../../utils/Array2D';
 interface IChunkData {
   position: Point,
   mapModes: Record<EMapMode, Sprite>;
-  // grid: Sprite;
+  grid: Sprite;
   // arrows: Container;
 }
 
@@ -20,20 +20,28 @@ interface IChunkRef {
 
 export class ChunkRenderer {
   world: World;
+  viewport: Viewport;
   options: IWorldRendererOptions;
   renderedChunks: Array2D<IChunkData>;
   chunkColumns: number;
   chunkRows: number;
   mapModeState: any;
   chunkContainer: Container;
+  overpaint: Point;
+  visibleChunks: number;
+  chunkWorldWidth: number;
+  chunkWorldHeight: number;
 
-  constructor(world: World, options: IWorldRendererOptions) {
+  constructor(world: World, viewport: Viewport, options: IWorldRendererOptions) {
     this.world = world;
+    this.viewport = viewport;
     this.options = options;
 
     this.chunkColumns = world.size.width / this.options.chunkWidth;
     this.chunkRows = world.size.height / this.options.chunkHeight;
     this.renderedChunks = new Array2D<IChunkData>(this.chunkColumns, this.chunkRows);
+    this.chunkWorldWidth = this.options.chunkWidth * this.options.cellWidth
+    this.chunkWorldHeight = this.options.chunkHeight * this.options.cellHeight
 
     this.mapModeState = {};
     for (const [mapMode, mapModeDef] of Object.entries(mapModes)) {
@@ -47,6 +55,11 @@ export class ChunkRenderer {
     this.chunkContainer = new Container();
     this.chunkContainer.width = world.size.width * this.options.cellWidth;
     this.chunkContainer.height = world.size.height * this.options.cellHeight;
+
+    this.overpaint = new PIXI.Point(
+      this.options.cellWidth * this.options.chunkWidth,
+      this.options.cellHeight * this.options.chunkHeight,
+    );
   }
 
   getChunkAtCell(cell: Cell): IChunkRef {
@@ -85,6 +98,10 @@ export class ChunkRenderer {
     }
   }
 
+  get chunkCount() {
+    return this.chunkColumns * this.chunkRows;
+  }
+
   renderChunk(chunkX: number, chunkY: number) {
     if (this.renderedChunks.has(chunkX, chunkY)) {
       return;
@@ -98,8 +115,8 @@ export class ChunkRenderer {
     const chunk = new Container();
     chunk.width = this.options.chunkWidth;
     chunk.height = this.options.chunkHeight;
-    chunk.x = chunkX * this.options.chunkWidth;
-    chunk.y = chunkY * this.options.chunkHeight;
+    chunk.x = chunkX * this.chunkWorldWidth;
+    chunk.y = chunkY * this.chunkWorldHeight;
     this.chunkContainer.addChild(chunk);
 
     // render map modes
@@ -111,13 +128,64 @@ export class ChunkRenderer {
         this.mapModeState[mapMode],
         chunkPosition
       );
+      mapModeSprite.cacheAsBitmap = true;
       chunk.addChild(mapModeSprite);
 
       mapModeLayers[mapMode] = mapModeSprite;
     }
+
+    const gridSprite = drawGridLines(
+      this.chunkWorldWidth,
+      this.chunkWorldHeight,
+      this.options.cellWidth,
+      this.options.cellHeight,
+    );
+    gridSprite.cacheAsBitmap = true;
+    chunk.addChild(gridSprite);
+
     this.renderedChunks.set(chunkX, chunkY, {
       position: chunkPosition,
       mapModes: mapModeLayers as Record<EMapMode, Sprite>,
+      grid: gridSprite,
     });
   }
+
+  renderVisibleChunks() {
+    const { chunkX: x1, chunkY: y1 } = this.getChunkAtPoint(
+      Math.max(0, this.viewport.left - this.overpaint.x),
+      Math.max(0, this.viewport.top - this.overpaint.y),
+    );
+    const { chunkX: x2, chunkY: y2 } = this.getChunkAtPoint(
+      Math.min(this.viewport.right + this.overpaint.x, this.viewport.worldWidth - 1),
+      Math.min(this.viewport.bottom + this.overpaint.y, this.viewport.worldHeight - 1),
+    );
+
+    this.visibleChunks = 0;
+    for (let x = x1; x < x2; x++) {
+      for (let y = y1; y < y2; y++) {
+        this.visibleChunks++;
+        this.renderChunk(x, y);
+      }
+    }
+  }
+}
+
+function drawGridLines(
+  width: number,
+  height: number,
+  cellWidth: number,
+  cellHeight: number,
+): PIXI.Sprite {
+  const g = new PIXI.Graphics(true);
+  g.lineColor = 0x000000;
+  g.lineWidth = 1;
+  for (let x = 0; x < width; x += cellWidth) {
+    g.moveTo(x, 0);
+    g.lineTo(x, height);
+    for (let y = 0; y < height; y += cellHeight) {
+      g.moveTo(0, y);
+      g.lineTo(width, y);
+    }
+  }
+  return new PIXI.Sprite(g.generateCanvasTexture());
 }
