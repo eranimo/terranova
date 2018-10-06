@@ -21,9 +21,7 @@ export interface IWorldViewerProps {
 }
 
 export class WorldViewer extends React.Component<IWorldViewerProps> {
-  // viewState: IViewState;
   root: React.RefObject<HTMLDivElement>;
-  // textures: TextureMap;
   arrowTexture: PIXI.Texture;
   renderer: WorldRenderer;
 

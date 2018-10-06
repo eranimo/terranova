@@ -1,10 +1,8 @@
-import { mapModes } from './../components/oldRenderer';
 import * as PIXI from 'pixi.js';
 import World from '../../simulation/world';
 import Viewport from 'pixi-viewport';
 import { ChunkRenderer } from './ChunkRenderer';
 import WorldUI, { UIEvent } from './WorldUI';
-import boxboxIntersection from 'intersects/box-box';
 import { IWorldViewerProps } from '../components/WorldViewer';
 
 

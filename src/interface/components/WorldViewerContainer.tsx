@@ -234,7 +234,7 @@ export class WorldViewerContainer extends Component<{
   state = {
     viewOptions: {
       showFlowArrows: false,
-      drawCoastline: true,
+      drawCoastline: false,
       drawGrid: false,
       mapMode: EMapMode.CLIMATE,
       showCursor: true,
