@@ -146,7 +146,6 @@ export default class WorldRenderer {
         }
       }
     }
-    // this.viewState.coastlineBorder.visible = mapViewerProps.viewOptions.drawCoastline;
-    // this.viewState.hoverCursor.visible = mapViewerProps.viewOptions.showCursor;
+    this.worldUI.children.hoverCursor.visible = this.state.viewOptions.showCursor
   }
 }

@@ -30,8 +30,6 @@ export class WorldViewer extends React.Component<IWorldViewerProps> {
   constructor(props) {
     super(props);
     this.root = React.createRef();
-    // this.textures = {};
-    // this.arrowTexture = makeArrowTexture(CELL_WIDTH, CELL_HEIGHT);
   }
 
   componentDidMount() {
@@ -43,7 +41,6 @@ export class WorldViewer extends React.Component<IWorldViewerProps> {
       }
     });
     console.log(this.renderer);
-    // this.viewState = this.renderer.render(this.props.world);
 
     // add pixi to the DOM
     this.root.current.appendChild(this.renderer.app.view);
@@ -59,7 +56,13 @@ export class WorldViewer extends React.Component<IWorldViewerProps> {
     }
     if (nextProps.world != this.props.world) {
       console.log('update WorldViewer', this.props.world);
-      // this.viewState = this.renderer.render(this.props.world);
+      this.renderer = new WorldRenderer({
+        world: nextProps.world,
+        element: this.root.current,
+        eventCallbacks: {
+          onCellClick: this.props.onCellClick,
+        }
+      });
       this.updateView(this.props);
     }
     this.updateView(nextProps);
