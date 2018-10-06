@@ -164,21 +164,9 @@ export class ChunkRenderer {
       cellWidth,
       cellHeight,
     );
+    gridSprite.alpha = 0.5;
     gridSprite.cacheAsBitmap = true;
     chunk.addChild(gridSprite);
-
-    const coastlineBorder = drawCellBorders(
-      chunkCells,
-      chunkPosition,
-      this.world,
-      cellWidth,
-      cellHeight,
-      this.chunkWorldWidth,
-      this.chunkWorldHeight,
-      (a: Cell, b: Cell) => a.isLand && !b.isLand,
-    );
-
-    chunk.addChild(coastlineBorder);
 
     const flowArrows = new Container();
     const PADDING = 2;
@@ -200,6 +188,19 @@ export class ChunkRenderer {
     }
     flowArrows.cacheAsBitmap = true;
     chunk.addChild(flowArrows);
+
+    const coastlineBorder = drawCellBorders(
+      chunkCells,
+      chunkPosition,
+      this.world,
+      cellWidth,
+      cellHeight,
+      this.chunkWorldWidth,
+      this.chunkWorldHeight,
+      (a: Cell, b: Cell) => a.isLand && !b.isLand,
+    );
+    coastlineBorder.cacheAsBitmap = true;
+    chunk.addChild(coastlineBorder);
 
     this.renderedChunks.set(chunkX, chunkY, {
       container: chunk,
@@ -288,42 +289,34 @@ function drawCellBorders(
 
   g.beginFill(0x000000, 1);
   g.lineColor = 0x000000;
-  g.lineWidth = 1;
-  g.lineAlignment = 0.5;
+  g.lineWidth = 1.5;
+  g.lineAlignment = 1;
 
-  g.hitArea = new PIXI.Rectangle(0, 0, chunkWidth, chunkHeight);
-  let lowestX = Infinity;
-  let lowestY = Infinity;
+  // g.hitArea = new PIXI.Rectangle(0, 0, chunkWidth, chunkHeight);
 
   for (const cell of chunkCells) {
-    const cx = (cell.x * cellWidth) - chunkPosition.x;
-    const cy = (cell.y * cellHeight) - chunkPosition.y;
+    const cx = Math.round((cell.x * cellWidth) - chunkPosition.x);
+    const cy = Math.round((cell.y * cellHeight) - chunkPosition.y);
     const cellUp = world.getCell(cell.x, cell.y - 1);
     const cellDown = world.getCell(cell.x, cell.y + 1);
     const cellLeft = world.getCell(cell.x - 1, cell.y);
     const cellRight = world.getCell(cell.x + 1, cell.y);
 
     if (cellUp !== null && shouldDraw(cell, cellUp)) {
-      g.moveTo(cx, cy);
-      g.lineTo(cx + cellWidth, cy);
+      g.moveTo(cx, cy + 1);
+      g.lineTo(cx + cellWidth, cy + 1);
     }
     if (cellDown !== null && shouldDraw(cell, cellDown)) {
-      g.moveTo(cx, cy + cellHeight);
-      g.lineTo(cx + cellWidth, cy + cellHeight);
+      g.moveTo(cx, cy + cellHeight - 1);
+      g.lineTo(cx + cellWidth, cy + cellHeight - 1);
     }
     if (cellLeft !== null && shouldDraw(cell, cellLeft)) {
-      g.moveTo(cx, cy);
-      g.lineTo(cx, cy + cellHeight);
+      g.moveTo(cx + 1, cy);
+      g.lineTo(cx + 1, cy + cellHeight);
     }
     if (cellRight !== null && shouldDraw(cell, cellRight)) {
-      g.moveTo(cx + cellWidth, cy);
-      g.lineTo(cx + cellWidth, cy + cellHeight);
-    }
-    if (cx < lowestX) {
-      lowestX = cx;
-    }
-    if (cy < lowestY) {
-      lowestY = cy;
+      g.moveTo(cx + cellWidth - 1, cy);
+      g.lineTo(cx + cellWidth - 1, cy + cellHeight);
     }
   }
   g.endFill();

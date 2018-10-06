@@ -96,16 +96,16 @@ export default class WorldRenderer {
 
   private setupEvents() {
     // resize the viewport on window size change
-    window.addEventListener('resize', () => {
-      this.app.renderer.resize(
-        window.innerWidth,
-        window.innerHeight - 50
-      );
-      (this.viewport.resize as any)(
-        window.innerWidth,
-        window.innerHeight - 50
-      );
-    }, true);
+    // window.addEventListener('resize', () => {
+    //   this.app.renderer.resize(
+    //     window.innerWidth,
+    //     window.innerHeight - 50
+    //   );
+    //   (this.viewport.resize as any)(
+    //     window.innerWidth,
+    //     window.innerHeight - 50
+    //   );
+    // }, true);
 
     this.viewport
       .drag()
@@ -126,7 +126,19 @@ export default class WorldRenderer {
       .on('moved', () => {
         this.chunkRenderer.render();
         this.update();
-      });
+      })
+      // .on('drag-end', () => {
+      //   this.viewport.moveCorner(
+      //     Math.round(this.viewport.left),
+      //     Math.round(this.viewport.top),
+      //   );
+      // })
+      // .on('moved', () => {
+      //   this.viewport.moveCorner(
+      //     Math.round(this.viewport.left),
+      //     Math.round(this.viewport.top),
+      //   );
+      // });
   }
 
   public onStateChange(mapViewerProps: IWorldViewerProps) {

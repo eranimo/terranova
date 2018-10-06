@@ -425,7 +425,7 @@ class WorldViewRenderer {
       worldHeight,
       divWheel: element,
     });
-    window.addEventListener('resize', this.onResize, true);
+    // window.addEventListener('resize', this.onResize, true);
     app.stage.addChild(viewport);
     element.style.cursor = 'default';
 
@@ -509,7 +509,7 @@ class WorldViewRenderer {
             Math.round(viewport.left),
             Math.round(viewport.top),
           );
-      });
+        });
     }
     viewport.moveCenter(worldWidth / 2, worldHeight / 2);
     viewport.zoom(4);
