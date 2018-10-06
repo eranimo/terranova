@@ -94,16 +94,13 @@ export default class WorldRenderer {
 
   private setupEvents() {
     // resize the viewport on window size change
-    // window.addEventListener('resize', () => {
-    //   this.app.renderer.resize(
-    //     window.innerWidth,
-    //     window.innerHeight - 50
-    //   );
-    //   (this.viewport.resize as any)(
-    //     window.innerWidth,
-    //     window.innerHeight - 50
-    //   );
-    // }, true);
+    window.addEventListener('resize', () => {
+      this.app.renderer.resize(
+        window.innerWidth,
+        window.innerHeight - 50
+      );
+      this.chunkRenderer.render();
+    }, true);
 
     this.viewport
       .drag()
