@@ -3,7 +3,7 @@ import Viewport from 'pixi-viewport';
 import WorldRenderer from './WorldRenderer';
 import { Cell } from '../../simulation/world';
 import { isFunction } from 'lodash';
-import { drawHoverCursor, drawSelectCursor } from './sprites';
+import { drawHoverCursor, drawSelectCursor } from './textures';
 
 
 export type UIEvent = (cell: Cell) => void | Function;
@@ -35,7 +35,7 @@ export default class WorldUI {
   render() {
     const { cellWidth, cellHeight } = this.renderer.options;
 
-    const hoverCursor = drawHoverCursor(cellWidth, cellHeight);
+    const hoverCursor = new Sprite(drawHoverCursor(cellWidth, cellHeight));
     hoverCursor.width = cellWidth;
     hoverCursor.height = cellHeight;
     hoverCursor.position.set(0, 0);
@@ -43,7 +43,7 @@ export default class WorldUI {
     hoverCursor.alpha = 0;
     this.uiContainer.addChild(hoverCursor);
 
-    const selectedCursor = drawSelectCursor(cellWidth, cellHeight);
+    const selectedCursor = new Sprite(drawSelectCursor(cellWidth, cellHeight));
     selectedCursor.width = cellWidth;
     selectedCursor.height = cellHeight;
     selectedCursor.position.set(0, 0);

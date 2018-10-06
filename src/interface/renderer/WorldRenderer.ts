@@ -33,6 +33,7 @@ export default class WorldRenderer {
   chunkRenderer: ChunkRenderer;
   worldUI: WorldUI;
   state: IWorldViewerProps;
+  textures: Record<string, PIXI.Texture>;
 
   constructor({
     world,
@@ -136,6 +137,7 @@ export default class WorldRenderer {
     for (const chunk of this.chunkRenderer.mapChunks()) {
       if (chunk) {
         chunk.grid.visible = this.state.viewOptions.drawGrid;
+        chunk.arrows.visible = this.state.viewOptions.showFlowArrows;
       }
     }
     // this.viewState.arrowLayer.visible = mapViewerProps.viewOptions.showFlowArrows;

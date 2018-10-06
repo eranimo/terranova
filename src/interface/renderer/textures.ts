@@ -1,10 +1,10 @@
 import {
-  Sprite,
+  Texture,
   Graphics,
 } from 'pixi.js';
 
 
-export function drawHoverCursor(width: number, height: number): Sprite {
+export function drawHoverCursor(width: number, height: number): Texture {
   const g = new Graphics(true);
   g.lineColor = 0xFFFFFF;
   g.lineWidth = 1;
@@ -30,10 +30,10 @@ export function drawHoverCursor(width: number, height: number): Sprite {
   g.lineTo(0, height);
   g.lineTo(0, height - thirdHeight);
 
-  return new Sprite(g.generateCanvasTexture());
+  return g.generateCanvasTexture();
 }
 
-export function drawSelectCursor(width: number, height: number): Sprite {
+export function drawSelectCursor(width: number, height: number): Texture {
   const g = new Graphics(true);
   g.lineColor = 0xFFFFFF;
   g.lineWidth = 1;
@@ -42,5 +42,18 @@ export function drawSelectCursor(width: number, height: number): Sprite {
   g.lineTo(width - 1, height - 1)
   g.lineTo(width - 1, 0);
   g.lineTo(0, 0);
-  return new Sprite(g.generateCanvasTexture());
+  return g.generateCanvasTexture();
+}
+
+
+export function makeArrow(width: number, height: number): Texture {
+  const g = new PIXI.Graphics(true);
+  g.lineColor = 0x000000;
+  g.lineWidth = 1.4;
+  g.moveTo(Math.round(width / 2), height);
+  g.lineTo(Math.round(width / 2), 0);
+  g.lineTo(0, height / 2);
+  g.moveTo(Math.round(width / 2), 0);
+  g.lineTo(width, Math.round(height / 2));
+  return g.generateCanvasTexture();
 }

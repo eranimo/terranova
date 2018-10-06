@@ -1,17 +1,27 @@
+import { EDirection, ETerrainType } from './../../simulation/world';
 import { Sprite, Container, Point } from 'pixi.js';
 import World, { Cell } from '../../simulation/world';
 import { IWorldRendererOptions } from './WorldRenderer';
 import { EMapMode, mapModes } from './mapModes';
 import { isFunction } from 'lodash';
 import Array2D from '../../utils/Array2D';
+import { makeArrow } from './textures';
 
+
+const directionAngles = {
+  [EDirection.NONE]: 0,
+  [EDirection.RIGHT]: 90,
+  [EDirection.DOWN]: 180,
+  [EDirection.LEFT]: 270,
+  [EDirection.UP]: 0,
+}
 
 interface IChunkData {
   container: Container;
   position: Point,
   mapModes: Record<EMapMode, Sprite>;
   grid: Sprite;
-  // arrows: Container;
+  arrows: Container;
 }
 
 interface IChunkRef {
@@ -116,15 +126,17 @@ export class ChunkRenderer {
     if (this.renderedChunks.has(chunkX, chunkY)) {
       return;
     }
+    const { cellWidth, cellHeight, chunkWidth, chunkHeight } = this.options;
+
     const chunkPosition = new Point(
-      chunkX * this.options.chunkWidth * this.options.cellWidth,
-      chunkY * this.options.chunkHeight * this.options.cellHeight,
+      chunkX * chunkWidth * cellWidth,
+      chunkY * chunkHeight * cellHeight,
     );
     const chunkCells = this.getCellsInChunk(chunkX, chunkY);
 
     const chunk = new Container();
-    chunk.width = this.options.chunkWidth;
-    chunk.height = this.options.chunkHeight;
+    chunk.width = chunkWidth;
+    chunk.height = chunkHeight;
     chunk.x = chunkX * this.chunkWorldWidth;
     chunk.y = chunkY * this.chunkWorldHeight;
     this.chunkContainer.addChild(chunk);
@@ -147,17 +159,39 @@ export class ChunkRenderer {
     const gridSprite = drawGridLines(
       this.chunkWorldWidth,
       this.chunkWorldHeight,
-      this.options.cellWidth,
-      this.options.cellHeight,
+      cellWidth,
+      cellHeight,
     );
     gridSprite.cacheAsBitmap = true;
     chunk.addChild(gridSprite);
+
+    const arrows = new Container();
+    const PADDING = 2;
+    for (const cell of chunkCells) {
+      if (cell.terrainType !== ETerrainType.RIVER) continue;
+      const arrowSprite = new Sprite(makeArrow(
+        cellWidth - PADDING,
+        cellHeight - PADDING,
+      ));
+      arrowSprite.position.set(
+        (cell.x * cellWidth) - chunkPosition.x + (cellWidth / 2),
+        (cell.y * cellHeight) - chunkPosition.y + (cellWidth / 2),
+      );
+      arrowSprite.anchor.set(
+        0.5, 0.5
+      );
+      arrowSprite.rotation = directionAngles[cell.flowDir] * (Math.PI / 180);
+      arrows.addChild(arrowSprite);
+    }
+    arrows.cacheAsBitmap = true;
+    chunk.addChild(arrows);
 
     this.renderedChunks.set(chunkX, chunkY, {
       container: chunk,
       position: chunkPosition,
       mapModes: mapModeLayers as Record<EMapMode, Sprite>,
       grid: gridSprite,
+      arrows,
     });
   }
 
