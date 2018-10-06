@@ -32,6 +32,7 @@ export default class WorldRenderer {
 
   chunkRenderer: ChunkRenderer;
   worldUI: WorldUI;
+  state: IWorldViewerProps;
 
   constructor({
     world,
@@ -87,7 +88,7 @@ export default class WorldRenderer {
     this.setupEvents();
 
     console.time('initial chunk render time');
-    this.chunkRenderer.renderVisibleChunks();
+    this.chunkRenderer.render();
     console.timeEnd('initial chunk render time');
   }
 
@@ -120,10 +121,29 @@ export default class WorldRenderer {
         maxWidth: this.worldWidth * 5,
         maxHeight: this.worldHeight * 5,
       })
-      .on('moved', () => this.chunkRenderer.renderVisibleChunks());
+      .on('moved', () => {
+        this.chunkRenderer.render();
+        this.update();
+      });
   }
 
-  public update(props: IWorldViewerProps) {
+  public onStateChange(mapViewerProps: IWorldViewerProps) {
+    this.state = mapViewerProps;
+    this.update();
+  }
 
+  public update() {
+    for (const chunk of this.chunkRenderer.mapChunks()) {
+      if (chunk) {
+        chunk.grid.visible = this.state.viewOptions.drawGrid;
+      }
+    }
+    // this.viewState.arrowLayer.visible = mapViewerProps.viewOptions.showFlowArrows;
+    // this.viewState.coastlineBorder.visible = mapViewerProps.viewOptions.drawCoastline;
+    // this.viewState.gridLines.visible = mapViewerProps.viewOptions.drawGrid;
+    // this.viewState.hoverCursor.visible = mapViewerProps.viewOptions.showCursor;
+    // for (const name of Object.keys(mapModes)) {
+    //   this.viewState.mapModeSprites[name].visible = mapViewerProps.viewOptions.mapMode === name;
+    // }
   }
 }

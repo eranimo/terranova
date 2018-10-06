@@ -67,13 +67,7 @@ export class WorldViewer extends React.Component<IWorldViewerProps> {
   }
 
   updateView(props: IWorldViewerProps) {
-    // this.viewState.arrowLayer.visible = props.viewOptions.showFlowArrows;
-    // this.viewState.coastlineBorder.visible = props.viewOptions.drawCoastline;
-    // this.viewState.gridLines.visible = props.viewOptions.drawGrid;
-    // this.viewState.hoverCursor.visible = props.viewOptions.showCursor;
-    // for (const name of Object.keys(mapModes)) {
-    //   this.viewState.mapModeSprites[name].visible = props.viewOptions.mapMode === name;
-    // }
+    this.renderer.onStateChange(props);
   }
 
   componentWillUnmount() {

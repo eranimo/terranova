@@ -29,7 +29,7 @@ export class ChunkRenderer {
   mapModeState: any;
   chunkContainer: Container;
   overpaint: Point;
-  visibleChunks: number;
+  visibleChunks: IChunkData[];
   chunkWorldWidth: number;
   chunkWorldHeight: number;
 
@@ -99,6 +99,14 @@ export class ChunkRenderer {
     }
   }
 
+  *mapChunks(): IterableIterator<IChunkData> {
+    for (let x = 0; x < this.chunkColumns; x++) {
+      for (let y = 0; y < this.chunkRows; y++) {
+        yield this.renderedChunks.get(x, y);
+      }
+    }
+  }
+
   get chunkCount() {
     return this.chunkColumns * this.chunkRows;
   }
@@ -163,23 +171,25 @@ export class ChunkRenderer {
       Math.min(this.viewport.bottom + this.overpaint.y, this.viewport.worldHeight - 1),
     );
 
-    this.visibleChunks = 0;
+    this.visibleChunks = [];
     for (let x = x1; x < x2; x++) {
       for (let y = y1; y < y2; y++) {
-        this.visibleChunks++;
         if (this.renderedChunks.has(x, y)) {
           this.renderedChunks.get(x, y).container.visible = true;
         } else {
           this.renderChunk(x, y);
         }
+        this.visibleChunks.push(this.renderedChunks.get(x, y));
       }
     }
   }
 
   private hideAllChunks() {
-    for (let x = 0; x < this.chunkRows; x++) {
-      for (let y = 0; y < this.chunkColumns; y++) {
-        this.renderedChunks.get(x, y).container.visible = false;
+    for (let x = 0; x < this.chunkColumns; x++) {
+      for (let y = 0; y < this.chunkRows; y++) {
+        if (this.renderedChunks.has(x, y)) {
+          this.renderedChunks.get(x, y).container.visible = false;
+        }
       }
     }
   }
