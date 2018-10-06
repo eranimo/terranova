@@ -34,6 +34,8 @@ export enum EMapMode {
   MOISTURE = "moisture",
   UPSTREAMCOUNT = "upstream_count",
   DRAINAGEBASINS = "drainage_basins",
+  MOISTUREZONES = "moisture_zones",
+  TEMPERATUREZONES = "temperature_zones",
 }
 
 const terrainColors = {
@@ -93,7 +95,25 @@ export const mapModes: Record<EMapMode, IMapModeDef> = {
   [EMapMode.DRAINAGEBASINS]: {
     title: 'Drainage Basins',
     renderChunk: makeDrainageBasins
-  }
+  },
+  [EMapMode.MOISTUREZONES]: {
+    title: 'Moisture Zones',
+    options: {
+      datapoint: 'moistureZone',
+      colormap: 'cool',
+    },
+    initState: makeCellOverlayState,
+    renderChunk: makeCellOverlay,
+  },
+  [EMapMode.TEMPERATUREZONES]: {
+    title: 'Temperature Zones',
+    options: {
+      datapoint: 'temperatureZone',
+      colormap: 'temperature',
+    },
+    initState: makeCellOverlayState,
+    renderChunk: makeCellOverlay,
+  },
 }
 
 

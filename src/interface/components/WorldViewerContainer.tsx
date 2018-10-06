@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { WorldViewer, IViewOptions } from './WorldViewer';
 import { mapModes, EMapMode } from '../renderer/mapModes';
-import World, { Cell, biomeTitles, directionLabels, terrainTypeLabels } from '../../simulation/world';
+import World, { Cell, biomeTitles, directionLabels, terrainTypeLabels, temperatureZoneTitles, moistureZoneTitles } from '../../simulation/world';
 import {
   Navbar,
   NavbarGroup,
@@ -167,7 +167,7 @@ const CellDetailContainer = styled.div`
   border-top-right-radius: 5px;
   padding: 1rem;
   width: 320px;
-  height: 180px;
+  height: 220px;
   box-shadow: 0 0 4px 2px rgba(16, 22, 26, 0.2);
 `;
 
@@ -214,6 +214,14 @@ class CellDetail extends Component<{
             <tr>
               <td>Flow Direction</td>
               <td>{directionLabels[cell.flowDir]}</td>
+            </tr>
+            <tr>
+              <td>Temperature Zone</td>
+              <td>{temperatureZoneTitles[cell.temperatureZone]}</td>
+            </tr>
+            <tr>
+              <td>Moisture Zone</td>
+              <td>{moistureZoneTitles[cell.moistureZone]}</td>
             </tr>
           </tbody>
         </table>

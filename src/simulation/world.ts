@@ -45,12 +45,28 @@ export enum EMoistureZone {
   WET,
 }
 
+export const moistureZoneTitles = {
+  [EMoistureZone.BARREN]: 'Barren',
+  [EMoistureZone.ARID]: 'Arid',
+  [EMoistureZone.SEMIARID]: 'Semiarid',
+  [EMoistureZone.SEMIWET]: 'Semiwet',
+  [EMoistureZone.WET]: 'Wet',
+}
+
 export enum ETemperatureZone {
   ARCTIC,
   SUBARCTIC,
   TEMPERATE,
   SUBTROPICAL,
   TROPICAL,
+}
+
+export const temperatureZoneTitles = {
+  [ETemperatureZone.ARCTIC]: 'Arctic',
+  [ETemperatureZone.SUBARCTIC]: 'Subarctic',
+  [ETemperatureZone.TEMPERATE]: 'Temperate',
+  [ETemperatureZone.SUBTROPICAL]: 'Subtropical',
+  [ETemperatureZone.TROPICAL]: 'Tropical',
 }
 
 export const biomeTitles = {
@@ -187,6 +203,8 @@ export class Cell {
   upstreamCount: number;
   isLand: boolean;
   moisture: number;
+  moistureZone: EMoistureZone;
+  temperatureZone: ETemperatureZone;
   biome: EBiome;
 
   constructor(
@@ -201,6 +219,8 @@ export class Cell {
       upstreamCount,
       moisture,
       biome,
+      moistureZone,
+      temperatureZone,
     }: {
       x: number,
       y: number,
@@ -211,6 +231,8 @@ export class Cell {
       upstreamCount: number,
       moisture: number,
       biome: EBiome,
+      moistureZone: EMoistureZone,
+      temperatureZone: ETemperatureZone,
     }
   ) {
     this.world = world;
@@ -224,6 +246,8 @@ export class Cell {
     this.upstreamCount = upstreamCount;
     this.moisture = moisture;
     this.biome = biome;
+    this.moistureZone = moistureZone;
+    this.temperatureZone = temperatureZone;
   }
 }
 
@@ -248,7 +272,7 @@ interface IRange {
 }
 
 interface IWorldStats {
-  biomePercents: Record<EBiome, number>;
+  biomePercents: Record<any, number>;
   ranges: Record<string, IRange>;
 }
 
@@ -277,11 +301,14 @@ export default class World {
     this.cells = new Set();
     this.size = params.options.size;
     this.sealevel = params.sealevel;
+
     const heightmap = ndarray(params.heightmap, [this.size.width, this.size.height]);
     const terrainTypes = ndarray(params.terrainTypes, [this.size.width, this.size.height]);
     const flowDirections = ndarray(params.flowDirections, [this.size.width, this.size.height]);
     const temperatures = ndarray(params.temperatures, [this.size.width, this.size.height]);
     const upstreamCells = ndarray(params.upstreamCells, [this.size.width, this.size.height]);
+    const moistureZones = ndarray(params.moistureZones, [this.size.width, this.size.height]);
+    const temperatureZones = ndarray(params.temperatureZones, [this.size.width, this.size.height]);
     const moistureMap = ndarray(params.moistureMap, [this.size.width, this.size.height]);
     const biomes = ndarray(params.biomes, [this.size.width, this.size.height]);
     for (let x = 0; x < this.size.width; x++) {
@@ -295,6 +322,8 @@ export default class World {
           temperature: temperatures.get(x, y),
           upstreamCount: upstreamCells.get(x, y),
           moisture: moistureMap.get(x, y),
+          moistureZone: moistureZones.get(x, y),
+          temperatureZone: temperatureZones.get(x, y),
           biome: biomes.get(x, y),
         });
         this.cells.add(cell);
@@ -321,7 +350,7 @@ export default class World {
         }
       }
     }
-    const biomePercents = mapValues(biomeCounts, i => i / landCount) as Record<EBiome, number>;
+    const biomePercents = mapValues(biomeCounts, i => i / landCount);
 
     const ranges = {
       temperature: ndarrayRange(temperatures),

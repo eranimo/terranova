@@ -587,9 +587,11 @@ function generateBiomes(
   temperatures: ndarray,
   moistureMap: ndarray,
   terrainTypes: ndarray,
-): ndarray {
+): Record<string, ndarray> {
   const { size: { width, height } } = options;
   const biomes = ndarray(new Int16Array(width * height), [width, height]);
+  const moistureZones = ndarray(new Int16Array(width * height), [width, height]);
+  const temperatureZones = ndarray(new Int16Array(width * height), [width, height]);
   fill(biomes, (x, y) => {
     if (
       terrainTypes.get(x, y,) === ETerrainType.OCEAN ||
@@ -606,12 +608,14 @@ function generateBiomes(
         moistureZone = zone;
       }
     }
+    moistureZones.set(x, y, moistureZone);
     let temperatureZone = null;
     for (const [zone, { start, end }] of Object.entries(temperatureZoneRanges)) {
       if (temperature >= start && temperature < end) {
         temperatureZone = zone;
       }
     }
+    temperatureZones.set(x, y, temperatureZone);
     if (moistureZone === null) {
       throw new Error(`Failed to find biome for moisture: ${moisture}`);
     }
@@ -621,7 +625,11 @@ function generateBiomes(
     return biomeRanges[moistureZone][temperatureZone];
   });
 
-  return biomes;
+  return {
+    biomes,
+    moistureZones,
+    temperatureZones,
+  };
 }
 
 function decideMountains(
@@ -684,7 +692,11 @@ onmessage = function (event: MessageEvent) {
   console.timeEnd('step: generateMoisture');
 
   console.time('step: generateBiomes');
-  const biomes = generateBiomes(options, temperatures, moistureMap, terrainTypes);
+  const {
+    biomes,
+    moistureZones,
+    temperatureZones
+  } = generateBiomes(options, temperatures, moistureMap, terrainTypes);
   console.timeEnd('step: generateBiomes');
 
 
@@ -704,6 +716,8 @@ onmessage = function (event: MessageEvent) {
     upstreamCells: upstreamCells.data,
     temperatures: temperatures.data,
     moistureMap: moistureMap.data,
+    moistureZones: moistureZones.data,
+    temperatureZones: temperatureZones.data,
     biomes: biomes.data,
   };
   (postMessage as any)(output);

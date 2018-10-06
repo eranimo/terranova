@@ -41,6 +41,8 @@ export interface IWorldgenWorkerOutput {
   upstreamCells: ndarray.Data<number>;
   temperatures: ndarray.Data<number>;
   moistureMap: ndarray.Data<number>;
+  moistureZones: ndarray.Data<number>;
+  temperatureZones: ndarray.Data<number>;
   biomes: ndarray.Data<number>;
 }
 
