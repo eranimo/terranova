@@ -75,15 +75,15 @@ export class WorldViewer extends React.Component<IWorldViewerProps> {
   }
 
   selectCell(cell: Cell) {
-    // if (cell === null) {
-    //   this.viewState.selectedCursor.alpha = 0;
-    // } else {
-    //   this.viewState.selectedCursor.alpha = 1;
-    //   this.viewState.selectedCursor.position.set(
-    //     cell.x * CELL_WIDTH,
-    //     cell.y * CELL_HEIGHT
-    //   );
-    // }
+    if (cell === null) {
+      this.renderer.worldUI.children.selectedCursor.alpha = 0;
+    } else {
+      this.renderer.worldUI.children.selectedCursor.alpha = 1;
+      this.renderer.worldUI.children.selectedCursor.position.set(
+        cell.x * this.renderer.options.cellWidth,
+        cell.y * this.renderer.options.cellHeight,
+      );
+    }
   }
 
   render() {
