@@ -21,7 +21,8 @@ interface IChunkData {
   position: Point,
   mapModes: Record<EMapMode, Sprite>;
   grid: Sprite;
-  arrows: Container;
+  flowArrows: Container;
+  coastlineBorder: Sprite;
 }
 
 interface IChunkRef {
@@ -165,7 +166,21 @@ export class ChunkRenderer {
     gridSprite.cacheAsBitmap = true;
     chunk.addChild(gridSprite);
 
-    const arrows = new Container();
+    const coastlineBorder = drawCellBorders(
+      chunkCells,
+      chunkPosition,
+      this.world,
+      cellWidth,
+      cellHeight,
+      this.chunkWorldWidth,
+      this.chunkWorldHeight,
+      (a: Cell, b: Cell) => a.isLand && !b.isLand,
+    );
+
+    chunk.addChild(coastlineBorder);
+    console.log(chunkX, chunkY, chunkPosition, coastlineBorder.width, coastlineBorder.height);
+
+    const flowArrows = new Container();
     const PADDING = 2;
     for (const cell of chunkCells) {
       if (cell.terrainType !== ETerrainType.RIVER) continue;
@@ -181,17 +196,18 @@ export class ChunkRenderer {
         0.5, 0.5
       );
       arrowSprite.rotation = directionAngles[cell.flowDir] * (Math.PI / 180);
-      arrows.addChild(arrowSprite);
+      flowArrows.addChild(arrowSprite);
     }
-    arrows.cacheAsBitmap = true;
-    chunk.addChild(arrows);
+    flowArrows.cacheAsBitmap = true;
+    chunk.addChild(flowArrows);
 
     this.renderedChunks.set(chunkX, chunkY, {
       container: chunk,
       position: chunkPosition,
       mapModes: mapModeLayers as Record<EMapMode, Sprite>,
       grid: gridSprite,
-      arrows,
+      flowArrows,
+      coastlineBorder,
     });
   }
 
@@ -252,4 +268,67 @@ function drawGridLines(
     }
   }
   return new PIXI.Sprite(g.generateCanvasTexture());
+}
+
+function drawCellBorders(
+  chunkCells: Cell[],
+  chunkPosition: Point,
+  world: World,
+  cellWidth: number,
+  cellHeight: number,
+  chunkWidth : number,
+  chunkHeight: number,
+  shouldDraw: (a: Cell, b: Cell) => boolean,
+): PIXI.Sprite {
+  const g = new PIXI.Graphics(true);
+
+  g.beginFill(0x000000, 0);
+  g.drawRect(0, 0, 1, 1);
+  g.endFill();
+
+  g.beginFill(0x000000, 1);
+  g.lineColor = 0x000000;
+  g.lineWidth = 1;
+  g.lineAlignment = 0.5;
+
+  g.hitArea = new PIXI.Rectangle(0, 0, chunkWidth, chunkHeight);
+  let lowestX = Infinity;
+  let lowestY = Infinity;
+
+  for (const cell of chunkCells) {
+    const cx = (cell.x * cellWidth) - chunkPosition.x;
+    const cy = (cell.y * cellHeight) - chunkPosition.y;
+    const cellUp = world.getCell(cell.x, cell.y - 1);
+    const cellDown = world.getCell(cell.x, cell.y + 1);
+    const cellLeft = world.getCell(cell.x - 1, cell.y);
+    const cellRight = world.getCell(cell.x + 1, cell.y);
+
+    if (cellUp !== null && shouldDraw(cell, cellUp)) {
+      g.moveTo(cx, cy);
+      g.lineTo(cx + cellWidth, cy);
+    }
+    if (cellDown !== null && shouldDraw(cell, cellDown)) {
+      g.moveTo(cx, cy + cellHeight);
+      g.lineTo(cx + cellWidth, cy + cellHeight);
+    }
+    if (cellLeft !== null && shouldDraw(cell, cellLeft)) {
+      g.moveTo(cx, cy);
+      g.lineTo(cx, cy + cellHeight);
+    }
+    if (cellRight !== null && shouldDraw(cell, cellRight)) {
+      g.moveTo(cx + cellWidth, cy);
+      g.lineTo(cx + cellWidth, cy + cellHeight);
+    }
+    if (cx < lowestX) {
+      lowestX = cx;
+    }
+    if (cy < lowestY) {
+      lowestY = cy;
+    }
+  }
+  g.endFill();
+
+  const t = g.generateCanvasTexture();
+  const s = new PIXI.Sprite(t);
+  return s;
 }

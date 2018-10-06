@@ -137,12 +137,11 @@ export default class WorldRenderer {
     for (const chunk of this.chunkRenderer.mapChunks()) {
       if (chunk) {
         chunk.grid.visible = this.state.viewOptions.drawGrid;
-        chunk.arrows.visible = this.state.viewOptions.showFlowArrows;
+        chunk.flowArrows.visible = this.state.viewOptions.showFlowArrows;
+        chunk.coastlineBorder.visible = this.state.viewOptions.drawCoastline;
       }
     }
-    // this.viewState.arrowLayer.visible = mapViewerProps.viewOptions.showFlowArrows;
     // this.viewState.coastlineBorder.visible = mapViewerProps.viewOptions.drawCoastline;
-    // this.viewState.gridLines.visible = mapViewerProps.viewOptions.drawGrid;
     // this.viewState.hoverCursor.visible = mapViewerProps.viewOptions.showCursor;
     // for (const name of Object.keys(mapModes)) {
     //   this.viewState.mapModeSprites[name].visible = mapViewerProps.viewOptions.mapMode === name;
