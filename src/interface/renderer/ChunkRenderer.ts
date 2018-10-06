@@ -178,7 +178,6 @@ export class ChunkRenderer {
     );
 
     chunk.addChild(coastlineBorder);
-    console.log(chunkX, chunkY, chunkPosition, coastlineBorder.width, coastlineBorder.height);
 
     const flowArrows = new Container();
     const PADDING = 2;

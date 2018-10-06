@@ -1,3 +1,4 @@
+import { mapModes } from './../components/oldRenderer';
 import * as PIXI from 'pixi.js';
 import World from '../../simulation/world';
 import Viewport from 'pixi-viewport';
@@ -139,12 +140,13 @@ export default class WorldRenderer {
         chunk.grid.visible = this.state.viewOptions.drawGrid;
         chunk.flowArrows.visible = this.state.viewOptions.showFlowArrows;
         chunk.coastlineBorder.visible = this.state.viewOptions.drawCoastline;
+
+        for (const [mapMode, sprite] of Object.entries(chunk.mapModes)) {
+          sprite.visible = this.state.viewOptions.mapMode === mapMode;
+        }
       }
     }
     // this.viewState.coastlineBorder.visible = mapViewerProps.viewOptions.drawCoastline;
     // this.viewState.hoverCursor.visible = mapViewerProps.viewOptions.showCursor;
-    // for (const name of Object.keys(mapModes)) {
-    //   this.viewState.mapModeSprites[name].visible = mapViewerProps.viewOptions.mapMode === name;
-    // }
   }
 }
