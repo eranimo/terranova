@@ -3,27 +3,36 @@ import { Sprite, Graphics, Point } from 'pixi.js';
 import World, { Cell, climateColors, ETerrainType } from '../../simulation/world';
 import { IWorldRendererOptions } from './WorldRenderer';
 import { ChunkRenderer } from './ChunkRenderer';
-import { chunk } from 'simple-statistics';
+import colormap from 'colormap';
+
+
+function rgbToNumber(r: number, g: number, b: number): number {
+  return 0x1000000 + b + 0x100 * g + 0x10000 * r;
+}
 
 interface IMapModeDef {
   title: string;
   options?: Record<string, any>;
-  initState?: (world: World) => any,
+  initState?: (
+    options: any,
+    cells: Cell[],
+  ) => any,
   renderChunk: (
     chunkRenderer: ChunkRenderer,
     cells: Cell[],
     mapModeState: any,
     chunkPosition: Point,
+    options?: any,
   ) => Sprite,
 }
 
 export enum EMapMode {
   CLIMATE = "climate",
   TERRAIN = "terrain",
-  // HEIGHT = "height",
-  // TEMPERATURE = "temperature",
-  // MOISTURE = "moisture",
-  // UPSTREAMCOUNT = "upstream_count",
+  HEIGHT = "height",
+  TEMPERATURE = "temperature",
+  MOISTURE = "moisture",
+  UPSTREAMCOUNT = "upstream_count",
   DRAINAGEBASINS = "drainage_basins",
 }
 
@@ -45,34 +54,42 @@ export const mapModes: Record<EMapMode, IMapModeDef> = {
     title: 'Terrain',
     renderChunk: drawTerrain
   },
-  // [EMapMode.HEIGHT]: {
-  //   title: 'Height',
-  //   options: {
-  //     datapoint: 'height',
-  //     colormap: 'bathymetry'
-  //   }
-  // },
-  // [EMapMode.TEMPERATURE]: {
-  //   title: 'Temperature',
-  //   options: {
-  //     datapoint: 'temperature',
-  //     colormap: 'jet',
-  //   },
-  // },
-  // [EMapMode.MOISTURE]: {
-  //   title: 'Moisture',
-  //   options: {
-  //     datapoint: 'moisture',
-  //     colormap: 'cool',
-  //   },
-  // },
-  // [EMapMode.UPSTREAMCOUNT]: {
-  //   title: 'Upstream Cell Count',
-  //   options: {
-  //     datapoint: 'upstreamCount',
-  //     colormap: 'velocity-blue',
-  //   },
-  // },
+  [EMapMode.HEIGHT]: {
+    title: 'Height',
+    options: {
+      datapoint: 'height',
+      colormap: 'bathymetry'
+    },
+    initState: makeCellOverlayState,
+    renderChunk: makeCellOverlay,
+  },
+  [EMapMode.TEMPERATURE]: {
+    title: 'Temperature',
+    options: {
+      datapoint: 'temperature',
+      colormap: 'jet',
+    },
+    initState: makeCellOverlayState,
+    renderChunk: makeCellOverlay,
+  },
+  [EMapMode.MOISTURE]: {
+    title: 'Moisture',
+    options: {
+      datapoint: 'moisture',
+      colormap: 'cool',
+    },
+    initState: makeCellOverlayState,
+    renderChunk: makeCellOverlay,
+  },
+  [EMapMode.UPSTREAMCOUNT]: {
+    title: 'Upstream Cell Count',
+    options: {
+      datapoint: 'upstreamCount',
+      colormap: 'velocity-blue',
+    },
+    initState: makeCellOverlayState,
+    renderChunk: makeCellOverlay,
+  },
   [EMapMode.DRAINAGEBASINS]: {
     title: 'Drainage Basins',
     renderChunk: makeDrainageBasins
@@ -186,7 +203,7 @@ function makeDrainageBasins(
   mapModeState: any,
   chunkPosition: Point,
 ): PIXI.Sprite {
-  const { cellWidth, cellHeight, chunkWidth, chunkHeight } = chunkRenderer.options;
+  const { cellWidth, cellHeight } = chunkRenderer.options;
   const g = new PIXI.Graphics(true);
 
   for (const cell of cells) {
@@ -211,4 +228,68 @@ function makeDrainageBasins(
     }
   }
   return new PIXI.Sprite(g.generateCanvasTexture());
+}
+
+function makeCellOverlayState(options, cells: Cell[]) {
+  const colors: [number, number, number, number][] = colormap({
+    nshades: 101,
+    format: 'rba',
+    colormap: options.colormap
+  });
+  let item;
+  let min = Infinity;
+  let max = -Infinity;
+  for (const cell of cells) {
+    item = cell[options.datapoint];
+    if (item < min) {
+      min = item;
+    } else if (item > max) {
+      max = item;
+    }
+  }
+  return { min, max, colors };
+}
+
+function makeCellOverlay(
+  chunkRenderer: ChunkRenderer,
+  cells: Cell[],
+  mapModeState: any,
+  chunkPosition: Point,
+  options: Record<string, any>,
+): PIXI.Sprite {
+  const g = new PIXI.Graphics(true);
+  const { cellWidth, cellHeight } = chunkRenderer.options;
+  const { min, max, colors } = mapModeState;
+  let index: number;
+  let color: number[];
+  const cellsByColor: Record<any, Cell[]> = {};
+  for (const cell of cells) {
+    index = Math.round(((cell[options.datapoint] - min) / (max - min)) * 100);
+    color = colors[index];
+    if (!color) {
+      throw new Error(`No color for index ${index}`);
+    }
+
+    if (index in cellsByColor) {
+      cellsByColor[index].push(cell);
+    } else {
+      cellsByColor[index] = [cell];
+    }
+  }
+  for (const [index, colorCells] of Object.entries(cellsByColor)) {
+    color = colors[index];
+    g.beginFill(rgbToNumber(color[0], color[1], color[2]));
+    for (const cell of colorCells) {
+      g.drawRect(
+        (cell.x * cellWidth) - chunkPosition.x,
+        (cell.y * cellHeight) - chunkPosition.y,
+        cellWidth,
+        cellHeight,
+      );
+    }
+    g.endFill();
+  }
+  const texture = g.generateCanvasTexture();
+  const sprite = new PIXI.Sprite(texture);
+  return sprite;
 }

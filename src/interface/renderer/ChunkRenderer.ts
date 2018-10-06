@@ -58,7 +58,7 @@ export class ChunkRenderer {
     this.mapModeState = {};
     for (const [mapMode, mapModeDef] of Object.entries(mapModes)) {
       if (isFunction(mapModeDef.initState)) {
-        this.mapModeState[mapMode] = mapModeDef.initState(world);
+        this.mapModeState[mapMode] = mapModeDef.initState(mapModeDef.options, world.cells);
       } else {
         this.mapModeState[mapMode] = {};
       }
@@ -149,7 +149,8 @@ export class ChunkRenderer {
         this,
         chunkCells,
         this.mapModeState[mapMode],
-        chunkPosition
+        chunkPosition,
+        mapModeDef.options,
       );
       mapModeSprite.cacheAsBitmap = true;
       chunk.addChild(mapModeSprite);
