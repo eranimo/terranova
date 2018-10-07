@@ -35,17 +35,17 @@ export default class WorldUI {
   render() {
     const { cellWidth, cellHeight } = this.renderer.options;
 
-    const hoverCursor = new Sprite(drawHoverCursor(cellWidth, cellHeight));
-    hoverCursor.width = cellWidth;
-    hoverCursor.height = cellHeight;
+    const hoverCursor = new Sprite(drawHoverCursor(cellWidth + 1, cellHeight + 1));
+    hoverCursor.width = cellWidth + 1;
+    hoverCursor.height = cellHeight + 1;
     hoverCursor.position.set(0, 0);
     hoverCursor.interactive = false;
     hoverCursor.alpha = 0;
     this.uiContainer.addChild(hoverCursor);
 
-    const selectedCursor = new Sprite(drawSelectCursor(cellWidth, cellHeight));
-    selectedCursor.width = cellWidth;
-    selectedCursor.height = cellHeight;
+    const selectedCursor = new Sprite(drawSelectCursor(cellWidth + 1, cellHeight + 1));
+    selectedCursor.width = cellWidth + 1;
+    selectedCursor.height = cellHeight + 1;
     selectedCursor.position.set(0, 0);
     selectedCursor.interactive = false;
     selectedCursor.alpha = 0;

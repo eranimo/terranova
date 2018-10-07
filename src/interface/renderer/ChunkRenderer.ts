@@ -164,7 +164,7 @@ export class ChunkRenderer {
       cellWidth,
       cellHeight,
     );
-    gridSprite.alpha = 0.5;
+    gridSprite.alpha = 0.25;
     gridSprite.cacheAsBitmap = true;
     chunk.addChild(gridSprite);
 
