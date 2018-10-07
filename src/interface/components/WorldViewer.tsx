@@ -72,7 +72,7 @@ export class WorldViewer extends React.Component<IWorldViewerProps> {
   }
 
   componentWillUnmount() {
-    this.renderer.app.destroy();
+    this.renderer.destroy();
   }
 
   selectCell(cell: Cell) {
@@ -88,6 +88,6 @@ export class WorldViewer extends React.Component<IWorldViewerProps> {
   }
 
   render() {
-    return <div ref={this.root} />;
+    return <div id="worldviewer" ref={this.root} />;
   }
 }

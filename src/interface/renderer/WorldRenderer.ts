@@ -48,26 +48,26 @@ export default class WorldRenderer {
     this.world = world;
     this.element = element;
     this.options = options;
+    this.worldWidth = world.size.width * options.cellWidth;
+    this.worldHeight = world.size.height * options.cellHeight;
 
-    const screenWidth = window.innerWidth;
-    const screenHeight = (window.innerHeight - 50);
+    // setup PIXI
     this.app = new PIXI.Application({
-      width: screenWidth,
-      height: screenHeight,
+      autoResize: true,
       antialias: false,
       roundPixels: true,
       forceCanvas: false,
       legacy: true,
-    });
-    (window as any).pixi = this.app;
+      resolution: devicePixelRatio,
+    });;
     PIXI.settings.SCALE_MODE = PIXI.SCALE_MODES.NEAREST;
-    this.worldWidth = world.size.width * options.cellWidth;
-    this.worldHeight = world.size.height * options.cellHeight;
+    element.style.cursor = 'default';
+    element.appendChild(this.app.view);
 
     // create viewport
     this.viewport = new Viewport({
-      screenWidth,
-      screenHeight,
+      screenWidth: this.app.screen.width,
+      screenHeight: this.app.screen.height,
       worldWidth: this.worldWidth,
       worldHeight: this.worldHeight,
       divWheel: element,
@@ -75,7 +75,6 @@ export default class WorldRenderer {
     this.app.stage.addChild(this.viewport);
     this.viewport.moveCenter(this.worldWidth / 2, this.worldHeight / 2);
     this.viewport.zoomPercent(1/3);
-    element.style.cursor = 'default';
 
     // create chunk renderer
     this.chunkRenderer = new ChunkRenderer(world, this.viewport, options);
@@ -86,21 +85,41 @@ export default class WorldRenderer {
     this.viewport.addChild(this.worldUI.uiContainer);
 
     this.setupEvents();
+    this.resize();
 
     console.time('initial chunk render time');
     this.chunkRenderer.render();
     console.timeEnd('initial chunk render time');
   }
 
+  resize() {
+    this.app.renderer.resize(
+      this.element.clientWidth,
+      this.element.clientHeight,
+    );
+    (this.viewport.resize as any)(
+      this.app.renderer.screen.width,
+      this.app.renderer.screen.height,
+      this.worldWidth,
+      this.worldHeight
+    );
+  }
+
+  onResize = () => {
+    if (this.app.renderer === null) return;
+    this.resize();
+    this.chunkRenderer.render();
+    this.update();
+  }
+
+  public destroy() {
+    window.removeEventListener('resize', this.onResize);
+    this.app.destroy();
+  }
+
   private setupEvents() {
     // resize the viewport on window size change
-    window.addEventListener('resize', () => {
-      this.app.renderer.resize(
-        window.innerWidth,
-        window.innerHeight - 50
-      );
-      this.chunkRenderer.render();
-    }, true);
+    window.addEventListener('resize', this.onResize, true);
 
     this.viewport
       .drag()
@@ -142,6 +161,9 @@ export default class WorldRenderer {
   }
 
   public update() {
+    if (!this.state) {
+      throw new Error('Must call onStateChange() before update()');
+    }
     for (const chunk of this.chunkRenderer.mapChunks()) {
       if (chunk) {
         chunk.grid.visible = this.state.viewOptions.drawGrid;
