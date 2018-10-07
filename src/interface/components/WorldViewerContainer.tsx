@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React, { Component, Fragment } from 'react';
 import { WorldViewer, IViewOptions } from './WorldViewer';
 import { mapModes, EMapMode } from '../renderer/mapModes';
 import World, { Cell, biomeTitles, directionLabels, terrainTypeLabels, temperatureZoneTitles, moistureZoneTitles } from '../../simulation/world';
@@ -30,7 +30,8 @@ import copy from 'clipboard-copy';
 
 
 const LoadingWorld = styled.div`
-  position: absolute;
+  position: fixed;
+  z-index: 100;
   width: 100%;
   height: 100%;
   display: flex;
@@ -334,7 +335,7 @@ export class WorldViewerContainer extends Component<{
     let viewer = null;
     if (world !== null) {
       viewer = (
-        <div>
+        <Fragment>
           {isLoading && (
             <LoadingWorld>
               <Spinner />
@@ -347,7 +348,7 @@ export class WorldViewerContainer extends Component<{
             selectedCell={this.state.selectedCell}
             onCellClick={this.onCellClick}
           />
-        </div>
+        </Fragment>
       );
     } else {
       viewer = (
