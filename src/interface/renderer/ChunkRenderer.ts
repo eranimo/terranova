@@ -301,7 +301,12 @@ function drawCellBorders(
     const cellDown = world.getCell(cell.x, cell.y + 1);
     const cellLeft = world.getCell(cell.x - 1, cell.y);
     const cellRight = world.getCell(cell.x + 1, cell.y);
+    const cellDownRight = world.getCell(cell.x + 1, cell.y + 1);
+    const cellDownLeft = world.getCell(cell.x - 1, cell.y + 1);
+    const cellUpRight = world.getCell(cell.x + 1, cell.y - 1);
+    const cellUpLeft = world.getCell(cell.x - 1, cell.y - 1);
 
+    g.lineWidth = 2;
     if (cellUp !== null && shouldDraw(cell, cellUp)) {
       g.moveTo(cx, cy + 1);
       g.lineTo(cx + cellWidth, cy + 1);
@@ -317,6 +322,47 @@ function drawCellBorders(
     if (cellRight !== null && shouldDraw(cell, cellRight)) {
       g.moveTo(cx + cellWidth - 1, cy);
       g.lineTo(cx + cellWidth - 1, cy + cellHeight);
+    }
+    g.lineWidth = 0;
+    if (cellDownRight !== null && shouldDraw(cell, cellDownRight)) {
+      g.beginFill(0x000000);
+      g.drawRect(
+        (cx + cellWidth - 2),
+        (cy + cellHeight - 2),
+        2,
+        2,
+      );
+      g.endFill();
+    }
+    if (cellDownLeft !== null && shouldDraw(cell, cellDownLeft)) {
+      g.beginFill(0x000000);
+      g.drawRect(
+        (cx),
+        (cy + cellHeight - 2),
+        2,
+        2,
+      );
+      g.endFill();
+    }
+    if (cellUpLeft !== null && shouldDraw(cell, cellUpLeft)) {
+      g.beginFill(0x000000);
+      g.drawRect(
+        (cx),
+        (cy),
+        2,
+        2,
+      );
+      g.endFill();
+    }
+    if (cellUpRight !== null && shouldDraw(cell, cellUpRight)) {
+      g.beginFill(0x000000);
+      g.drawRect(
+        (cx + cellWidth - 2),
+        (cy),
+        2,
+        2,
+      );
+      g.endFill();
     }
   }
   g.endFill();
