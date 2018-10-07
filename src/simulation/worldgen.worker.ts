@@ -81,6 +81,17 @@ const getValidNeighborsLabelled = (
     .filter(([x, y]) => x >= 0 && y >= 0 && x < width && y < height)
 );
 
+function shuffle<T>(rng, a: Array<T>): Array<T> {
+  var j, x, i;
+  for (i = a.length - 1; i > 0; i--) {
+      j = Math.floor(rng() * (i + 1));
+      x = a[i];
+      a[i] = a[j];
+      a[j] = x;
+  }
+  return a;
+}
+
 
 function loopGridCircle(x, y, radius) {
   let cells = [];
@@ -155,8 +166,9 @@ function generateHeightmap(options: IWorldgenOptions) {
   return heightmap;
 }
 
-function removeDepressions(options: IWorldgenOptions, heightmap: ndarray) {
-  const { size: { width, height } } = options;
+function removeDepressions(options: IWorldgenOptions, heightmap: ndarray, sealevel: number) {
+  const { seed, size: { width, height }, depressionFillPercent } = options;
+  const rng = new Alea(seed);
 
   // copy heightmap into waterheight
   const waterheight = ndarray(new Uint8ClampedArray(width * height), [width, height]);
@@ -213,7 +225,85 @@ function removeDepressions(options: IWorldgenOptions, heightmap: ndarray) {
     }
   }
 
-  return { waterheight, cellNeighbors };
+  // turn lakes into hills by inverting them
+
+  let depressions: number[][][] = [];
+  const depressionCellsGrid = ndarray(new Uint8ClampedArray(width * height), [width, height]);
+  for (let x = 0; x < width; x++) {
+    for (let y = 0; y < height; y++) {
+      if (waterheight.get(x, y) > heightmap.get(x, y) && waterheight.get(x, y) >= sealevel) {
+        depressionCellsGrid.set(x, y, 1);
+      } else {
+        depressionCellsGrid.set(x, y, 0);
+      }
+    }
+  }
+
+  const rowNeighbors: number[] = [-1, -1, -1,  0, 0,  1, 1, 1];
+  const colNeighbors: number[] = [-1,  0,  1, -1, 1, -1, 0, 1];
+  function DFS(
+    array: ndarray,
+    visited: ndarray,
+    searchFunc: (value: number, isVisited: boolean) => boolean,
+    x: number,
+    y: number
+  ): number[][] {
+    visited.set(x, y, 1);
+    let cells = [[x, y]];
+    for (let i = 0; i < 8; i++) {
+      const nx = x + rowNeighbors[i];
+      const ny = y + colNeighbors[i];
+      if (searchFunc(array.get(nx, ny), visited.get(nx, ny) === 1)) {
+        cells.push(...DFS(array, visited, searchFunc, nx, ny));
+      }
+    }
+    return cells;
+  }
+  /*
+  for each cell:
+    if cell is not visited:
+      do DFS at this cell and mark all cells as visited
+      add visited cells to a new lake
+  */
+  function groupFunc(value: number, isVisited: boolean) {
+    return value === 1 && !isVisited;
+  }
+  const visited = ndarray(new Uint8ClampedArray(width * height), [width, height]);
+  for (let x = 0; x < width; x++) {
+    for (let y = 0; y < height; y++) {
+      if (depressionCellsGrid.get(x, y) === 1 && visited.get(x, y) === 0) {
+        // new island
+        const lakeCells = DFS(depressionCellsGrid, visited, groupFunc, x, y);
+        depressions.push(lakeCells);
+      }
+    }
+  }
+  // fill in tiny lakes
+  function fillDepression(depression: number[][]) {
+    for (const [x, y] of depression) {
+      const newHeight = waterheight.get(x, y) + (waterheight.get(x, y) - heightmap.get(x, y));
+      heightmap.set(x, y, newHeight);
+    }
+  }
+  depressions = depressions.filter(depression => {
+    if (depression.length <= 3) {
+      fillDepression(depression);
+      return false;
+    }
+    return true;
+  });
+
+  // fill in a percent of all depressions
+  const filledIndex = depressions.length * depressionFillPercent;
+  depressions = shuffle(rng, depressions).filter((depression, index) => {
+    if (index < filledIndex) {
+      fillDepression(depression);
+      return false;
+    }
+    return true;
+  });
+
+  return { waterheight, cellNeighbors, heightmap };
 }
 
 function determineFlowDirections(options: IWorldgenOptions, waterheight: ndarray<number>) {
@@ -355,7 +445,12 @@ function decideTerrainTypes(
 
   const data = Array.from(upstreamCells.data).filter(i => i > 0);
   // const upstreamCellsMax = ops.sup(upstreamCells);
-  const riverThresholdAmount = Stats.quantile(data, riverThreshold);
+  let riverThresholdAmount;
+  if (data.length > 0) {
+    riverThresholdAmount = Stats.quantile(data, riverThreshold);
+  } else {
+    riverThresholdAmount = Infinity;
+  }
 
   for (let x = 0; x < width; x++) {
     for (let y = 0; y < height; y++) {
@@ -660,15 +755,16 @@ onmessage = function (event: MessageEvent) {
   console.time('Worldgen');
 
   console.time('step: generateHeightmap');
-  const heightmap = generateHeightmap(options);
+  let heightmap = generateHeightmap(options);
   console.timeEnd('step: generateHeightmap');
 
   console.time('step: removeDepressions');
-  const { waterheight, cellNeighbors } = removeDepressions(options, heightmap);
+  const { waterheight, cellNeighbors, heightmap: newHeightmap } = removeDepressions(options, heightmap, sealevel);
+  heightmap = newHeightmap;
   console.timeEnd('step: removeDepressions');
 
   console.time('step: determineFlowDirections');
-  const flowDirections = determineFlowDirections(options, waterheight);
+  const flowDirections = determineFlowDirections(options, heightmap);
   console.timeEnd('step: determineFlowDirections');
 
   console.time('step: decideTerrainTypes');

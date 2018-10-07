@@ -285,6 +285,9 @@ function makeCellOverlay(
   const cellsByColor: Record<any, Cell[]> = {};
   for (const cell of cells) {
     index = Math.round(((cell[options.datapoint] - min) / (max - min)) * 100);
+    if (isNaN(index)) {
+      continue;
+    }
     color = colors[index];
     if (!color) {
       throw new Error(`No color for index ${index}`);

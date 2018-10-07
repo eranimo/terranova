@@ -18,6 +18,7 @@ export interface IWorldgenOptions {
     max: number,
   }
   elevationCoolingAmount: number,
+  depressionFillPercent: number, // 0 to 1
 }
 
 export enum EWorldShape {
