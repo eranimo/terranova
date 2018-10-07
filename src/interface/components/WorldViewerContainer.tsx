@@ -159,8 +159,9 @@ class WorldViewerHeader extends Component <{
 }
 
 const CellDetailContainer = styled.div`
-  position: absolute;
+  position: fixed;
   bottom: 0;
+  left: 0;
   background-color: rgba(57, 75, 89, 0.90);
   border-top: 1px solid ${Colors.DARK_GRAY3};
   border-right: 1px solid ${Colors.DARK_GRAY3};
@@ -169,6 +170,7 @@ const CellDetailContainer = styled.div`
   width: 320px;
   height: 220px;
   box-shadow: 0 0 4px 2px rgba(16, 22, 26, 0.2);
+  z-index: 100;
 `;
 
 class CellDetail extends Component<{
