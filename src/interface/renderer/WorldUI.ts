@@ -56,6 +56,7 @@ export default class WorldUI {
 
   setupEvents() {
     const { cellWidth, cellHeight } = this.renderer.options;
+    const { width, height } = this.renderer.world.size;
 
     this.viewport
       .on('mouseout', () => {
@@ -69,6 +70,12 @@ export default class WorldUI {
         const worldPos = this.viewport.toWorld(new PIXI.Point(offsetX, offsetY));
         const cx = Math.floor(worldPos.x / cellWidth);
         const cy = Math.floor(worldPos.y / cellHeight);
+        if (cx < 0 || cy < 0 || cx > width - 1 || cy > height - 1) {
+          this.children.hoverCursor.alpha = 0;
+          return;
+        } else {
+          this.children.hoverCursor.alpha = 1;
+        }
         this.children.hoverCursor.position.set(
           cx * cellWidth,
           cy * cellHeight,

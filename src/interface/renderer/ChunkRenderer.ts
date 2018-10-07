@@ -223,8 +223,8 @@ export class ChunkRenderer {
     );
 
     this.visibleChunks = [];
-    for (let x = x1; x < x2; x++) {
-      for (let y = y1; y < y2; y++) {
+    for (let x = x1; x <= x2; x++) {
+      for (let y = y1; y <= y2; y++) {
         if (this.renderedChunks.has(x, y)) {
           this.renderedChunks.get(x, y).container.visible = true;
         } else {
