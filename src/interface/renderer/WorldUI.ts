@@ -57,13 +57,16 @@ export default class WorldUI {
   setupEvents() {
     const { cellWidth, cellHeight } = this.renderer.options;
     const { width, height } = this.renderer.world.size;
+    let isOffscreen = true;
 
     this.viewport
       .on('mouseout', () => {
         this.children.hoverCursor.alpha = 0;
+        isOffscreen = true;
       })
       .on('mouseover', () => {
         this.children.hoverCursor.alpha = 1;
+        isOffscreen = false;
       })
       .on('mousemove', (event: PIXI.interaction.InteractionEvent) => {
         const { offsetX, offsetY } = event.data.originalEvent as MouseEvent;
@@ -73,7 +76,7 @@ export default class WorldUI {
         if (cx < 0 || cy < 0 || cx > width - 1 || cy > height - 1) {
           this.children.hoverCursor.alpha = 0;
           return;
-        } else {
+        } else if (!isOffscreen) {
           this.children.hoverCursor.alpha = 1;
         }
         this.children.hoverCursor.position.set(
