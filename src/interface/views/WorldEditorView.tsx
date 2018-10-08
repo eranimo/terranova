@@ -346,6 +346,7 @@ export class WorldEditorView extends Component<RouteComponentProps<{}>, {
     this.setState({ isLoading: true });
     const world = await this.simulation.generate(this.state.options);
     console.log('generate', world);
+    localStorage.removeItem('viewportState');
     this.setState({ world, isLoading: false });
   }
 

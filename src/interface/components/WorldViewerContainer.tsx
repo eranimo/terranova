@@ -233,6 +233,14 @@ class CellDetail extends Component<{
   }
 }
 
+const initialViewOptions: IViewOptions = {
+  showFlowArrows: false,
+  drawCoastline: true,
+  drawGrid: false,
+  mapMode: EMapMode.CLIMATE,
+  showCursor: true,
+};
+
 @HotkeysTarget
 export class WorldViewerContainer extends Component<{
   world: World,
@@ -242,16 +250,26 @@ export class WorldViewerContainer extends Component<{
   viewOptions: IViewOptions;
   selectedCell: Cell | null;
 }> {
-  state = {
-    viewOptions: {
-      showFlowArrows: false,
-      drawCoastline: true,
-      drawGrid: false,
-      mapMode: EMapMode.CLIMATE,
-      showCursor: true,
-    },
-    selectedCell: null,
-    isGenerating: false,
+  constructor(props) {
+    super(props);
+    let loadedViewOptions = JSON.parse(localStorage.getItem('viewOptions'));
+    if (initialViewOptions) {
+      for (const key in Object.keys(initialViewOptions)) {
+        if (!(key in Object.keys(initialViewOptions))) {
+          console.warn('View options from local storage incompatible');
+          loadedViewOptions = null;
+        }
+      }
+    }
+
+    this.state = {
+      viewOptions: loadedViewOptions || initialViewOptions,
+      selectedCell: null,
+    }
+  }
+
+  componentDidUpdate() {
+    localStorage.setItem('viewOptions', JSON.stringify(this.state.viewOptions));
   }
 
   onChangeField = (fieldName: keyof IViewOptions) => (event) => {

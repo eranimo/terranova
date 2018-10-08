@@ -4,6 +4,7 @@ import Viewport from 'pixi-viewport';
 import { ChunkRenderer } from './ChunkRenderer';
 import WorldUI, { UIEvent } from './WorldUI';
 import { IWorldViewerProps } from '../components/WorldViewer';
+import { debounce, pick } from 'lodash';
 
 
 export interface IWorldRendererOptions {
@@ -19,6 +20,17 @@ const defaultRendererOptions: IWorldRendererOptions = {
   chunkWidth: 10,
   chunkHeight: 10,
 };
+
+interface IViewportState {
+  center: {
+    x: number,
+    y: number,
+  };
+  scale: {
+    x: number,
+    y: number,
+  };
+}
 
 export default class WorldRenderer {
   app: PIXI.Application;
@@ -84,6 +96,20 @@ export default class WorldRenderer {
     this.worldUI = new WorldUI(this, eventCallbacks);
     this.viewport.addChild(this.worldUI.uiContainer);
 
+    // load viewport state from localStorage
+    const loadedState: IViewportState = JSON.parse(localStorage.getItem('viewportState'));
+    if (loadedState) {
+      try {
+        this.viewport.scale.set(loadedState.scale.x, loadedState.scale.y);
+        this.viewport.moveCenter(loadedState.center.x, loadedState.center.y);
+      } catch (error) {
+        console.warn('Removing obsolete viewport state');
+        localStorage.removeItem('viewportState');
+      }
+    }
+
+    (window as any).renderer = this;
+
     this.setupEvents();
     this.resize();
 
@@ -104,6 +130,13 @@ export default class WorldRenderer {
       this.worldHeight
     );
   }
+
+  updateViewportState = debounce(() => {
+    localStorage.setItem('viewportState', JSON.stringify({
+      center: pick(this.viewport.center, ['x', 'y']),
+      scale: pick(this.viewport.scale, ['x', 'y']),
+    }));
+  }, 1000);
 
   onResize = () => {
     if (this.app.renderer === null) return;
@@ -140,6 +173,7 @@ export default class WorldRenderer {
       .on('moved', () => {
         this.chunkRenderer.render();
         this.update();
+        this.updateViewportState();
       })
       // .on('drag-end', () => {
       //   this.viewport.moveCorner(
