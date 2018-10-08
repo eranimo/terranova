@@ -25,25 +25,6 @@ import { groupBy, mapValues, memoize } from 'lodash';
 const rowNeighbors: number[] = [-1, -1, -1,  0, 0,  1, 1, 1];
 const colNeighbors: number[] = [-1,  0,  1, -1, 1, -1, 0, 1];
 
-function DFS(
-  array: ndarray,
-  visited: ndarray,
-  searchFunc: (x: number, y: number) => boolean,
-  x: number,
-  y: number
-): number[][] {
-  visited.set(x, y, 1);
-  let cells = [[x, y]];
-  for (let i = 0; i < 8; i++) {
-    const nx = x + rowNeighbors[i];
-    const ny = y + colNeighbors[i];
-    if (searchFunc(nx, ny)) {
-      cells.push(...DFS(array, visited, searchFunc, nx, ny));
-    }
-  }
-  return cells;
-}
-
 function BFS(
   visited,
   searchFunc: (x: number, y: number) => boolean,
@@ -73,6 +54,26 @@ function BFS(
     }
   }
   return output;
+}
+
+function groupDistinct(
+  heuristic: (x: number, y: number) => boolean,
+  width: number,
+  height: number,
+) {
+  const visited = ndarray(new Uint8ClampedArray(width * height), [width, height]);
+
+  // determine landFeatures
+  const result = [];
+  fill(visited, () => 0);
+  for (let x = 0; x < width; x++) {
+    for (let y = 0; y < height; y++) {
+      if (heuristic(x, y) && visited.get(x, y) === 0) {
+        result.push(BFS(visited, heuristic, x, y));
+      }
+    }
+  }
+  return result;
 }
 
 function ndarrayStats(ndarray: ndarray) {
@@ -324,7 +325,7 @@ function removeDepressions(options: IWorldgenOptions, heightmap: ndarray, sealev
 
   // fill in a percent of all depressions
   const filledIndex = depressions.length * depressionFillPercent;
-  depressions = shuffle(rng, depressions).filter((depression, index) => {
+  const lakes = shuffle(rng, depressions).filter((depression, index) => {
     if (index < filledIndex) {
       fillDepression(depression);
       return false;
@@ -332,7 +333,7 @@ function removeDepressions(options: IWorldgenOptions, heightmap: ndarray, sealev
     return true;
   });
 
-  return { waterheight, cellNeighbors, heightmap };
+  return { waterheight, cellNeighbors, heightmap, lakes };
 }
 
 function determineFlowDirections(options: IWorldgenOptions, waterheight: ndarray<number>) {
@@ -510,7 +511,7 @@ function decideTerrainTypes(
     return ETerrainType.LAND;
   });
   // console.log('Ocean percent', oceanCellCount / (width * height));
-  return { terrainTypes, upstreamCells };
+  return { terrainTypes, upstreamCells, oceanCellCount };
 }
 
 function decideDrainageBasins(
@@ -778,23 +779,34 @@ function decideMountains(
   }
 }
 
-function findFeatures(options: IWorldgenOptions, terrainTypes: ndarray) {
+function findFeatures(
+  options: IWorldgenOptions,
+  terrainTypes: ndarray,
+  oceanCellCount: number
+) {
   const { size: { width, height } } = options;
-  const landforms = [];
-  const visited = ndarray(new Uint8ClampedArray(width * height), [width, height]);
-  function groupLand(x: number, y: number) {
-    return isContinental(terrainTypes.get(x, y)) && visited.get(x, y) === 0;
-  }
-  for (let x = 0; x < width; x++) {
-    for (let y = 0; y < height; y++) {
-      if (isContinental(terrainTypes.get(x, y)) && visited.get(x, y) === 0) {
-        // new island
-        const lakeCells = DFS(terrainTypes, visited, groupLand, x, y);
-        landforms.push(lakeCells);
-      }
-    }
-  }
-  console.log(landforms);
+  const landCellCount = (width * height) - oceanCellCount;
+
+  // determine land features
+  const landFeatures = groupDistinct(
+    (x: number, y: number) => isContinental(terrainTypes.get(x, y)),
+    width, height,
+  ).map(feature => ({
+    relativeSize: feature.length / landCellCount,
+    cells: feature,
+  }));
+  console.log('landFeatures', landFeatures);
+
+  // determine rivers
+  const rivers = groupDistinct(
+    (x: number, y: number) => (
+      terrainTypes.get(x, y) === ETerrainType.RIVER
+    ),
+    width, height,
+  );
+  console.log('rivers', rivers);
+
+  return { rivers, landFeatures }
 }
 
 onmessage = function (event: MessageEvent) {
@@ -807,7 +819,12 @@ onmessage = function (event: MessageEvent) {
   console.timeEnd('step: generateHeightmap');
 
   console.time('step: removeDepressions');
-  const { waterheight, cellNeighbors, heightmap: newHeightmap } = removeDepressions(options, heightmap, sealevel);
+  const {
+    waterheight,
+    cellNeighbors,
+    heightmap: newHeightmap,
+    lakes,
+  } = removeDepressions(options, heightmap, sealevel);
   heightmap = newHeightmap;
   console.timeEnd('step: removeDepressions');
 
@@ -816,7 +833,11 @@ onmessage = function (event: MessageEvent) {
   console.timeEnd('step: determineFlowDirections');
 
   console.time('step: decideTerrainTypes');
-  let { terrainTypes, upstreamCells } = decideTerrainTypes(options, sealevel, heightmap, waterheight, flowDirections, cellNeighbors);
+  let {
+    terrainTypes,
+    upstreamCells,
+    oceanCellCount,
+  } = decideTerrainTypes(options, sealevel, heightmap, waterheight, flowDirections, cellNeighbors);
   console.timeEnd('step: decideTerrainTypes');
 
   console.time('step: decideMountains');
@@ -843,9 +864,10 @@ onmessage = function (event: MessageEvent) {
   } = generateBiomes(options, temperatures, moistureMap, terrainTypes);
   console.timeEnd('step: generateBiomes');
 
-  // console.time('step: findFeatures');
-  // findFeatures(options, terrainTypes);
-  // console.timeEnd('step: findFeatures');
+  console.time('step: findFeatures');
+  findFeatures(options, terrainTypes, oceanCellCount);
+  console.log('lakes', lakes);
+  console.timeEnd('step: findFeatures');
 
   // console.log('upstreamCells', ndarrayStats(upstreamCells));
   // console.log('moistureMap', ndarrayStats(moistureMap));
