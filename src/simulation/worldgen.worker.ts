@@ -22,6 +22,59 @@ import { groupBy, mapValues, memoize } from 'lodash';
  * https://arxiv.org/pdf/1511.04463v1.pdf
  */
 
+const rowNeighbors: number[] = [-1, -1, -1,  0, 0,  1, 1, 1];
+const colNeighbors: number[] = [-1,  0,  1, -1, 1, -1, 0, 1];
+
+function DFS(
+  array: ndarray,
+  visited: ndarray,
+  searchFunc: (x: number, y: number) => boolean,
+  x: number,
+  y: number
+): number[][] {
+  visited.set(x, y, 1);
+  let cells = [[x, y]];
+  for (let i = 0; i < 8; i++) {
+    const nx = x + rowNeighbors[i];
+    const ny = y + colNeighbors[i];
+    if (searchFunc(nx, ny)) {
+      cells.push(...DFS(array, visited, searchFunc, nx, ny));
+    }
+  }
+  return cells;
+}
+
+function BFS(
+  visited,
+  searchFunc: (x: number, y: number) => boolean,
+  x: number,
+  y: number
+): number[][] {
+  const queue: [number, number][] = [];
+  queue.unshift([x, y]);
+  let output = [];
+  while(queue.length) {
+    const [cx, cy] = queue.shift();
+
+    // set cell to visited
+    if (visited.get(cx, cy) === 0) {
+      visited.set(cx, cy, 1);
+      output.push([cx, cy]);
+    }
+
+    for (let i = 0; i < 8; i++) {
+      const nx = cx + rowNeighbors[i];
+      const ny = cy + colNeighbors[i];
+      if (searchFunc(nx, ny) && visited.get(nx, ny) === 0) {
+        visited.set(nx, ny, 1);
+        queue.unshift([nx, ny]);
+        output.push([nx, ny]);
+      }
+    }
+  }
+  return output;
+}
+
 function ndarrayStats(ndarray: ndarray) {
   const data = Array.from(ndarray.data);
   const quantiles = {};
@@ -239,45 +292,21 @@ function removeDepressions(options: IWorldgenOptions, heightmap: ndarray, sealev
     }
   }
 
-  const rowNeighbors: number[] = [-1, -1, -1,  0, 0,  1, 1, 1];
-  const colNeighbors: number[] = [-1,  0,  1, -1, 1, -1, 0, 1];
-  function DFS(
-    array: ndarray,
-    visited: ndarray,
-    searchFunc: (value: number, isVisited: boolean) => boolean,
-    x: number,
-    y: number
-  ): number[][] {
-    visited.set(x, y, 1);
-    let cells = [[x, y]];
-    for (let i = 0; i < 8; i++) {
-      const nx = x + rowNeighbors[i];
-      const ny = y + colNeighbors[i];
-      if (searchFunc(array.get(nx, ny), visited.get(nx, ny) === 1)) {
-        cells.push(...DFS(array, visited, searchFunc, nx, ny));
-      }
-    }
-    return cells;
-  }
-  /*
-  for each cell:
-    if cell is not visited:
-      do DFS at this cell and mark all cells as visited
-      add visited cells to a new lake
-  */
-  function groupFunc(value: number, isVisited: boolean) {
-    return value === 1 && !isVisited;
-  }
   const visited = ndarray(new Uint8ClampedArray(width * height), [width, height]);
+  function groupFunc(x: number, y: number) {
+    return depressionCellsGrid.get(x, y) === 1;
+  }
+  fill(visited, () => 0);
   for (let x = 0; x < width; x++) {
     for (let y = 0; y < height; y++) {
       if (depressionCellsGrid.get(x, y) === 1 && visited.get(x, y) === 0) {
         // new island
-        const lakeCells = DFS(depressionCellsGrid, visited, groupFunc, x, y);
+        const lakeCells = BFS(visited, groupFunc, x, y);
         depressions.push(lakeCells);
       }
     }
   }
+
   // fill in tiny lakes
   function fillDepression(depression: number[][]) {
     for (const [x, y] of depression) {
@@ -749,6 +778,25 @@ function decideMountains(
   }
 }
 
+function findFeatures(options: IWorldgenOptions, terrainTypes: ndarray) {
+  const { size: { width, height } } = options;
+  const landforms = [];
+  const visited = ndarray(new Uint8ClampedArray(width * height), [width, height]);
+  function groupLand(x: number, y: number) {
+    return isContinental(terrainTypes.get(x, y)) && visited.get(x, y) === 0;
+  }
+  for (let x = 0; x < width; x++) {
+    for (let y = 0; y < height; y++) {
+      if (isContinental(terrainTypes.get(x, y)) && visited.get(x, y) === 0) {
+        // new island
+        const lakeCells = DFS(terrainTypes, visited, groupLand, x, y);
+        landforms.push(lakeCells);
+      }
+    }
+  }
+  console.log(landforms);
+}
+
 onmessage = function (event: MessageEvent) {
   const options: IWorldgenOptions = event.data;
   const sealevel = options.sealevel;
@@ -795,6 +843,9 @@ onmessage = function (event: MessageEvent) {
   } = generateBiomes(options, temperatures, moistureMap, terrainTypes);
   console.timeEnd('step: generateBiomes');
 
+  // console.time('step: findFeatures');
+  // findFeatures(options, terrainTypes);
+  // console.timeEnd('step: findFeatures');
 
   // console.log('upstreamCells', ndarrayStats(upstreamCells));
   // console.log('moistureMap', ndarrayStats(moistureMap));
