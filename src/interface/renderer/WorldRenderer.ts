@@ -22,7 +22,7 @@ const defaultRendererOptions: IWorldRendererOptions = {
 };
 
 interface IViewportState {
-  center: {
+  corner: {
     x: number,
     y: number,
   };
@@ -101,7 +101,7 @@ export default class WorldRenderer {
     if (loadedState) {
       try {
         this.viewport.scale.set(loadedState.scale.x, loadedState.scale.y);
-        this.viewport.moveCenter(loadedState.center.x, loadedState.center.y);
+        this.viewport.moveCorner(loadedState.corner.x, loadedState.corner.y);
       } catch (error) {
         console.warn('Removing obsolete viewport state');
         localStorage.removeItem('viewportState');
@@ -133,7 +133,7 @@ export default class WorldRenderer {
 
   updateViewportState = debounce(() => {
     localStorage.setItem('viewportState', JSON.stringify({
-      center: pick(this.viewport.center, ['x', 'y']),
+      corner: pick(this.viewport.corner, ['x', 'y']),
       scale: pick(this.viewport.scale, ['x', 'y']),
     }));
   }, 1000);
