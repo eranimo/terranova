@@ -32,7 +32,8 @@ export interface IWorldgenWorkerOutput {
   sealevel: number,
   heightmap: ndarray.Data<number>,
   flowDirections: ndarray.Data<number>,
-  terrainTypes: ndarray.Data<number>,
+  cellTypes: ndarray.Data<number>,
+  cellFeatures: ndarray.Data<number>,
   drainageBasins: {
     [id: number]: {
       color: number,
@@ -45,6 +46,7 @@ export interface IWorldgenWorkerOutput {
   moistureZones: ndarray.Data<number>;
   temperatureZones: ndarray.Data<number>;
   biomes: ndarray.Data<number>;
+  terrainRoughness: ndarray.Data<number;
 }
 
 export interface IWorldSaveData {

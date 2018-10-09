@@ -1,6 +1,6 @@
 import { groupBy } from 'lodash';
 import { Sprite, Graphics, Point } from 'pixi.js';
-import World, { Cell, climateColors, ETerrainType } from '../../simulation/world';
+import World, { Cell, climateColors, ECellFeature, ECellType } from '../../simulation/world';
 import { IWorldRendererOptions } from './WorldRenderer';
 import { ChunkRenderer } from './ChunkRenderer';
 import colormap from 'colormap';
@@ -28,7 +28,7 @@ interface IMapModeDef {
 
 export enum EMapMode {
   CLIMATE = "climate",
-  TERRAIN = "terrain",
+  FEATURES = "features",
   HEIGHT = "height",
   TEMPERATURE = "temperature",
   MOISTURE = "moisture",
@@ -36,15 +36,16 @@ export enum EMapMode {
   DRAINAGEBASINS = "drainage_basins",
   MOISTUREZONES = "moisture_zones",
   TEMPERATUREZONES = "temperature_zones",
+  TERRAINROUGHNESS = "terrain_roughness",
 }
 
-const terrainColors = {
-  [ETerrainType.OCEAN]: 0x215b77,
-  [ETerrainType.LAND]: 0x809973, // replace with Low and High land
-  [ETerrainType.RIVER]: 0x5292B5,
-  [ETerrainType.LAKE]: 0x4a749b,
-  [ETerrainType.COAST]: 0x367593,
-  [ETerrainType.MOUNTAIN]: 0x705e55,
+const featureColors = {
+  [ECellFeature.OCEANIC]: 0x215b77,
+  [ECellFeature.LOW_LAND]: 0x809973,
+  [ECellFeature.HIGH_LAND]: 0x705e55,
+  [ECellFeature.RIVER]: 0x5292B5,
+  [ECellFeature.LAKE]: 0x4a749b,
+  [ECellFeature.COASTAL]: 0x367593,
 }
 
 export const mapModes: Record<EMapMode, IMapModeDef> = {
@@ -52,9 +53,9 @@ export const mapModes: Record<EMapMode, IMapModeDef> = {
     title: 'Climate',
     renderChunk: renderClimate
   },
-  [EMapMode.TERRAIN]: {
-    title: 'Terrain',
-    renderChunk: drawTerrain
+  [EMapMode.FEATURES]: {
+    title: 'Features',
+    renderChunk: drawFeatures
   },
   [EMapMode.HEIGHT]: {
     title: 'Height',
@@ -114,6 +115,15 @@ export const mapModes: Record<EMapMode, IMapModeDef> = {
     initState: makeCellOverlayState,
     renderChunk: makeCellOverlay,
   },
+  [EMapMode.TERRAINROUGHNESS]: {
+    title: 'Terrain Roughness',
+    options: {
+      datapoint: 'terrainRoughness',
+      colormap: 'greens',
+    },
+    initState: makeCellOverlayState,
+    renderChunk: makeCellOverlay,
+  },
 }
 
 
@@ -132,12 +142,12 @@ function renderClimate(
 
   for (const cell of cells) {
     if (
-      cell.terrainType === ETerrainType.COAST ||
-      cell.terrainType === ETerrainType.LAKE ||
-      cell.terrainType === ETerrainType.RIVER
+      cell.feature === ECellFeature.COASTAL ||
+      cell.feature === ECellFeature.LAKE ||
+      cell.feature === ECellFeature.RIVER
     ) {
       coastalOceanCells.push(cell);
-    } else if (cell.terrainType === ETerrainType.OCEAN) {
+    } else if (cell.type === ECellType.OCEAN) {
       deepOceanCells.push(cell);
     } else {
       if (cell.biome in landCells) {
@@ -189,7 +199,7 @@ function renderClimate(
   return new Sprite(g.generateCanvasTexture());
 }
 
-function drawTerrain(
+function drawFeatures(
   chunkRenderer: ChunkRenderer,
   cells: Cell[],
   mapModeState: any,
@@ -198,10 +208,10 @@ function drawTerrain(
   const { cellWidth, cellHeight } = chunkRenderer.options;
   const g = new PIXI.Graphics(true);
 
-  const cellsByTerrainType = groupBy(Array.from(cells), (cell: Cell) => cell.terrainType);
+  const cellsByFeature = groupBy(Array.from(cells), (cell: Cell) => cell.feature);
 
-  for (const [terrain, cells] of Object.entries(cellsByTerrainType)) {
-    g.beginFill(terrainColors[terrain]);
+  for (const [feature, cells] of Object.entries(cellsByFeature)) {
+    g.beginFill(featureColors[feature]);
     for (const cell of cells) {
       g.drawRect(
         (cell.x * cellWidth) - chunkPosition.x,

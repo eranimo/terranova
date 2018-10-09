@@ -1,7 +1,7 @@
 import React, { Component, Fragment } from 'react';
 import { WorldViewer, IViewOptions } from './WorldViewer';
 import { mapModes, EMapMode } from '../renderer/mapModes';
-import World, { Cell, biomeTitles, directionLabels, terrainTypeLabels, temperatureZoneTitles, moistureZoneTitles } from '../../simulation/world';
+import World, { Cell, biomeTitles, directionLabels, cellFeatureLabels, temperatureZoneTitles, moistureZoneTitles } from '../../simulation/world';
 import {
   Navbar,
   NavbarGroup,
@@ -195,8 +195,8 @@ class CellDetail extends Component<{
         <table className="detail-table">
           <tbody>
             <tr>
-              <td>Terrain type</td>
-              <td>{terrainTypeLabels[cell.terrainType]}</td>
+              <td>Terrain features</td>
+              <td>{cellFeatureLabels[cell.feature]}</td>
             </tr>
             <tr>
               <td>Biome</td>

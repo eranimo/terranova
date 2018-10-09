@@ -1,4 +1,4 @@
-import { EDirection, ETerrainType } from './../../simulation/world';
+import { EDirection, ECellFeature } from './../../simulation/world';
 import { Sprite, Container, Point } from 'pixi.js';
 import World, { Cell } from '../../simulation/world';
 import { IWorldRendererOptions } from './WorldRenderer';
@@ -171,7 +171,7 @@ export class ChunkRenderer {
     const flowArrows = new Container();
     const PADDING = 2;
     for (const cell of chunkCells) {
-      if (cell.terrainType !== ETerrainType.RIVER) continue;
+      if (cell.feature !== ECellFeature.RIVER) continue;
       const arrowSprite = new Sprite(makeArrow(
         cellWidth - PADDING,
         cellHeight - PADDING,

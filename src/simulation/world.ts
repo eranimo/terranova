@@ -4,22 +4,32 @@ import { mapValues } from 'lodash';
 import ops from 'ndarray-ops';
 
 
-export enum ETerrainType {
+export enum ECellType {
   OCEAN,
   LAND,
-  RIVER,
-  LAKE,
-  COAST,
-  MOUNTAIN,
 }
 
-export const terrainTypeLabels = {
-  [ETerrainType.OCEAN]: 'Ocean',
-  [ETerrainType.LAND]: 'Land',
-  [ETerrainType.RIVER]: 'River',
-  [ETerrainType.LAKE]: 'Lake',
-  [ETerrainType.COAST]: 'Coastal water',
-  [ETerrainType.MOUNTAIN]: 'Mountain',
+export enum ECellFeature {
+  // OCEAN
+  COASTAL,
+  SHELF,
+  OCEANIC,
+
+  // LAND
+  LOW_LAND,
+  HIGH_LAND,
+  RIVER,
+  LAKE,
+}
+
+export const cellFeatureLabels = {
+  [ECellFeature.COASTAL]: 'Coastal',
+  [ECellFeature.SHELF]: 'Shelf',
+  [ECellFeature.OCEANIC]: 'Oceanic',
+  [ECellFeature.LOW_LAND]: 'Low land',
+  [ECellFeature.HIGH_LAND]: 'High land',
+  [ECellFeature.RIVER]: 'River',
+  [ECellFeature.LAKE]: 'Lake',
 }
 
 export enum EBiome {
@@ -196,7 +206,8 @@ export class Cell {
   x: number;
   y: number;
   height: number;
-  terrainType: ETerrainType;
+  type: ECellType;
+  feature: ECellFeature;
   flowDir: EDirection;
   drainageBasin?: DrainageBasin;
   temperature: number;
@@ -206,13 +217,15 @@ export class Cell {
   moistureZone: EMoistureZone;
   temperatureZone: ETemperatureZone;
   biome: EBiome;
+  terrainRoughness: number;
 
   constructor(
     world: World,
     {
       x,
       y,
-      terrainType,
+      type,
+      feature,
       height,
       flowDir,
       temperature,
@@ -221,11 +234,13 @@ export class Cell {
       biome,
       moistureZone,
       temperatureZone,
+      terrainRoughness,
     }: {
       x: number,
       y: number,
       height: number,
-      terrainType: ETerrainType,
+      type: ECellType,
+      feature: ECellFeature,
       flowDir: EDirection,
       temperature: number,
       upstreamCount: number,
@@ -233,14 +248,16 @@ export class Cell {
       biome: EBiome,
       moistureZone: EMoistureZone,
       temperatureZone: ETemperatureZone,
+      terrainRoughness: number,
     }
   ) {
     this.world = world;
     this.x = x;
     this.y = y;
     this.height = height;
-    this.terrainType = terrainType;
-    this.isLand = terrainType !== ETerrainType.OCEAN && terrainType !== ETerrainType.COAST;
+    this.type = type;
+    this.feature = feature;
+    this.isLand = type === ECellType.LAND;
     this.flowDir = flowDir;
     this.temperature = temperature;
     this.upstreamCount = upstreamCount;
@@ -248,6 +265,7 @@ export class Cell {
     this.biome = biome;
     this.moistureZone = moistureZone;
     this.temperatureZone = temperatureZone;
+    this.terrainRoughness = terrainRoughness;
   }
 }
 
@@ -303,7 +321,8 @@ export default class World {
     this.sealevel = params.sealevel;
 
     const heightmap = ndarray(params.heightmap, [this.size.width, this.size.height]);
-    const terrainTypes = ndarray(params.terrainTypes, [this.size.width, this.size.height]);
+    const cellTypes = ndarray(params.cellTypes, [this.size.width, this.size.height]);
+    const cellFeatures = ndarray(params.cellFeatures, [this.size.width, this.size.height]);
     const flowDirections = ndarray(params.flowDirections, [this.size.width, this.size.height]);
     const temperatures = ndarray(params.temperatures, [this.size.width, this.size.height]);
     const upstreamCells = ndarray(params.upstreamCells, [this.size.width, this.size.height]);
@@ -311,6 +330,7 @@ export default class World {
     const temperatureZones = ndarray(params.temperatureZones, [this.size.width, this.size.height]);
     const moistureMap = ndarray(params.moistureMap, [this.size.width, this.size.height]);
     const biomes = ndarray(params.biomes, [this.size.width, this.size.height]);
+    const terrainRoughness = ndarray(params.terrainRoughness, [this.size.width, this.size.height]);
     for (let x = 0; x < this.size.width; x++) {
       this.grid[x] = [];
       for (let y = 0; y < this.size.height; y++) {
@@ -318,12 +338,14 @@ export default class World {
           x, y,
           height: heightmap.get(x, y),
           flowDir: flowDirections.get(x, y) as EDirection,
-          terrainType: terrainTypes.get(x, y) as ETerrainType,
+          type: cellTypes.get(x, y) as ECellType,
+          feature: cellFeatures.get(x, y) as ECellFeature,
           temperature: temperatures.get(x, y),
           upstreamCount: upstreamCells.get(x, y),
           moisture: moistureMap.get(x, y),
           moistureZone: moistureZones.get(x, y),
           temperatureZone: temperatureZones.get(x, y),
+          terrainRoughness: terrainRoughness.get(x, y),
           biome: biomes.get(x, y),
         });
         this.cells.add(cell);
