@@ -3,7 +3,7 @@ import Alea from 'alea';
 import SimplexNoise from 'simplex-noise';
 import fill from 'ndarray-fill';
 import ops from 'ndarray-ops';
-import { IWorldgenOptions, IWorldgenWorkerOutput, EWorldShape } from './simulation';
+import { IWorldgenOptions, IWorldgenWorkerOutput, EWorldShape } from './types';
 import {
   ECellType,
   ECellFeature,
@@ -17,6 +17,8 @@ import * as Collections from 'typescript-collections';
 import * as Stats from 'simple-statistics';
 import { groupBy, mapValues, memoize } from 'lodash';
 
+
+const ctx: Worker = self as any;
 
 /**
  * Priority Flood algorithm from:
@@ -168,7 +170,7 @@ function generateHeightmap(options: IWorldgenOptions) {
 
   const heightmap = ndarray(new Uint8ClampedArray(width * height), [width, height]);
   // const bigHeightmap = ndarray(new Uint8ClampedArray(width * height * 10), [width * 10, height * 10]);
-  const rng = new Alea(seed);
+  const rng = new (Alea as any)(seed);
   const simplex = new SimplexNoise(rng);
   const noise = (nx, ny) => simplex.noise2D(nx, ny);
   const centerX = width / 2;
@@ -211,7 +213,7 @@ function generateHeightmap(options: IWorldgenOptions) {
 
 function removeDepressions(options: IWorldgenOptions, heightmap: ndarray, sealevel: number) {
   const { seed, size: { width, height }, depressionFillPercent } = options;
-  const rng = new Alea(seed);
+  const rng = new (Alea as any)(seed);
 
   // copy heightmap into waterheight
   const waterheight = ndarray(new Uint8ClampedArray(width * height), [width, height]);
@@ -548,7 +550,7 @@ function decideDrainageBasins(
 ) {
   const { seed, size: { width, height } } = options;
 
-  const rng = new Alea(seed);
+  const rng = new (Alea as any)(seed);
   const open = new Collections.PriorityQueue<number[]>((a, b) => {
     if (a[2] < b[2]) {
       return 1;
@@ -683,7 +685,7 @@ function generateMoisture(
   cellFeatures: ndarray,
 ): ndarray {
   const { seed, size: { width, height } } = options;
-  const rng = new Alea(seed);
+  const rng = new (Alea as any)(seed);
   const moistureMap = ndarray(new Int16Array(width * height), [width, height]);
   const simplex = new SimplexNoise(rng);
   fill(moistureMap, (x, y) => {
@@ -814,8 +816,8 @@ function findFeatures(
 
   return { rivers, landFeatures }
 }
-
-onmessage = function (event: MessageEvent) {
+console.log('worker init');
+ctx.onmessage = (event: MessageEvent) => {
   const options: IWorldgenOptions = event.data;
   const sealevel = options.sealevel;
   console.time('Worldgen');
@@ -895,5 +897,5 @@ onmessage = function (event: MessageEvent) {
     terrainRoughness: terrainRoughness.data,
     biomes: biomes.data,
   };
-  (postMessage as any)(output);
+  ctx.postMessage(output);
 }

@@ -1,1 +1,1 @@
-export { createSimulation as default, Simulation } from './simulation';
+export { Simulation } from './simulation';

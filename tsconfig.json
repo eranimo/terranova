@@ -5,14 +5,13 @@
     "target": "es2015",
     "moduleResolution": "node",
     "outDir": "dist",
-    "lib": ["esnext", "es2017", "dom"],
+    "lib": ["es2015", "es2016", "es2017", "dom"],
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "allowSyntheticDefaultImports": true,
     "noImplicitAny": false,
     "typeRoots": [
       "node_modules/@types",
-      "packages/*/node_modules/@types",
       "typings"
     ],
     "jsx": "react",

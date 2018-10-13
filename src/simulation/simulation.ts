@@ -1,53 +1,8 @@
-import ndarray from 'ndarray';
 import World from './world';
 import localforage from 'localforage';
+const WorldgenWorker = require('worker-loader!./worldgen.worker');
+import { IWorldgenOptions, IWorldgenWorkerOutput } from './types';
 
-
-export interface IWorldgenOptions {
-  seed: string | number,
-  sealevel: number,
-  size: {
-    width: number,
-    height: number,
-  },
-  worldShape: EWorldShape,
-  worldShapePower: number,
-  riverThreshold: number,
-  temperature: {
-    min: number,
-    max: number,
-  }
-  elevationCoolingAmount: number,
-  depressionFillPercent: number, // 0 to 1
-}
-
-export enum EWorldShape {
-  FREEFORM = 'freeform',
-  CIRCLE = 'circle',
-  RECTANGLE = 'rectangle',
-}
-
-export interface IWorldgenWorkerOutput {
-  options: IWorldgenOptions,
-  sealevel: number,
-  heightmap: ndarray.Data<number>,
-  flowDirections: ndarray.Data<number>,
-  cellTypes: ndarray.Data<number>,
-  cellFeatures: ndarray.Data<number>,
-  drainageBasins: {
-    [id: number]: {
-      color: number,
-      cells: [number, number][],
-    }
-  },
-  upstreamCells: ndarray.Data<number>;
-  temperatures: ndarray.Data<number>;
-  moistureMap: ndarray.Data<number>;
-  moistureZones: ndarray.Data<number>;
-  temperatureZones: ndarray.Data<number>;
-  biomes: ndarray.Data<number>;
-  terrainRoughness: ndarray.Data<number;
-}
 
 export interface IWorldSaveData {
   name: string;
@@ -81,9 +36,9 @@ export class Simulation {
     console.group('WorldGenerator worker');
     console.time('worldgen.worker execution time');
     // make a new World
+    const worker = new WorldgenWorker();
+    worker.postMessage(options);
     return new Promise((resolve, reject) => {
-      const worker = new Worker('./worldgen.worker.ts');
-      worker.postMessage(options);
       worker.onmessage = (message: MessageEvent) => {
         console.log('worldgen.worker result:', message.data);
         const world: World = new World(message.data as IWorldgenWorkerOutput);

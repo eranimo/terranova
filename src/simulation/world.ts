@@ -1,5 +1,5 @@
 import ndarray from 'ndarray';
-import { IWorldgenWorkerOutput } from './simulation';
+import { IWorldgenWorkerOutput } from './types';
 import { mapValues } from 'lodash';
 import ops from 'ndarray-ops';
 
