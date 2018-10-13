@@ -167,6 +167,7 @@ function generateHeightmap(options: IWorldgenOptions) {
   const { seed, size: { width, height }, worldShape, worldShapePower } = options;
 
   const heightmap = ndarray(new Uint8ClampedArray(width * height), [width, height]);
+  // const bigHeightmap = ndarray(new Uint8ClampedArray(width * height * 10), [width * 10, height * 10]);
   const rng = new Alea(seed);
   const simplex = new SimplexNoise(rng);
   const noise = (nx, ny) => simplex.noise2D(nx, ny);
@@ -174,7 +175,7 @@ function generateHeightmap(options: IWorldgenOptions) {
   const centerY = height / 2;
   const maxDistanceToCenter = Math.min(width / 2, height / 2);
 
-  fill(heightmap, (x, y) => {
+  const getHeight = (x: number, y: number) => {
     // use simplex noise to create random terrain
     const nx = x / width - 0.5;
     const ny = y / height - 0.5;
@@ -200,7 +201,10 @@ function generateHeightmap(options: IWorldgenOptions) {
       value = value * (1 - Math.pow(distanceRatio, worldShapePower));
     }
     return value * 255;
-  });
+  };
+
+  fill(heightmap, getHeight);
+  // fill(bigHeightmap, (x: number, y: number) => getHeight(x / 10, y / 10));
 
   return heightmap;
 }
