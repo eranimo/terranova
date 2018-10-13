@@ -2,8 +2,6 @@
 
 World generator
 
-# Routes
-
-- `/`: New world
-- `/load`: View all saved worlds
-- `/world/:worldName`: world view (loads world from saves)
+## Usage
+- `npm run dev`: starts webpack dev server
+- `npm run build`: builds for production
