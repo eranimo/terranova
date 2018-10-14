@@ -1,9 +1,10 @@
+import { ITerrainWorkerOutput } from './../types';
 import ndarray from 'ndarray';
 import Alea from 'alea';
 import SimplexNoise from 'simplex-noise';
 import fill from 'ndarray-fill';
 import ops from 'ndarray-ops';
-import { IWorldgenOptions, IWorldgenWorkerOutput, EWorldShape } from './types';
+import { IWorldgenOptions, IWorldgenWorkerOutput, EWorldShape } from '../types';
 import {
   ECellType,
   ECellFeature,
@@ -12,10 +13,22 @@ import {
   moistureZoneRanges,
   temperatureZoneRanges,
   biomeRanges
-} from './world';
+} from '../world';
 import * as Collections from 'typescript-collections';
 import * as Stats from 'simple-statistics';
-import { groupBy, mapValues, memoize } from 'lodash';
+import {
+  BFS,
+  groupDistinct,
+  ndarrayStats,
+  countUnique,
+  getNeighborsLabelled,
+  neighborForDirection,
+  oppositeDirections,
+  isValidCell,
+  getValidNeighborsLabelled,
+  shuffle,
+  loopGridCircle,
+} from './utils';
 
 
 const ctx: Worker = self as any;
@@ -24,192 +37,6 @@ const ctx: Worker = self as any;
  * Priority Flood algorithm from:
  * https://arxiv.org/pdf/1511.04463v1.pdf
  */
-
-const rowNeighbors: number[] = [-1, -1, -1,  0, 0,  1, 1, 1];
-const colNeighbors: number[] = [-1,  0,  1, -1, 1, -1, 0, 1];
-
-function BFS(
-  visited,
-  searchFunc: (x: number, y: number) => boolean,
-  x: number,
-  y: number
-): number[][] {
-  const queue: [number, number][] = [];
-  queue.unshift([x, y]);
-  let output = [];
-  while(queue.length) {
-    const [cx, cy] = queue.shift();
-
-    // set cell to visited
-    if (visited.get(cx, cy) === 0) {
-      visited.set(cx, cy, 1);
-      output.push([cx, cy]);
-    }
-
-    for (let i = 0; i < 8; i++) {
-      const nx = cx + rowNeighbors[i];
-      const ny = cy + colNeighbors[i];
-      if (searchFunc(nx, ny) && visited.get(nx, ny) === 0) {
-        visited.set(nx, ny, 1);
-        queue.unshift([nx, ny]);
-        output.push([nx, ny]);
-      }
-    }
-  }
-  return output;
-}
-
-function groupDistinct(
-  heuristic: (x: number, y: number) => boolean,
-  width: number,
-  height: number,
-) {
-  const visited = ndarray(new Uint8ClampedArray(width * height), [width, height]);
-
-  // determine landFeatures
-  const result = [];
-  fill(visited, () => 0);
-  for (let x = 0; x < width; x++) {
-    for (let y = 0; y < height; y++) {
-      if (heuristic(x, y) && visited.get(x, y) === 0) {
-        result.push(BFS(visited, heuristic, x, y));
-      }
-    }
-  }
-  return result;
-}
-
-function ndarrayStats(ndarray: ndarray) {
-  const data = Array.from(ndarray.data);
-  const quantiles = {};
-  for (let q = 0; q <= 100; q += 1) {
-    quantiles[q] = Stats.quantile(data, q / 100);
-  }
-  return {
-    array: ndarray,
-    avg: ops.sum(ndarray) / (ndarray.shape[0] * ndarray.shape[0]),
-    max: ops.sup(ndarray),
-    min: ops.inf(ndarray),
-    quantiles
-  };
-}
-
-function countUnique(ndarray: ndarray) {
-  const data = Array.from(ndarray.data);
-  return mapValues(groupBy(data, i => i), i => i.length);
-}
-
-const _getNeighborsLabelled = (x: number, y: number): number[][] => [
-  [x - 1, y, EDirection.LEFT],
-  [x + 1, y, EDirection.RIGHT],
-  [x, y - 1, EDirection.UP],
-  [x, y + 1, EDirection.DOWN],
-];
-
-const getNeighborsLabelled = memoize(_getNeighborsLabelled, (x: number, y: number) => `${x},${y}`);
-
-
-const neighborForDirection = {
-  [EDirection.UP]: (x: number, y: number) => [x, y - 1],
-  [EDirection.DOWN]: (x: number, y: number) => [x, y + 1],
-  [EDirection.LEFT]: (x: number, y: number) => [x - 1, y],
-  [EDirection.RIGHT]: (x: number, y: number) =>  [x + 1, y],
-}
-
-const oppositeDirections = {
-  [EDirection.NONE]: EDirection.NONE,
-  [EDirection.UP]: EDirection.DOWN,
-  [EDirection.DOWN]: EDirection.UP,
-  [EDirection.LEFT]: EDirection.RIGHT,
-  [EDirection.RIGHT]: EDirection.LEFT,
-}
-
-const isValidCell = (x: number, y: number, width: number, height: number): boolean => {
-  return x >= 0 && y >= 0 && x < width && y < height;
-};
-
-const getValidNeighborsLabelled = (
-  x: number,
-  y: number,
-  width: number,
-  height: number
-): number[][] => (
-  getNeighborsLabelled(x, y)
-    .filter(([x, y]) => x >= 0 && y >= 0 && x < width && y < height)
-);
-
-function shuffle<T>(rng, a: Array<T>): Array<T> {
-  var j, x, i;
-  for (i = a.length - 1; i > 0; i--) {
-      j = Math.floor(rng() * (i + 1));
-      x = a[i];
-      a[i] = a[j];
-      a[j] = x;
-  }
-  return a;
-}
-
-
-function loopGridCircle(x, y, radius) {
-  let cells = [];
-  for (let cx = x - radius; cx < x + radius; cx++) {
-    for (let cy = y - radius; cy < y + radius; cy++) {
-      const distance = Math.sqrt(Math.pow(x - cx, 2) + Math.pow(y - cy, 2));
-      if (distance <= radius) {
-        cells.push([cx, cy]);
-      }
-    }
-  }
-  return cells;
-}
-
-//////
-
-function generateHeightmap(options: IWorldgenOptions) {
-  const { seed, size: { width, height }, worldShape, worldShapePower } = options;
-
-  const heightmap = ndarray(new Uint8ClampedArray(width * height), [width, height]);
-  // const bigHeightmap = ndarray(new Uint8ClampedArray(width * height * 10), [width * 10, height * 10]);
-  const rng = new (Alea as any)(seed);
-  const simplex = new SimplexNoise(rng);
-  const noise = (nx, ny) => simplex.noise2D(nx, ny);
-  const centerX = width / 2;
-  const centerY = height / 2;
-  const maxDistanceToCenter = Math.min(width / 2, height / 2);
-
-  const getHeight = (x: number, y: number) => {
-    // use simplex noise to create random terrain
-    const nx = x / width - 0.5;
-    const ny = y / height - 0.5;
-    let value = (
-      0.35 * noise(2.50 * nx, 2.50 * ny) +
-      0.30 * noise(5.00 * nx, 5.00 * ny) +
-      0.20 * noise(10.0 * nx, 10.0 * ny) +
-      0.10 * noise(20.0 * nx, 20.0 * ny) +
-      0.05 * noise(40.0 * nx, 40.0 * ny)
-    );
-    value = (value + 1) / 2;
-
-    // decrease the height of cells farther away from the center to create an island
-    if (worldShape === EWorldShape.CIRCLE) {
-      const distanceToCenter = Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2));
-      const distanceRatio = distanceToCenter / maxDistanceToCenter;
-      value = value * (1 - Math.pow(distanceRatio, worldShapePower));
-    } else if (worldShape === EWorldShape.RECTANGLE) {
-      const distanceRatio = Math.max(
-        Math.abs(x - centerX) / (width / 2),
-        Math.abs(y - centerY) / (height / 2),
-      );
-      value = value * (1 - Math.pow(distanceRatio, worldShapePower));
-    }
-    return value * 255;
-  };
-
-  fill(heightmap, getHeight);
-  // fill(bigHeightmap, (x: number, y: number) => getHeight(x / 10, y / 10));
-
-  return heightmap;
-}
 
 function removeDepressions(options: IWorldgenOptions, heightmap: ndarray, sealevel: number) {
   const { seed, size: { width, height }, depressionFillPercent } = options;
@@ -327,7 +154,10 @@ function removeDepressions(options: IWorldgenOptions, heightmap: ndarray, sealev
   return { waterheight, cellNeighbors, heightmap, lakes };
 }
 
-function determineFlowDirections(options: IWorldgenOptions, waterheight: ndarray<number>) {
+function determineFlowDirections(
+  options: IWorldgenOptions,
+  waterheight: ndarray<number>
+) {
   const { size: { width, height } } = options;
 
   const flowDirections = ndarray(new Uint8ClampedArray(width * height), [width, height]);
@@ -816,25 +646,42 @@ function findFeatures(
 
   return { rivers, landFeatures }
 }
-console.log('worker init');
-ctx.onmessage = (event: MessageEvent) => {
+
+function runWorker<T>(worker: Worker, data: any): Promise<T> {
+  worker.postMessage(data);
+  return new Promise((resolve, reject) => {
+    worker.onmessage = (event: MessageEvent) => {
+      resolve(event.data as T);
+    };
+    worker.onerror = reject;
+  });
+}
+
+ctx.onmessage = async (event: MessageEvent) => {
   const options: IWorldgenOptions = event.data;
   const sealevel = options.sealevel;
   console.time('Worldgen');
 
-  console.time('step: generateHeightmap');
-  let heightmap = generateHeightmap(options);
-  console.timeEnd('step: generateHeightmap');
+  console.time('step: terrain');
 
-  console.time('step: removeDepressions');
-  const {
-    waterheight,
-    cellNeighbors,
-    heightmap: newHeightmap,
-    lakes,
-  } = removeDepressions(options, heightmap, sealevel);
-  heightmap = newHeightmap;
-  console.timeEnd('step: removeDepressions');
+  console.time('terrain init');
+  const TerrainWorker = require('worker-loader!./terrain.worker');
+  const terrainWorker = new TerrainWorker();
+  console.timeEnd('terrain init');
+
+  console.time('terrain worker');
+  const terrainResult = await runWorker<ITerrainWorkerOutput>(terrainWorker, options);
+  console.timeEnd('terrain worker');
+
+  console.time('terrain reinit');
+  const heightmap = ndarray(terrainResult.heightmap, [options.size.width, options.size.height]);
+  console.timeEnd('terrain reinit');
+
+  console.time('step: remove depressions');
+  const { waterheight, cellNeighbors, lakes } = removeDepressions(options, heightmap, options.sealevel);
+  console.timeEnd('step: remove depressions');
+
+  console.timeEnd('step: terrain');
 
   console.time('step: determineFlowDirections');
   const flowDirections = determineFlowDirections(options, heightmap);

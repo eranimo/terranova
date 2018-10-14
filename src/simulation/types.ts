@@ -46,3 +46,7 @@ export interface IWorldgenWorkerOutput {
   biomes: ndarray.Data<number>;
   terrainRoughness: ndarray.Data<number>;
 }
+
+export interface ITerrainWorkerOutput {
+  heightmap: ndarray.Data<number>;
+}
