@@ -5,6 +5,7 @@ import { ChunkRenderer } from './ChunkRenderer';
 import WorldUI, { UIEvent } from './WorldUI';
 import { IWorldViewerProps } from '../components/WorldViewer';
 import { debounce, pick } from 'lodash';
+import { EMapMode } from './mapModes';
 
 
 export interface IWorldRendererOptions {
@@ -45,6 +46,7 @@ export default class WorldRenderer {
   worldUI: WorldUI;
   state: IWorldViewerProps;
   textures: Record<string, PIXI.Texture>;
+  legends: Partial<Record<EMapMode, PIXI.Sprite>>;
 
   constructor({
     world,
@@ -96,6 +98,18 @@ export default class WorldRenderer {
     this.worldUI = new WorldUI(this, eventCallbacks);
     this.viewport.addChild(this.worldUI.uiContainer);
 
+    // create map mode legends
+    this.legends = {};
+    const legendContainer = new PIXI.Container();
+    this.app.stage.addChild(legendContainer);
+    for (const [name, mapMode] of Object.entries(this.chunkRenderer.mapModes)) {
+      if (mapMode.renderLegend && mapMode.showLegend) {
+        const legend = mapMode.renderLegend();
+        this.legends[name] = legend;
+        legendContainer.addChild(legend);
+      }
+    }
+
     // load viewport state from localStorage
     const loadedState: IViewportState = JSON.parse(localStorage.getItem('viewportState'));
     if (loadedState) {
@@ -129,6 +143,13 @@ export default class WorldRenderer {
       this.worldWidth,
       this.worldHeight
     );
+    Object.values(this.legends).forEach(legend => {
+      const legendBounds = legend.getBounds();
+      legend.position.set(
+        this.app.renderer.screen.width - legendBounds.width,
+        this.app.renderer.screen.height - legendBounds.height,
+      );
+    });
   }
 
   updateViewportState = debounce(() => {
@@ -205,7 +226,11 @@ export default class WorldRenderer {
         chunk.coastlineBorder.visible = this.state.viewOptions.drawCoastline;
 
         for (const [mapMode, sprite] of Object.entries(chunk.mapModes)) {
-          sprite.visible = this.state.viewOptions.mapMode === mapMode;
+          const visible = this.state.viewOptions.mapMode === mapMode;
+          if (mapMode in this.legends) {
+            (this.legends[mapMode] as PIXI.Sprite).visible = visible;
+          }
+          sprite.visible = visible;
         }
       }
     }

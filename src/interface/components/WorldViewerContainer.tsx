@@ -1,6 +1,6 @@
 import React, { Component, Fragment } from 'react';
 import { WorldViewer, IViewOptions } from './WorldViewer';
-import { mapModes, EMapMode } from '../renderer/mapModes';
+import { mapModes, EMapMode, mapModeDesc } from '../renderer/mapModes';
 import World, { Cell, biomeTitles, directionLabels, cellFeatureLabels, temperatureZoneTitles, moistureZoneTitles } from '../../simulation/world';
 import {
   Navbar,
@@ -107,10 +107,10 @@ class WorldViewerHeader extends Component <{
                   onChange={onChangeMapMode}
                   selectedValue={viewOptions.mapMode}
                 >
-                  {Object.entries(mapModes).map(([name, mapMode]) => (
+                  {Object.entries(mapModeDesc).map(([name, title]) => (
                     <Radio
                       key={name}
-                      label={mapMode.title}
+                      label={title}
                       value={name}
                     />
                   ))}

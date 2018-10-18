@@ -56,8 +56,8 @@ export class ChunkRenderer {
     this.chunkWorldHeight = this.options.chunkHeight * this.options.cellHeight
 
     this.mapModes = {};
-    for (const [name, mapModeDef] of Object.entries(mapModes)) {
-      this.mapModes[name] = mapModeDef.factory(this);
+    for (const [name, factory] of Object.entries(mapModes)) {
+      this.mapModes[name] = factory(this);
     }
 
     this.chunkContainer = new Container();

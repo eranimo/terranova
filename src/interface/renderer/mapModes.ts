@@ -1,6 +1,5 @@
 import { EBiome } from './../../simulation/world';
-import { groupBy } from 'lodash';
-import { Sprite, Graphics, Point } from 'pixi.js';
+import { Sprite, Graphics, Point, Container, Text, TextStyle } from 'pixi.js';
 import World, { Cell, climateColors, ECellFeature, ECellType } from '../../simulation/world';
 import { IWorldRendererOptions } from './WorldRenderer';
 import { ChunkRenderer } from './ChunkRenderer';
@@ -24,6 +23,19 @@ export enum EMapMode {
   TERRAINROUGHNESS = "terrain_roughness",
 }
 
+export const mapModeDesc = {
+  [EMapMode.CLIMATE]: "Climate",
+  [EMapMode.FEATURES]: "Features",
+  [EMapMode.HEIGHT]: "Height",
+  [EMapMode.TEMPERATURE]: "Temperature",
+  [EMapMode.MOISTURE]: "Moisture",
+  [EMapMode.UPSTREAMCOUNT]: "Upstream count",
+  [EMapMode.DRAINAGEBASINS]: "Drainage basins",
+  [EMapMode.MOISTUREZONES]: "Moisture zones",
+  [EMapMode.TEMPERATUREZONES]: "Temperature zones",
+  [EMapMode.TERRAINROUGHNESS]: "Terrain Roughness",
+}
+
 const featureColors = {
   [ECellFeature.OCEANIC]: 0x215b77,
   [ECellFeature.LOW_LAND]: 0x809973,
@@ -34,12 +46,16 @@ const featureColors = {
 }
 
 export interface IMapMode {
+  title: string;
   chunkRenderer: ChunkRenderer;
+  showLegend?: boolean;
+
   renderChunk(
     renderOptions: IWorldRendererOptions,
     cells: Cell[],
     chunkPosition: Point,
   ): Sprite;
+  renderLegend?(): Container;
 }
 
 // map mode with cell groups and rendering as a colored rectangle
@@ -49,15 +65,18 @@ interface IGroupDef {
 }
 
 class GroupedCellsMapMode implements IMapMode {
+  title: string;
   groups: IGroupDef[];
   chunkRenderer: ChunkRenderer;
 
   constructor(
     options: {
+      title: string,
       groups: IGroupDef[]
     },
     chunkRenderer: ChunkRenderer
   ) {
+    this.title = options.title;
     this.chunkRenderer = chunkRenderer;
     this.groups = options.groups;
   }
@@ -97,25 +116,32 @@ class GroupedCellsMapMode implements IMapMode {
 }
 
 class ColormapMapMode implements IMapMode {
+  title: string;
   datapoint: string;
   colormap: string;
+  showLegend: boolean;
   mapData: {
     min: number,
     max: number,
     colors: [number, number, number, number][],
+    quantiles: { [quantile: number]: number},
   }
   chunkRenderer: ChunkRenderer;
 
   constructor(
     options: {
+      title: string,
       datapoint: string,
       colormap: string,
+      showLegend?: boolean,
     },
     chunkRenderer: ChunkRenderer
   ) {
+    this.title = options.title;
     this.chunkRenderer = chunkRenderer;
     this.datapoint = options.datapoint;
     this.colormap = options.colormap;
+    this.showLegend = options.showLegend !== false;
 
     const colors: [number, number, number, number][] = colormap({
       nshades: 101,
@@ -125,15 +151,89 @@ class ColormapMapMode implements IMapMode {
     let item;
     let min = Infinity;
     let max = -Infinity;
+    const data = [];
     for (const cell of chunkRenderer.world.cells) {
       item = cell[options.datapoint];
+      data.push(item);
       if (item < min) {
         min = item;
       } else if (item > max) {
         max = item;
       }
     }
-    this.mapData = { min, max, colors };
+    const quantiles = {};
+    for (let i = 0; i <= 100; i+= 1) {
+      quantiles[i] = Math.round(min + ((i / 100) * (max - min)));
+    }
+    this.mapData = { min, max, colors, quantiles };
+  }
+
+  renderLegend() {
+    const g = new PIXI.Graphics();
+    const V_PADDING = 15;
+    const H_PADDING = 15;
+    const WIDTH = this.mapData.colors.length * 3 + (H_PADDING * 2);
+    const HEIGHT = 120;
+
+    // draw legend background
+    g.beginFill(0x000000, 0.5);
+    g.drawRect(0, 0, WIDTH, HEIGHT);
+    g.endFill();
+
+    // legend bars
+    const barsWidth = (WIDTH - (H_PADDING * 2));
+    const barWidth = barsWidth / this.mapData.colors.length;
+    const barHeight = 20;
+    const barX = H_PADDING;
+    const barY = V_PADDING * 2;
+    for (let i = 0; i < this.mapData.colors.length; i++) {
+      const color = this.mapData.colors[i];
+      g.beginFill(rgbToNumber(color[0], color[1], color[2]));
+      g.drawRect(barX + (i * barWidth), barY, barWidth, barHeight)
+      g.endFill();
+    }
+
+    // border around legend bars
+    g.lineColor = 0xFFFFFF;
+    g.lineWidth = 1.5;
+    g.drawRect(barX, barY, barsWidth, barHeight);
+
+    const texture = g.generateCanvasTexture();
+    const container = new Container();
+    const barsSprite = new Sprite(texture)
+    container.addChild(barsSprite);
+
+    // legend labels
+    const title = new Text(
+      `${this.title} Legend`,
+      { fontSize: 14, fill: 0xFFFFFF }
+    );
+    title.position.set(
+      H_PADDING,
+      V_PADDING - 5,
+    );
+    container.addChild(title);
+    const textStyle = new TextStyle({
+      fontSize: 10,
+      fill: 0xFFFFFF,
+    });
+    const renderText = (number, position) => {
+      const lowText = new Text(number.toString(), textStyle);
+      lowText.anchor.set(0.5, 0.5);
+      lowText.position.set(
+        barX + position,
+        barY + barHeight + 10,
+      );
+      container.addChild(lowText);
+    }
+
+    renderText(this.mapData.quantiles[0], 0);
+    renderText(this.mapData.quantiles[25], barsWidth * 0.25);
+    renderText(this.mapData.quantiles[50], barsWidth * 0.5);
+    renderText(this.mapData.quantiles[75], barsWidth * 0.75);
+    renderText(this.mapData.quantiles[100], barsWidth);
+
+    return container;
   }
 
   renderChunk(
@@ -180,144 +280,123 @@ class ColormapMapMode implements IMapMode {
   }
 }
 
-interface IMapModeDef {
-  title: string;
-  factory: (chunkRenderer: ChunkRenderer) => IMapMode;
-}
+type MapModeDef = (chunkRenderer: ChunkRenderer) => IMapMode
 
-export const mapModes: Partial<Record<EMapMode, IMapModeDef>> = {
-  [EMapMode.CLIMATE]: {
-    title: 'Climate',
-    factory: (chunkRenderer: ChunkRenderer) => (
-      new GroupedCellsMapMode({
-        groups: [
-          {
-            name: 'coastal',
-            paintCell: (cell: Cell) => (
-                cell.feature === ECellFeature.COASTAL ||
-                cell.feature === ECellFeature.LAKE ||
-                cell.feature === ECellFeature.RIVER
-              )
-              ? climateColors.ocean.coast
-              : null,
-          },
-          {
-            name: 'ocean',
-            paintCell: (cell: Cell) => (
-              cell.type === ECellType.OCEAN
-                ? climateColors.ocean.deep
-                : null
+export const mapModes: Partial<Record<EMapMode, MapModeDef>> = {
+  [EMapMode.CLIMATE]: (chunkRenderer: ChunkRenderer) => (
+    new GroupedCellsMapMode({
+      title: 'Climate',
+      groups: [
+        {
+          name: 'coastal',
+          paintCell: (cell: Cell) => (
+              cell.feature === ECellFeature.COASTAL ||
+              cell.feature === ECellFeature.LAKE ||
+              cell.feature === ECellFeature.RIVER
             )
-          },
-          ...Object.values(EBiome).map(biome => ({
-            name: `biome-${biome}`,
-            paintCell: (cell: Cell) => (
-              cell.feature !== ECellFeature.RIVER &&
-              cell.biome === biome
-                ? climateColors.biomes[biome]
-                : null
-            )
-          }))
-        ]
-      },
-      chunkRenderer)
-    ),
-  },
-  [EMapMode.FEATURES]: {
-    title: 'Features',
-    factory: (chunkRenderer: ChunkRenderer) => (
-      new GroupedCellsMapMode({
-        groups: [
-          ...Object.values(ECellFeature).map(cellFeature => ({
-            name: `feature-${cellFeature}`,
-            paintCell: (cell: Cell) => (
-              cell.feature === cellFeature
-                ? featureColors[cellFeature]
-                : null
-            )
-          }))
-        ]
-      }, chunkRenderer)
-    )
-  },
-  [EMapMode.DRAINAGEBASINS]: {
-    title: 'Drainage Basins',
-    factory: (chunkRenderer: ChunkRenderer) => (
-      new GroupedCellsMapMode({
-        groups: [
-          {
-            name: `drainage-basins`,
-            paintCell: (cell: Cell) => (
-              cell.drainageBasin
-                ? cell.drainageBasin.color
-                : 0xFFF
-            )
-          }
-        ]
-      }, chunkRenderer)
-    )
-  },
-  [EMapMode.HEIGHT]: {
-    title: 'Height',
-    factory: (chunkRenderer: ChunkRenderer) => (
-      new ColormapMapMode({
-        datapoint: 'height',
-        colormap: 'bathymetry'
-      }, chunkRenderer)
-    )
-  },
-  [EMapMode.TEMPERATURE]: {
-    title: 'Temperature',
-    factory: (chunkRenderer: ChunkRenderer) => (
-      new ColormapMapMode({
-        datapoint: 'temperature',
-        colormap: 'jet'
-      }, chunkRenderer)
-    )
-  },
-  [EMapMode.MOISTURE]: {
-    title: 'Moisture',
-    factory: (chunkRenderer: ChunkRenderer) => (
-      new ColormapMapMode({
-        datapoint: 'moisture',
-        colormap: 'cool'
-      }, chunkRenderer)
-    )
-  },
-  [EMapMode.UPSTREAMCOUNT]: {
-    title: 'Upstream Count',
-    factory: (chunkRenderer: ChunkRenderer) => (
-      new ColormapMapMode({
-        datapoint: 'upstreamCount',
-        colormap: 'velocity-blue'
-      }, chunkRenderer)
-    )
-  },
-  [EMapMode.MOISTUREZONES]: {
-    title: 'Moisture Zones',
-    factory: (chunkRenderer: ChunkRenderer) => (
-      new ColormapMapMode({
-        datapoint: 'moistureZone',
-        colormap: 'cool'
-      }, chunkRenderer)
-    )
-  },
-  [EMapMode.TEMPERATUREZONES]: {
-    title: 'Temperature Zones',
-    factory: (chunkRenderer: ChunkRenderer) => (
-      new ColormapMapMode({
-        datapoint: 'temperatureZone',
-        colormap: 'temperature'
-      }, chunkRenderer)
-    )
-  },
-  [EMapMode.TERRAINROUGHNESS]: {
-    title: 'Terrain Roughness',
-    factory: (chunkRenderer: ChunkRenderer) => (
-      new ColormapMapMode({
-        datapoint: 'terrainRoughness',
-        colormap: 'greens'
-      }, chunkRenderer)
-    )
-  },
+            ? climateColors.ocean.coast
+            : null,
+        },
+        {
+          name: 'ocean',
+          paintCell: (cell: Cell) => (
+            cell.type === ECellType.OCEAN
+              ? climateColors.ocean.deep
+              : null
+          )
+        },
+        ...Object.values(EBiome).map(biome => ({
+          name: `biome-${biome}`,
+          paintCell: (cell: Cell) => (
+            cell.feature !== ECellFeature.RIVER &&
+            cell.biome === biome
+              ? climateColors.biomes[biome]
+              : null
+          )
+        }))
+      ]
+    },
+    chunkRenderer)
+  ),
+  [EMapMode.FEATURES]: (chunkRenderer: ChunkRenderer) => (
+    new GroupedCellsMapMode({
+      title: 'Features',
+      groups: [
+        ...Object.values(ECellFeature).map(cellFeature => ({
+          name: `feature-${cellFeature}`,
+          paintCell: (cell: Cell) => (
+            cell.feature === cellFeature
+              ? featureColors[cellFeature]
+              : null
+          )
+        }))
+      ]
+    }, chunkRenderer)
+  ),
+  [EMapMode.DRAINAGEBASINS]: (chunkRenderer: ChunkRenderer) => (
+    new GroupedCellsMapMode({
+      title: 'Drainage Basins',
+      groups: [
+        {
+          name: `drainage-basins`,
+          paintCell: (cell: Cell) => (
+            cell.drainageBasin
+              ? cell.drainageBasin.color
+              : 0xFFF
+          )
+        }
+      ]
+    }, chunkRenderer)
+  ),
+  [EMapMode.HEIGHT]: (chunkRenderer: ChunkRenderer) => (
+    new ColormapMapMode({
+      title: 'Height',
+      datapoint: 'height',
+      colormap: 'bathymetry'
+    }, chunkRenderer)
+  ),
+  [EMapMode.TEMPERATURE]: (chunkRenderer: ChunkRenderer) => (
+    new ColormapMapMode({
+      title: 'Temperature',
+      datapoint: 'temperature',
+      colormap: 'jet'
+    }, chunkRenderer)
+  ),
+  [EMapMode.MOISTURE]: (chunkRenderer: ChunkRenderer) => (
+    new ColormapMapMode({
+      title: 'Moisture',
+      datapoint: 'moisture',
+      colormap: 'cool'
+    }, chunkRenderer)
+  ),
+  [EMapMode.UPSTREAMCOUNT]: (chunkRenderer: ChunkRenderer) => (
+    new ColormapMapMode({
+      title: 'Upstream Count',
+      datapoint: 'upstreamCount',
+      colormap: 'velocity-blue'
+    }, chunkRenderer)
+  ),
+  [EMapMode.MOISTUREZONES]: (chunkRenderer: ChunkRenderer) => (
+    new ColormapMapMode({
+      title: 'Moisture Zones',
+      datapoint: 'moistureZone',
+      colormap: 'cool',
+      showLegend: false,
+    }, chunkRenderer)
+  ),
+  [EMapMode.TEMPERATUREZONES]: (chunkRenderer: ChunkRenderer) => (
+    new ColormapMapMode({
+      title: 'Temperature Zones',
+      datapoint: 'temperatureZone',
+      colormap: 'temperature',
+      showLegend: false,
+    }, chunkRenderer)
+  ),
+  [EMapMode.TERRAINROUGHNESS]: (chunkRenderer: ChunkRenderer) => (
+    new ColormapMapMode({
+      title: 'Terrain Roughness',
+      datapoint: 'terrainRoughness',
+      colormap: 'greens'
+    }, chunkRenderer)
+  ),
 }
