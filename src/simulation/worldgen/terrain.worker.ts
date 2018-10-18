@@ -1,15 +1,16 @@
 import ndarray from 'ndarray';
 import Alea from 'alea';
 import SimplexNoise from 'simplex-noise';
-import fill from 'ndarray-fill';
 import { IWorldgenOptions, EWorldShape } from '../types';
 
 
-function generateHeightmap(options: IWorldgenOptions) {
+function generateHeightmap(
+  options: IWorldgenOptions,
+  heightmap: ndarray,
+  cursor: [number, number, number, number],
+) {
   const { seed, size: { width, height }, worldShape, worldShapePower } = options;
 
-  const heightmap = ndarray(new Uint8ClampedArray(width * height), [width, height]);
-  // const bigHeightmap = ndarray(new Uint8ClampedArray(width * height * 10), [width * 10, height * 10]);
   const rng = new (Alea as any)(seed);
   const simplex = new SimplexNoise(rng);
   const noise = (nx, ny) => simplex.noise2D(nx, ny);
@@ -45,25 +46,26 @@ function generateHeightmap(options: IWorldgenOptions) {
     return value * 255;
   };
 
-  fill(heightmap, getHeight);
-  // fill(bigHeightmap, (x: number, y: number) => getHeight(x / 10, y / 10));
-
-  return heightmap;
+  for (let x = cursor[0]; x < cursor[2]; x++) {
+    for (let y = cursor[1]; y < cursor[3]; y++) {
+      heightmap.set(x, y, getHeight(x, y));
+    }
+  }
 }
 
 const ctx: Worker = self as any;
 
 ctx.onmessage = (event: MessageEvent) => {
-  const options: IWorldgenOptions = event.data;
+  const { options, heightmap: heightmapData, cursor } = event.data;
+  const { size: { width, height } } = options;
+  console.time('terrain worker: setup');
+  const heightmap = ndarray(new Uint8ClampedArray(heightmapData), [width, height]);
+  console.timeEnd('terrain worker: setup');
 
-  console.group('terrain worker');
-  console.time('step: heightmap');
-  let heightmap = generateHeightmap(options);
-  console.timeEnd('step: heightmap');
-  console.groupEnd();
+  console.time('terrain worker: heightmap');
+  generateHeightmap(options, heightmap, cursor);
+  console.timeEnd('terrain worker: heightmap');
 
-  ctx.postMessage({
-    heightmap: heightmap.data,
-  }, [(heightmap.data as any).buffer]);
+  ctx.postMessage(true);
 
 }

@@ -647,8 +647,12 @@ function findFeatures(
   return { rivers, landFeatures }
 }
 
-function runWorker<T>(worker: Worker, data: any): Promise<T> {
-  worker.postMessage(data);
+function runTerrainWorker<T>(
+  workerClass: any,
+  options,
+): Promise<T> {
+  const worker = new workerClass();
+  worker.postMessage(options);
   return new Promise((resolve, reject) => {
     worker.onmessage = (event: MessageEvent) => {
       resolve(event.data as T);
@@ -656,6 +660,12 @@ function runWorker<T>(worker: Worker, data: any): Promise<T> {
     worker.onerror = reject;
   });
 }
+
+const createWorkerRunner = (
+  workerClass: any,
+  options: IWorldgenOptions,
+  heightmap,
+) => cursor => runTerrainWorker(workerClass, { options, heightmap, cursor });
 
 ctx.onmessage = async (event: MessageEvent) => {
   const options: IWorldgenOptions = event.data;
@@ -666,15 +676,26 @@ ctx.onmessage = async (event: MessageEvent) => {
 
   console.time('terrain init');
   const TerrainWorker = require('worker-loader!./terrain.worker');
-  const terrainWorker = new TerrainWorker();
   console.timeEnd('terrain init');
 
   console.time('terrain worker');
-  const terrainResult = await runWorker<ITerrainWorkerOutput>(terrainWorker, options);
+  const { size: { width, height } } = options;
+  const heightmapData = new SharedArrayBuffer(width * height * Uint8ClampedArray.BYTES_PER_ELEMENT);
+  const terrainWorkerRunner = createWorkerRunner(TerrainWorker, options, heightmapData);
+
+  // top left
+  const workerPromises = [];
+  const TERRAIN_WORKER_SPLIT = 1;
+  for (let cx = 0; cx < width; cx += width / TERRAIN_WORKER_SPLIT) {
+    for (let cy = 0; cy < height; cy += height / TERRAIN_WORKER_SPLIT) {
+      workerPromises.push(terrainWorkerRunner([cx, cy, cx + (width / TERRAIN_WORKER_SPLIT), cy + (height / TERRAIN_WORKER_SPLIT)]));
+    }
+  }
+  await Promise.all(workerPromises);
   console.timeEnd('terrain worker');
+  const heightmap = ndarray(new Uint8ClampedArray(heightmapData), [width, height]);
 
   console.time('terrain reinit');
-  const heightmap = ndarray(terrainResult.heightmap, [options.size.width, options.size.height]);
   console.timeEnd('terrain reinit');
 
   console.time('step: remove depressions');
@@ -744,5 +765,16 @@ ctx.onmessage = async (event: MessageEvent) => {
     terrainRoughness: terrainRoughness.data,
     biomes: biomes.data,
   };
-  ctx.postMessage(output);
+  ctx.postMessage(output, [
+    (flowDirections.data as any).buffer,
+    (cellTypes.data as any).buffer,
+    (cellFeatures.data as any).buffer,
+    (upstreamCells.data as any).buffer,
+    (temperatures.data as any).buffer,
+    (moistureMap.data as any).buffer,
+    (moistureZones.data as any).buffer,
+    (temperatureZones.data as any).buffer,
+    (terrainRoughness.data as any).buffer,
+    (biomes.data as any).buffer,
+  ]);
 }
