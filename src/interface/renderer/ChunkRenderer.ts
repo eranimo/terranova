@@ -2,7 +2,7 @@ import { EDirection, ECellFeature } from './../../simulation/world';
 import { Sprite, Container, Point } from 'pixi.js';
 import World, { Cell } from '../../simulation/world';
 import { IWorldRendererOptions } from './WorldRenderer';
-import { EMapMode, mapModes } from './mapModes';
+import { EMapMode, mapModes, IMapMode } from './mapModes';
 import { isFunction } from 'lodash';
 import Array2D from '../../utils/Array2D';
 import { makeArrow } from './textures';
@@ -37,7 +37,7 @@ export class ChunkRenderer {
   renderedChunks: Array2D<IChunkData>;
   chunkColumns: number;
   chunkRows: number;
-  mapModeState: any;
+  mapModes: Partial<Record<EMapMode, IMapMode>>;
   chunkContainer: Container;
   overpaint: Point;
   visibleChunks: IChunkData[];
@@ -55,13 +55,9 @@ export class ChunkRenderer {
     this.chunkWorldWidth = this.options.chunkWidth * this.options.cellWidth
     this.chunkWorldHeight = this.options.chunkHeight * this.options.cellHeight
 
-    this.mapModeState = {};
-    for (const [mapMode, mapModeDef] of Object.entries(mapModes)) {
-      if (isFunction(mapModeDef.initState)) {
-        this.mapModeState[mapMode] = mapModeDef.initState(mapModeDef.options, world.cells);
-      } else {
-        this.mapModeState[mapMode] = {};
-      }
+    this.mapModes = {};
+    for (const [name, mapModeDef] of Object.entries(mapModes)) {
+      this.mapModes[name] = mapModeDef.factory(this);
     }
 
     this.chunkContainer = new Container();
@@ -144,18 +140,16 @@ export class ChunkRenderer {
 
     // render map modes
     const mapModeLayers = {};
-    for (const [mapMode, mapModeDef] of Object.entries(mapModes)) {
-      const mapModeSprite = mapModeDef.renderChunk(
-        this,
+    for (const [name, mapMode] of Object.entries(this.mapModes)) {
+      const mapModeSprite = mapMode.renderChunk(
+        this.options,
         chunkCells,
-        this.mapModeState[mapMode],
         chunkPosition,
-        mapModeDef.options,
       );
       mapModeSprite.cacheAsBitmap = true;
       chunk.addChild(mapModeSprite);
 
-      mapModeLayers[mapMode] = mapModeSprite;
+      mapModeLayers[name] = mapModeSprite;
     }
 
     const gridSprite = drawGridLines(
