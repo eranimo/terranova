@@ -1,3 +1,4 @@
+import { EBiome } from './../../simulation/world';
 import { groupBy } from 'lodash';
 import { Sprite, Graphics, Point } from 'pixi.js';
 import World, { Cell, climateColors, ECellFeature, ECellType } from '../../simulation/world';
@@ -48,82 +49,175 @@ const featureColors = {
   [ECellFeature.COASTAL]: 0x367593,
 }
 
-export const mapModes: Record<EMapMode, IMapModeDef> = {
-  [EMapMode.CLIMATE]: {
+export interface IChunkOptions {
+  title: string;
+}
+
+abstract class MapMode {
+  title: string;
+
+  constructor(options: IChunkOptions) {
+    this.title = options.title;
+  }
+
+  renderChunk(
+    renderOptions: IWorldRendererOptions,
+    cells: Cell[],
+    chunkPosition: Point,
+  ): Sprite {
+    throw new Error('Must implement!');
+  };
+}
+
+// map mode with cell groups and rendering as a colored rectangle
+interface IGroupDef {
+  name: string
+  identify(cell: Cell): boolean
+  color: number
+}
+
+class GroupedCellsMapMode extends MapMode {
+  groups: IGroupDef[];
+
+  constructor(options: { groups: IGroupDef[] } & IChunkOptions) {
+    super(options);
+    this.groups = options.groups;
+  }
+
+  renderChunk(
+    renderOptions: IWorldRendererOptions,
+    cells: Cell[],
+    chunkPosition: Point,
+  ): Sprite {
+    const { cellWidth, cellHeight } = renderOptions;
+    const g = new PIXI.Graphics(true);
+    const groupedCells: Record<string, Cell[]> = {};
+
+    for (const group of this.groups) {
+      groupedCells[group.name] = [];
+    }
+
+    for (const cell of cells) {
+      for (const group of this.groups) {
+        if (group.identify(cell)) {
+          groupedCells[group.name].push(cell);
+        }
+      }
+    }
+
+    for (const group of this.groups) {
+      g.beginFill(group.color);
+      for (const cell of groupedCells[group.name]) {
+        g.drawRect(
+          (cell.x * cellWidth) - chunkPosition.x,
+          (cell.y * cellHeight) - chunkPosition.y,
+          cellWidth,
+          cellHeight
+        );
+      }
+      g.endFill();
+    }
+
+    return new Sprite(g.generateCanvasTexture());
+  }
+}
+
+export const mapModes: Record<any, MapMode> = {
+  [EMapMode.CLIMATE]: new GroupedCellsMapMode({
     title: 'Climate',
-    renderChunk: renderClimate
-  },
-  [EMapMode.FEATURES]: {
-    title: 'Features',
-    renderChunk: drawFeatures
-  },
-  [EMapMode.HEIGHT]: {
-    title: 'Height',
-    options: {
-      datapoint: 'height',
-      colormap: 'bathymetry'
-    },
-    initState: makeCellOverlayState,
-    renderChunk: makeCellOverlay,
-  },
-  [EMapMode.TEMPERATURE]: {
-    title: 'Temperature',
-    options: {
-      datapoint: 'temperature',
-      colormap: 'jet',
-    },
-    initState: makeCellOverlayState,
-    renderChunk: makeCellOverlay,
-  },
-  [EMapMode.MOISTURE]: {
-    title: 'Moisture',
-    options: {
-      datapoint: 'moisture',
-      colormap: 'cool',
-    },
-    initState: makeCellOverlayState,
-    renderChunk: makeCellOverlay,
-  },
-  [EMapMode.UPSTREAMCOUNT]: {
-    title: 'Upstream Cell Count',
-    options: {
-      datapoint: 'upstreamCount',
-      colormap: 'velocity-blue',
-    },
-    initState: makeCellOverlayState,
-    renderChunk: makeCellOverlay,
-  },
-  [EMapMode.DRAINAGEBASINS]: {
-    title: 'Drainage Basins',
-    renderChunk: makeDrainageBasins
-  },
-  [EMapMode.MOISTUREZONES]: {
-    title: 'Moisture Zones',
-    options: {
-      datapoint: 'moistureZone',
-      colormap: 'cool',
-    },
-    initState: makeCellOverlayState,
-    renderChunk: makeCellOverlay,
-  },
-  [EMapMode.TEMPERATUREZONES]: {
-    title: 'Temperature Zones',
-    options: {
-      datapoint: 'temperatureZone',
-      colormap: 'temperature',
-    },
-    initState: makeCellOverlayState,
-    renderChunk: makeCellOverlay,
-  },
-  [EMapMode.TERRAINROUGHNESS]: {
-    title: 'Terrain Roughness',
-    options: {
-      datapoint: 'terrainRoughness',
-      colormap: 'greens',
-    },
-    initState: makeCellOverlayState,
-    renderChunk: makeCellOverlay,
-  },
+    groups: [
+      {
+        name: 'coastal',
+        identify: (cell: Cell) => (
+          cell.feature === ECellFeature.COASTAL ||
+          cell.feature === ECellFeature.LAKE ||
+          cell.feature === ECellFeature.RIVER
+        ),
+        color: climateColors.ocean.coast,
+      },
+      {
+        name: 'ocean',
+        identify: (cell: Cell) => cell.type === ECellType.OCEAN,
+        color: climateColors.ocean.deep,
+      },
+      ...Object.values(EBiome).map(biome => ({
+        name: `biome-${biome}`,
+        identify: (cell: Cell) => cell.biome === biome,
+        color: climateColors.ocean.deep,
+      }))
+    ]
+  }),
+  // [EMapMode.FEATURES]: {
+  //   title: 'Features',
+  //   renderChunk: drawFeatures
+  // },
+  // [EMapMode.HEIGHT]: {
+  //   title: 'Height',
+  //   options: {
+  //     datapoint: 'height',
+  //     colormap: 'bathymetry'
+  //   },
+  //   initState: makeCellOverlayState,
+  //   renderChunk: makeCellOverlay,
+  // },
+  // [EMapMode.TEMPERATURE]: {
+  //   title: 'Temperature',
+  //   options: {
+  //     datapoint: 'temperature',
+  //     colormap: 'jet',
+  //   },
+  //   initState: makeCellOverlayState,
+  //   renderChunk: makeCellOverlay,
+  // },
+  // [EMapMode.MOISTURE]: {
+  //   title: 'Moisture',
+  //   options: {
+  //     datapoint: 'moisture',
+  //     colormap: 'cool',
+  //   },
+  //   initState: makeCellOverlayState,
+  //   renderChunk: makeCellOverlay,
+  // },
+  // [EMapMode.UPSTREAMCOUNT]: {
+  //   title: 'Upstream Cell Count',
+  //   options: {
+  //     datapoint: 'upstreamCount',
+  //     colormap: 'velocity-blue',
+  //   },
+  //   initState: makeCellOverlayState,
+  //   renderChunk: makeCellOverlay,
+  // },
+  // [EMapMode.DRAINAGEBASINS]: {
+  //   title: 'Drainage Basins',
+  //   renderChunk: makeDrainageBasins
+  // },
+  // [EMapMode.MOISTUREZONES]: {
+  //   title: 'Moisture Zones',
+  //   options: {
+  //     datapoint: 'moistureZone',
+  //     colormap: 'cool',
+  //   },
+  //   initState: makeCellOverlayState,
+  //   renderChunk: makeCellOverlay,
+  // },
+  // [EMapMode.TEMPERATUREZONES]: {
+  //   title: 'Temperature Zones',
+  //   options: {
+  //     datapoint: 'temperatureZone',
+  //     colormap: 'temperature',
+  //   },
+  //   initState: makeCellOverlayState,
+  //   renderChunk: makeCellOverlay,
+  // },
+  // [EMapMode.TERRAINROUGHNESS]: {
+  //   title: 'Terrain Roughness',
+  //   options: {
+  //     datapoint: 'terrainRoughness',
+  //     colormap: 'greens',
+  //   },
+  //   initState: makeCellOverlayState,
+  //   renderChunk: makeCellOverlay,
+  // },
 }
 
 

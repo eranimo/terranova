@@ -16,7 +16,7 @@ const directionAngles = {
   [EDirection.UP]: 0,
 }
 
-interface IChunkData {
+export interface IChunkData {
   container: Container;
   position: Point,
   mapModes: Record<EMapMode, Sprite>;
