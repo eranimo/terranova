@@ -366,7 +366,7 @@ export const mapModes: Partial<Record<EMapMode, MapModeDef>> = {
     new ColormapMapMode({
       title: 'Moisture',
       datapoint: 'moisture',
-      colormap: 'cool'
+      colormap: 'viridis'
     }, chunkRenderer)
   ),
   [EMapMode.UPSTREAMCOUNT]: (chunkRenderer: ChunkRenderer) => (
