@@ -1,3 +1,4 @@
+const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const { CheckerPlugin } = require('awesome-typescript-loader');
 
@@ -8,6 +9,9 @@ module.exports = {
   devtool: 'source-map',
   entry: {
     main: './src/index.ts',
+  },
+  output: {
+    path: path.resolve(__dirname, 'public'),
   },
   module: {
     rules: [
