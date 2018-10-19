@@ -23,6 +23,7 @@ import {
   InputGroup,
   FormGroup,
   ButtonGroup,
+  Classes,
 } from '@blueprintjs/core';
 import styled from 'styled-components';
 import WorldStats from '../components/WorldStats';
@@ -102,20 +103,6 @@ class WorldViewerHeader extends Component <{
                 rightIcon={'caret-down'}
               />
               <div className='tn-popover'>
-                <RadioGroup
-                  label="Map Modes"
-                  onChange={onChangeMapMode}
-                  selectedValue={viewOptions.mapMode}
-                >
-                  {Object.entries(mapModeDesc).map(([name, title]) => (
-                    <Radio
-                      key={name}
-                      label={title}
-                      value={name}
-                    />
-                  ))}
-                </RadioGroup>
-                <Label>View Options</Label>
                 <ul className="bp3-list-unstyled">
                   <li>
                     <Checkbox
@@ -150,6 +137,32 @@ class WorldViewerHeader extends Component <{
                     />
                   </li>
                 </ul>
+              </div>
+            </Popover>
+            <Popover
+              position={Position.BOTTOM_RIGHT}
+              interactionKind={PopoverInteractionKind.CLICK}
+            >
+              <Button
+                icon={'map'}
+                rightIcon={'caret-down'}
+              >
+                Map Mode: <b>{mapModeDesc[viewOptions.mapMode]}</b>
+              </Button>
+              <div className='tn-popover'>
+                <RadioGroup
+                  label="Map Modes"
+                  onChange={onChangeMapMode}
+                  selectedValue={viewOptions.mapMode}
+                >
+                  {Object.entries(mapModeDesc).map(([name, title]) => (
+                    <Radio
+                      key={name}
+                      label={title}
+                      value={name}
+                    />
+                  ))}
+                </RadioGroup>
               </div>
             </Popover>
           </ButtonGroup>
