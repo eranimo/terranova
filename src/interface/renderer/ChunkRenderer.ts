@@ -165,7 +165,7 @@ export class ChunkRenderer {
     const flowArrows = new Container();
     const PADDING = 2;
     for (const cell of chunkCells) {
-      if (cell.feature !== ECellFeature.RIVER) continue;
+      if (cell.riverType === 0) continue;
       const arrowSprite = new Sprite(makeArrow(
         cellWidth - PADDING,
         cellHeight - PADDING,

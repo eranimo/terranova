@@ -1,7 +1,7 @@
 import React, { Component, Fragment } from 'react';
 import { WorldViewer, IViewOptions } from './WorldViewer';
 import { mapModes, EMapMode, mapModeDesc } from '../renderer/mapModes';
-import World, { Cell, biomeTitles, directionLabels, cellFeatureLabels, temperatureZoneTitles, moistureZoneTitles } from '../../simulation/world';
+import World, { Cell, biomeTitles, directionLabels, cellFeatureLabels, temperatureZoneTitles, moistureZoneTitles, terrainTypeLabels } from '../../simulation/world';
 import {
   Navbar,
   NavbarGroup,
@@ -185,6 +185,7 @@ const CellDetailContainer = styled.div`
   height: 220px;
   box-shadow: 0 0 4px 2px rgba(16, 22, 26, 0.2);
   z-index: 100;
+  overflow-y: auto;
 `;
 
 class CellDetail extends Component<{
@@ -208,13 +209,25 @@ class CellDetail extends Component<{
         <table className="detail-table">
           <tbody>
             <tr>
-              <td>Terrain features</td>
-              <td>{cellFeatureLabels[cell.feature]}</td>
+              <td>Height</td>
+              <td>{cell.height}</td>
             </tr>
             <tr>
+              <td>Feature</td>
+              <td>{cellFeatureLabels[cell.feature]}</td>
+            </tr>
+            {cell.terrainType !== 0 && <tr>
+              <td>Terrain type</td>
+              <td>{terrainTypeLabels[cell.terrainType]}</td>
+            </tr>}
+            <tr>
+              <td>Is River?</td>
+              <td>{cell.riverType > 0 ? 'Yes' : 'No'}</td>
+            </tr>
+            {cell.biome !== 0 && <tr>
               <td>Biome</td>
               <td>{biomeTitles[cell.biome]}</td>
-            </tr>
+            </tr>}
             <tr>
               <td>Temperature</td>
               <td>{cell.temperature} &deg;C</td>

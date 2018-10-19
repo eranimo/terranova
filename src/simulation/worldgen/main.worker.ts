@@ -12,7 +12,8 @@ import {
   EBiome,
   moistureZoneRanges,
   temperatureZoneRanges,
-  biomeRanges
+  biomeRanges,
+  ETerrainType
 } from '../world';
 import * as Collections from 'typescript-collections';
 import * as Stats from 'simple-statistics';
@@ -249,8 +250,8 @@ function decideTerrainTypes(
   const isLake = ndarray(new Int16Array(width * height), [width, height]);
   fill(isLake, (x, y) => waterheight.get(x, y) > heightmap.get(x, y));
 
-  const isRiver = ndarray(new Int16Array(width * height), [width, height]);
-  fill(isRiver, () => 0);
+  const riverMap = ndarray(new Int16Array(width * height), [width, height]);
+  fill(riverMap, () => 0);
 
   const upstreamCells = ndarray(new Int16Array(width * height), [width, height]);
   fill(upstreamCells, () => 0);
@@ -307,7 +308,7 @@ function decideTerrainTypes(
     for (let y = 0; y < height; y++) {
       const upstreamCount = upstreamCells.get(x, y);
       if (upstreamCount > riverThresholdAmount) {
-        isRiver.set(x, y, 1);
+        riverMap.set(x, y, 1);
       }
     }
   }
@@ -324,24 +325,25 @@ function decideTerrainTypes(
   for (let x = 0; x < width; x++) {
     for (let y = 0; y < height; y++) {
       const allNeighbors = getNeighborsLabelled(x, y);
+      const myHeight = heightmap.get(x, y);
       let min = Infinity;
       let max = -Infinity;
+      let changeInHeight = 0;
       for (let nx = x - 2; nx < x + 2; nx++) {
         for (let ny = y - 2; ny < y + 2; ny++) {
           if (isValidCell(nx, ny, width, height)) {
-            const height = heightmap.get(nx, ny);
-            min = Math.min(min, height);
-            max = Math.max(max, height);
+            const neighborHeight = heightmap.get(nx, ny);
+            min = Math.min(min, neighborHeight);
+            max = Math.max(max, neighborHeight);
+            changeInHeight += Math.abs(myHeight - neighborHeight);
           }
         }
       }
-      terrainRoughness.set(x, y, max - min);
+      // terrainRoughness.set(x, y, max - min);
+      terrainRoughness.set(x, y, changeInHeight);
     }
   }
   console.log('terrainRoughness', ndarrayStats(terrainRoughness));
-
-  const maxHeight = ops.sup(waterheight);
-  const maxAltitude = maxHeight - sealevel;
 
   const cellFeatures = ndarray(new Int16Array(width * height), [width, height]);
   let oceanCellCount = 0;
@@ -355,20 +357,46 @@ function decideTerrainTypes(
       return ECellFeature.OCEANIC;
     }
     if (isLake.get(x, y) === 1) {
+      riverMap.set(x, y, 0);
       return ECellFeature.LAKE;
     }
-    if (isRiver.get(x, y) === 1) {
-      return ECellFeature.RIVER;
-    }
-    const altitude = waterheight.get(x, y) - sealevel;
-    if ((altitude / maxAltitude) <= 0.5) {
-      return ECellFeature.LOW_LAND;
-    }
-    return ECellFeature.HIGH_LAND;
+    return ECellFeature.LAND;
   });
-  // console.log('Ocean percent', oceanCellCount / (width * height));
 
-  return { cellTypes, cellFeatures, upstreamCells, oceanCellCount, terrainRoughness };
+  const terrainMap = ndarray(new Int16Array(width * height), [width, height]);
+  const ROUGHNESS_CUTOFF = 75;
+  const HIGHNESS_CUTOFF = 140;
+  fill(terrainMap, (x, y) => {
+    if (cellFeatures.get(x, y) === ECellFeature.LAND) {
+      if (
+        // low altitude, flat terrain
+        terrainRoughness.get(x, y) < ROUGHNESS_CUTOFF &&
+        heightmap.get(x, y) < HIGHNESS_CUTOFF
+      ) {
+        return ETerrainType.PLAIN;
+      } else if (
+        // low altitude, rough terrain
+        terrainRoughness.get(x, y) > ROUGHNESS_CUTOFF &&
+        heightmap.get(x, y) < HIGHNESS_CUTOFF
+      ) {
+        return ETerrainType.FOOTHILLS;
+      } else if (
+        // high altitude, flat terrain
+        terrainRoughness.get(x, y) < ROUGHNESS_CUTOFF &&
+        heightmap.get(x, y) > HIGHNESS_CUTOFF
+      ) {
+        return ETerrainType.PLATEAU;
+      } else if (
+        // high altitude, rough terrain
+        terrainRoughness.get(x, y) > ROUGHNESS_CUTOFF &&
+        heightmap.get(x, y) > HIGHNESS_CUTOFF
+      ) {
+        return ETerrainType.MOUNTAINOUS;
+      }
+    }
+  });
+
+  return { cellTypes, cellFeatures, upstreamCells, oceanCellCount, terrainRoughness, riverMap, terrainMap };
 }
 
 function decideDrainageBasins(
@@ -376,7 +404,6 @@ function decideDrainageBasins(
   cellNeighbors: [number, number, number][][][],
   waterheight: ndarray,
   cellTypes: ndarray,
-  cellFeatures: ndarray,
 ) {
   const { seed, size: { width, height } } = options;
 
@@ -512,7 +539,7 @@ function generateMoisture(
   heightmap: ndarray,
   sealevel: number,
   cellTypes: ndarray,
-  cellFeatures: ndarray,
+  riverMap: ndarray,
 ): ndarray {
   const { seed, size: { width, height } } = options;
   const rng = new (Alea as any)(seed);
@@ -532,7 +559,7 @@ function generateMoisture(
   const scale = Math.max(width, height) / 250;
   for (let x = 0; x < width; x++) {
     for (let y = 0; y < height; y++) {
-      if (cellFeatures.get(x, y) === ECellFeature.RIVER) {
+      if (riverMap.get(x, y) === 1) {
         const inlandRatio = (heightmap.get(x, y) - sealevel) / (255 - sealevel);
         const riverAdd = (1 - inlandRatio) * 15;
         let size = scale * 15 + Math.round(rng() * 10); // 15 to 25
@@ -619,7 +646,7 @@ function generateBiomes(
 function findFeatures(
   options: IWorldgenOptions,
   cellTypes: ndarray,
-  cellFeatures: ndarray,
+  riverMap: ndarray,
   oceanCellCount: number
 ) {
   const { size: { width, height } } = options;
@@ -638,7 +665,7 @@ function findFeatures(
   // determine rivers
   const rivers = groupDistinct(
     (x: number, y: number) => (
-      cellFeatures.get(x, y) === ECellFeature.RIVER
+      riverMap.get(x, y) === 1
     ),
     width, height,
   );
@@ -715,11 +742,13 @@ ctx.onmessage = async (event: MessageEvent) => {
     upstreamCells,
     oceanCellCount,
     terrainRoughness,
+    riverMap,
+    terrainMap,
   } = decideTerrainTypes(options, sealevel, heightmap, waterheight, flowDirections, cellNeighbors);
   console.timeEnd('step: decideTerrainTypes');
 
   console.time('step: decideDrainageBasins');
-  const drainageBasins = decideDrainageBasins(options, cellNeighbors, waterheight, cellTypes, cellFeatures);
+  const drainageBasins = decideDrainageBasins(options, cellNeighbors, waterheight, cellTypes);
   console.timeEnd('step: decideDrainageBasins');
 
   console.time('step: decideTemperature');
@@ -727,7 +756,7 @@ ctx.onmessage = async (event: MessageEvent) => {
   console.timeEnd('step: decideTemperature');
 
   console.time('step: generateMoisture');
-  const moistureMap = generateMoisture(options, heightmap, sealevel, cellTypes, cellFeatures);
+  const moistureMap = generateMoisture(options, heightmap, sealevel, cellTypes, riverMap);
   console.timeEnd('step: generateMoisture');
 
   console.time('step: generateBiomes');
@@ -761,6 +790,8 @@ ctx.onmessage = async (event: MessageEvent) => {
     temperatures: temperatures.data,
     moistureMap: moistureMap.data,
     moistureZones: moistureZones.data,
+    riverMap: riverMap.data,
+    terrainMap: terrainMap.data,
     temperatureZones: temperatureZones.data,
     terrainRoughness: terrainRoughness.data,
     biomes: biomes.data,

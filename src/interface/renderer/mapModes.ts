@@ -1,4 +1,4 @@
-import { EBiome } from './../../simulation/world';
+import { EBiome, ETerrainType } from './../../simulation/world';
 import { Sprite, Graphics, Point, Container, Text, TextStyle } from 'pixi.js';
 import World, { Cell, climateColors, ECellFeature, ECellType } from '../../simulation/world';
 import { IWorldRendererOptions } from './WorldRenderer';
@@ -13,36 +13,45 @@ function rgbToNumber(r: number, g: number, b: number): number {
 export enum EMapMode {
   CLIMATE = "climate",
   FEATURES = "features",
+  TERRAIN = "terrain",
   HEIGHT = "height",
   TEMPERATURE = "temperature",
   MOISTURE = "moisture",
-  UPSTREAMCOUNT = "upstream_count",
-  DRAINAGEBASINS = "drainage_basins",
-  MOISTUREZONES = "moisture_zones",
-  TEMPERATUREZONES = "temperature_zones",
-  TERRAINROUGHNESS = "terrain_roughness",
+  UPSTREAM_COUNT = "upstream_count",
+  DRAINAGE_BASINS = "drainage_basins",
+  MOISTURE_ZONES = "moisture_zones",
+  TEMPERATURE_ZONES = "temperature_zones",
+  TERRAIN_ROUGHNESS = "terrain_roughness",
 }
 
+// UI uses this
 export const mapModeDesc = {
   [EMapMode.CLIMATE]: "Climate",
   [EMapMode.FEATURES]: "Features",
+  [EMapMode.TERRAIN]: "Terrain",
   [EMapMode.HEIGHT]: "Height",
   [EMapMode.TEMPERATURE]: "Temperature",
   [EMapMode.MOISTURE]: "Moisture",
-  [EMapMode.UPSTREAMCOUNT]: "Upstream count",
-  [EMapMode.DRAINAGEBASINS]: "Drainage basins",
-  [EMapMode.MOISTUREZONES]: "Moisture zones",
-  [EMapMode.TEMPERATUREZONES]: "Temperature zones",
-  [EMapMode.TERRAINROUGHNESS]: "Terrain Roughness",
+  [EMapMode.UPSTREAM_COUNT]: "Upstream count",
+  [EMapMode.DRAINAGE_BASINS]: "Drainage basins",
+  [EMapMode.MOISTURE_ZONES]: "Moisture zones",
+  [EMapMode.TEMPERATURE_ZONES]: "Temperature zones",
+  [EMapMode.TERRAIN_ROUGHNESS]: "Terrain Roughness",
 }
 
 const featureColors = {
   [ECellFeature.OCEANIC]: 0x215b77,
-  [ECellFeature.LOW_LAND]: 0x809973,
-  [ECellFeature.HIGH_LAND]: 0x705e55,
-  [ECellFeature.RIVER]: 0x5292B5,
+  [ECellFeature.LAND]: 0x809973,
   [ECellFeature.LAKE]: 0x4a749b,
   [ECellFeature.COASTAL]: 0x367593,
+}
+
+export const terrainTypeColors: Record<string, number> = {
+  [ETerrainType.NONE]: 0x215b77,
+  [ETerrainType.PLAIN]: 0xc9d142,
+  [ETerrainType.FOOTHILLS]: 0x56914d,
+  [ETerrainType.PLATEAU]: 0x939311,
+  [ETerrainType.MOUNTAINOUS]: 0x7a7a50,
 }
 
 export interface IMapMode {
@@ -291,9 +300,14 @@ export const mapModes: Partial<Record<EMapMode, MapModeDef>> = {
           name: 'coastal',
           paintCell: (cell: Cell) => (
               cell.feature === ECellFeature.COASTAL ||
-              cell.feature === ECellFeature.LAKE ||
-              cell.feature === ECellFeature.RIVER
+              cell.feature === ECellFeature.LAKE
             )
+            ? climateColors.ocean.coast
+            : null,
+        },
+        {
+          name: 'rivers',
+          paintCell: (cell: Cell) => cell.riverType > 0
             ? climateColors.ocean.coast
             : null,
         },
@@ -308,7 +322,6 @@ export const mapModes: Partial<Record<EMapMode, MapModeDef>> = {
         ...Object.values(EBiome).map(biome => ({
           name: `biome-${biome}`,
           paintCell: (cell: Cell) => (
-            cell.feature !== ECellFeature.RIVER &&
             cell.biome === biome
               ? climateColors.biomes[biome]
               : null
@@ -333,7 +346,22 @@ export const mapModes: Partial<Record<EMapMode, MapModeDef>> = {
       ]
     }, chunkRenderer)
   ),
-  [EMapMode.DRAINAGEBASINS]: (chunkRenderer: ChunkRenderer) => (
+  [EMapMode.TERRAIN]: (chunkRenderer: ChunkRenderer) => (
+    new GroupedCellsMapMode({
+      title: 'Terrain',
+      groups: [
+        ...Object.values(ETerrainType).map((cellTerrain) => ({
+          name: `terrain-${cellTerrain}`,
+          paintCell: (cell: Cell) => (
+            cell.terrainType === cellTerrain
+              ? terrainTypeColors[cellTerrain]
+              : null
+          )
+        }))
+      ]
+    }, chunkRenderer)
+  ),
+  [EMapMode.DRAINAGE_BASINS]: (chunkRenderer: ChunkRenderer) => (
     new GroupedCellsMapMode({
       title: 'Drainage Basins',
       groups: [
@@ -369,14 +397,14 @@ export const mapModes: Partial<Record<EMapMode, MapModeDef>> = {
       colormap: 'viridis'
     }, chunkRenderer)
   ),
-  [EMapMode.UPSTREAMCOUNT]: (chunkRenderer: ChunkRenderer) => (
+  [EMapMode.UPSTREAM_COUNT]: (chunkRenderer: ChunkRenderer) => (
     new ColormapMapMode({
       title: 'Upstream Count',
       datapoint: 'upstreamCount',
       colormap: 'velocity-blue'
     }, chunkRenderer)
   ),
-  [EMapMode.MOISTUREZONES]: (chunkRenderer: ChunkRenderer) => (
+  [EMapMode.MOISTURE_ZONES]: (chunkRenderer: ChunkRenderer) => (
     new ColormapMapMode({
       title: 'Moisture Zones',
       datapoint: 'moistureZone',
@@ -384,7 +412,7 @@ export const mapModes: Partial<Record<EMapMode, MapModeDef>> = {
       showLegend: false,
     }, chunkRenderer)
   ),
-  [EMapMode.TEMPERATUREZONES]: (chunkRenderer: ChunkRenderer) => (
+  [EMapMode.TEMPERATURE_ZONES]: (chunkRenderer: ChunkRenderer) => (
     new ColormapMapMode({
       title: 'Temperature Zones',
       datapoint: 'temperatureZone',
@@ -392,7 +420,7 @@ export const mapModes: Partial<Record<EMapMode, MapModeDef>> = {
       showLegend: false,
     }, chunkRenderer)
   ),
-  [EMapMode.TERRAINROUGHNESS]: (chunkRenderer: ChunkRenderer) => (
+  [EMapMode.TERRAIN_ROUGHNESS]: (chunkRenderer: ChunkRenderer) => (
     new ColormapMapMode({
       title: 'Terrain Roughness',
       datapoint: 'terrainRoughness',

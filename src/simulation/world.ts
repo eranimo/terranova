@@ -14,21 +14,32 @@ export enum ECellFeature {
   COASTAL,
   SHELF,
   OCEANIC,
-
-  // LAND
-  LOW_LAND,
-  HIGH_LAND,
-  RIVER,
+  LAND,
   LAKE,
+}
+
+// LAND
+export enum ETerrainType {
+  NONE,
+  PLAIN, // low altitude, flat terrain
+  FOOTHILLS, // low altitude, high terrain
+  PLATEAU, // high altitude, flat terrain
+  MOUNTAINOUS, // high altitude, rough terrain
+}
+
+export const terrainTypeLabels = {
+  [ETerrainType.NONE]: 'None',
+  [ETerrainType.PLAIN]: 'Plain',
+  [ETerrainType.FOOTHILLS]: 'Foothills',
+  [ETerrainType.PLATEAU]: 'Plateau',
+  [ETerrainType.MOUNTAINOUS]: 'Mountainous',
 }
 
 export const cellFeatureLabels = {
   [ECellFeature.COASTAL]: 'Coastal',
   [ECellFeature.SHELF]: 'Shelf',
   [ECellFeature.OCEANIC]: 'Oceanic',
-  [ECellFeature.LOW_LAND]: 'Low land',
-  [ECellFeature.HIGH_LAND]: 'High land',
-  [ECellFeature.RIVER]: 'River',
+  [ECellFeature.LAND]: 'Land',
   [ECellFeature.LAKE]: 'Lake',
 }
 
@@ -201,12 +212,19 @@ export const directionLabels = {
   [EDirection.RIGHT]: 'Right',
 }
 
+export enum ERiverType {
+  NONE,
+  RIVER,
+}
+
 export class Cell {
   world: World;
   x: number;
   y: number;
   height: number;
   type: ECellType;
+  riverType: ERiverType;
+  terrainType: ETerrainType;
   feature: ECellFeature;
   flowDir: EDirection;
   drainageBasin?: DrainageBasin;
@@ -225,6 +243,8 @@ export class Cell {
       x,
       y,
       type,
+      riverType,
+      terrainType,
       feature,
       height,
       flowDir,
@@ -240,6 +260,8 @@ export class Cell {
       y: number,
       height: number,
       type: ECellType,
+      riverType: ERiverType,
+      terrainType: ETerrainType,
       feature: ECellFeature,
       flowDir: EDirection,
       temperature: number,
@@ -256,6 +278,8 @@ export class Cell {
     this.y = y;
     this.height = height;
     this.type = type;
+    this.riverType = riverType;
+    this.terrainType = terrainType;
     this.feature = feature;
     this.isLand = type === ECellType.LAND;
     this.flowDir = flowDir;
@@ -324,6 +348,8 @@ export default class World {
     const cellTypes = ndarray(params.cellTypes, [this.size.width, this.size.height]);
     const cellFeatures = ndarray(params.cellFeatures, [this.size.width, this.size.height]);
     const flowDirections = ndarray(params.flowDirections, [this.size.width, this.size.height]);
+    const riverMap = ndarray(params.riverMap, [this.size.width, this.size.height]);
+    const terrainMap = ndarray(params.terrainMap, [this.size.width, this.size.height]);
     const temperatures = ndarray(params.temperatures, [this.size.width, this.size.height]);
     const upstreamCells = ndarray(params.upstreamCells, [this.size.width, this.size.height]);
     const moistureZones = ndarray(params.moistureZones, [this.size.width, this.size.height]);
@@ -339,6 +365,8 @@ export default class World {
           height: heightmap.get(x, y),
           flowDir: flowDirections.get(x, y) as EDirection,
           type: cellTypes.get(x, y) as ECellType,
+          riverType: riverMap.get(x, y) as ERiverType,
+          terrainType: terrainMap.get(x, y) as ETerrainType,
           feature: cellFeatures.get(x, y) as ECellFeature,
           temperature: temperatures.get(x, y),
           upstreamCount: upstreamCells.get(x, y),
