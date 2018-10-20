@@ -24,7 +24,7 @@ export enum ETerrainType {
   PLAIN, // low altitude, flat terrain
   FOOTHILLS, // low altitude, high terrain
   PLATEAU, // high altitude, flat terrain
-  MOUNTAINOUS, // high altitude, rough terrain
+  HIGHLANDS, // high altitude, rough terrain
 }
 
 export const terrainTypeLabels = {
@@ -32,7 +32,7 @@ export const terrainTypeLabels = {
   [ETerrainType.PLAIN]: 'Plain',
   [ETerrainType.FOOTHILLS]: 'Foothills',
   [ETerrainType.PLATEAU]: 'Plateau',
-  [ETerrainType.MOUNTAINOUS]: 'Mountainous',
+  [ETerrainType.HIGHLANDS]: 'Highlands',
 }
 
 export const cellFeatureLabels = {

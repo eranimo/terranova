@@ -1,9 +1,10 @@
-import { EBiome, ETerrainType } from './../../simulation/world';
+import { EBiome, ETerrainType, terrainTypeLabels, cellFeatureLabels } from './../../simulation/world';
 import { Sprite, Graphics, Point, Container, Text, TextStyle } from 'pixi.js';
 import World, { Cell, climateColors, ECellFeature, ECellType } from '../../simulation/world';
 import { IWorldRendererOptions } from './WorldRenderer';
 import { ChunkRenderer } from './ChunkRenderer';
 import colormap from 'colormap';
+import { mapEnum } from '../../utils/enums';
 
 
 function rgbToNumber(r: number, g: number, b: number): number {
@@ -51,13 +52,13 @@ export const terrainTypeColors: Record<string, number> = {
   [ETerrainType.PLAIN]: 0xc9d142,
   [ETerrainType.FOOTHILLS]: 0x56914d,
   [ETerrainType.PLATEAU]: 0x939311,
-  [ETerrainType.MOUNTAINOUS]: 0x7a7a50,
+  [ETerrainType.HIGHLANDS]: 0x7a7a50,
 }
 
 export interface IMapMode {
   title: string;
   chunkRenderer: ChunkRenderer;
-  showLegend?: boolean;
+  showLegend: boolean;
 
   renderChunk(
     renderOptions: IWorldRendererOptions,
@@ -70,6 +71,8 @@ export interface IMapMode {
 // map mode with cell groups and rendering as a colored rectangle
 interface IGroupDef {
   name: string
+  color?: number,
+  showLegend?: boolean,
   paintCell(cell: Cell): number | null
 }
 
@@ -77,17 +80,72 @@ class GroupedCellsMapMode implements IMapMode {
   title: string;
   groups: IGroupDef[];
   chunkRenderer: ChunkRenderer;
+  showLegend: boolean;
+  color: number;
 
   constructor(
     options: {
       title: string,
-      groups: IGroupDef[]
+      groups: IGroupDef[],
+      showLegend?: boolean,
+      color?: number,
     },
     chunkRenderer: ChunkRenderer
   ) {
     this.title = options.title;
     this.chunkRenderer = chunkRenderer;
     this.groups = options.groups;
+    this.showLegend = options.showLegend || false;
+    this.color = options.color || 0x000000;
+  }
+
+  renderLegend() {
+    const g = new PIXI.Graphics(true);
+    const WIDTH = 200;
+    const PADDING = 15;
+    const CELL_WIDTH = 20;
+    const CELL_HEIGHT = 20;
+    const HEIGHT = (2 * PADDING) + ((this.groups.length + 1) * (CELL_HEIGHT + PADDING));
+
+    g.beginFill(0x000000, 0.5);
+    g.drawRect(0, 0, WIDTH, HEIGHT);
+    g.endFill();
+
+    const textStyle = new TextStyle({
+      fontSize: 14,
+      fill: 0xFFFFFF,
+    });
+
+    let currentX = PADDING;
+    let currentY = PADDING;
+    let groupTexts = [];
+    for (const group of this.groups) {
+      if (group.color)
+      g.beginFill(group.color)
+      g.drawRect(currentX, currentY, CELL_WIDTH, CELL_HEIGHT);
+      g.endFill();
+
+      g.lineColor = 0xFFFFFF;
+      g.lineWidth = 1.5;
+      g.drawRect(currentX, currentY, CELL_WIDTH, CELL_HEIGHT);
+
+      const text = new Text(group.name, textStyle);
+      text.position.set(
+        currentX + CELL_WIDTH + PADDING,
+        currentY,
+      );
+      groupTexts.push(text);
+      currentY += (CELL_HEIGHT + PADDING);
+    }
+
+    const texture = g.generateCanvasTexture();
+    const sprite = new Sprite(texture);
+    const container = new Container();
+    container.addChild(sprite);
+    for (const text of groupTexts) {
+      container.addChild(text);
+    }
+    return container;
   }
 
   renderChunk(
@@ -334,31 +392,31 @@ export const mapModes: Partial<Record<EMapMode, MapModeDef>> = {
   [EMapMode.FEATURES]: (chunkRenderer: ChunkRenderer) => (
     new GroupedCellsMapMode({
       title: 'Features',
-      groups: [
-        ...Object.values(ECellFeature).map(cellFeature => ({
-          name: `feature-${cellFeature}`,
-          paintCell: (cell: Cell) => (
-            cell.feature === cellFeature
-              ? featureColors[cellFeature]
-              : null
-          )
-        }))
-      ]
+      showLegend: true,
+      groups: mapEnum(ECellFeature).map(({ name, id }) => ({
+        name: cellFeatureLabels[id],
+        color: featureColors[id],
+        paintCell: (cell: Cell) => (
+          cell.feature === id
+            ? featureColors[id]
+            : null
+        )
+      })),
     }, chunkRenderer)
   ),
   [EMapMode.TERRAIN]: (chunkRenderer: ChunkRenderer) => (
     new GroupedCellsMapMode({
       title: 'Terrain',
-      groups: [
-        ...Object.values(ETerrainType).map((cellTerrain) => ({
-          name: `terrain-${cellTerrain}`,
-          paintCell: (cell: Cell) => (
-            cell.terrainType === cellTerrain
-              ? terrainTypeColors[cellTerrain]
-              : null
-          )
-        }))
-      ]
+      showLegend: true,
+      groups: mapEnum(ETerrainType).map(({ name, id }) => ({
+        name: terrainTypeLabels[id],
+        color: terrainTypeColors[id],
+        paintCell: (cell: Cell) => (
+          cell.terrainType === id
+            ? terrainTypeColors[id]
+            : null
+        )
+      }))
     }, chunkRenderer)
   ),
   [EMapMode.DRAINAGE_BASINS]: (chunkRenderer: ChunkRenderer) => (

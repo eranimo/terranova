@@ -321,26 +321,31 @@ function decideTerrainTypes(
     return ECellType.LAND;
   });
 
-  const terrainRoughness = ndarray(new Int16Array(width * height), [width, height]);
+  const terrainRoughness = ndarray(new Float32Array(width * height), [width, height]);
   for (let x = 0; x < width; x++) {
     for (let y = 0; y < height; y++) {
       const allNeighbors = getNeighborsLabelled(x, y);
       const myHeight = heightmap.get(x, y);
+      const cellType = cellTypes.get(x, y);
       let min = Infinity;
       let max = -Infinity;
       let changeInHeight = 0;
+      let validCells = 0;
       for (let nx = x - 2; nx < x + 2; nx++) {
         for (let ny = y - 2; ny < y + 2; ny++) {
           if (isValidCell(nx, ny, width, height)) {
             const neighborHeight = heightmap.get(nx, ny);
             min = Math.min(min, neighborHeight);
             max = Math.max(max, neighborHeight);
-            changeInHeight += Math.abs(myHeight - neighborHeight);
+            if (cellType === cellTypes.get(nx, ny)) {
+              changeInHeight += Math.abs(myHeight - neighborHeight);
+              validCells++;
+            }
           }
         }
       }
       // terrainRoughness.set(x, y, max - min);
-      terrainRoughness.set(x, y, changeInHeight);
+      terrainRoughness.set(x, y, changeInHeight / validCells);
     }
   }
   console.log('terrainRoughness', ndarrayStats(terrainRoughness));
@@ -364,25 +369,25 @@ function decideTerrainTypes(
   });
 
   const terrainMap = ndarray(new Int16Array(width * height), [width, height]);
-  const ROUGHNESS_CUTOFF = 75;
+  const ROUGHNESS_CUTOFF = 4;
   const HIGHNESS_CUTOFF = 140;
   fill(terrainMap, (x, y) => {
     if (cellFeatures.get(x, y) === ECellFeature.LAND) {
       if (
         // low altitude, flat terrain
-        terrainRoughness.get(x, y) < ROUGHNESS_CUTOFF &&
-        heightmap.get(x, y) < HIGHNESS_CUTOFF
+        terrainRoughness.get(x, y) <= ROUGHNESS_CUTOFF &&
+        heightmap.get(x, y) <= HIGHNESS_CUTOFF
       ) {
         return ETerrainType.PLAIN;
       } else if (
         // low altitude, rough terrain
         terrainRoughness.get(x, y) > ROUGHNESS_CUTOFF &&
-        heightmap.get(x, y) < HIGHNESS_CUTOFF
+        heightmap.get(x, y) <= HIGHNESS_CUTOFF
       ) {
         return ETerrainType.FOOTHILLS;
       } else if (
         // high altitude, flat terrain
-        terrainRoughness.get(x, y) < ROUGHNESS_CUTOFF &&
+        terrainRoughness.get(x, y) <= ROUGHNESS_CUTOFF &&
         heightmap.get(x, y) > HIGHNESS_CUTOFF
       ) {
         return ETerrainType.PLATEAU;
@@ -391,7 +396,7 @@ function decideTerrainTypes(
         terrainRoughness.get(x, y) > ROUGHNESS_CUTOFF &&
         heightmap.get(x, y) > HIGHNESS_CUTOFF
       ) {
-        return ETerrainType.MOUNTAINOUS;
+        return ETerrainType.HIGHLANDS;
       }
     }
   });
