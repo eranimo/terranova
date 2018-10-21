@@ -133,7 +133,12 @@ export const climateColors = {
     [EBiome.SHRUBLAND]: 0xD7CC9E,
     [EBiome.GRASSLAND]: 0xADB981,
     [EBiome.SAVANNA]: 0xC9CD7C,
-    [EBiome.DESERT]: 0xE1CA9E,
+    [EBiome.DESERT]: {
+      [ETerrainType.PLAIN]: 0xD9BF8C,
+      [ETerrainType.FOOTHILLS]: 0xC4AC80,
+      [ETerrainType.PLATEAU]: 0xB39B73,
+      [ETerrainType.HIGHLANDS]: 0x917d5d,
+    },
     [EBiome.TEMPERATE_FOREST]: 0x648C48,
     [EBiome.TEMPERATE_RAINFOREST]: 0x425D27,
     [EBiome.TROPICAL_FOREST]: 0x648C48,

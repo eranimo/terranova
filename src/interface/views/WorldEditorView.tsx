@@ -437,8 +437,10 @@ export class WorldEditorView extends Component<RouteComponentProps<{}>, {
           onClose={() => this.setState({ saveDialogOpen: false })}
         >
           <form
-            onSubmit={event => {
-              this.saveWorld();
+            onSubmit={(event) => {
+              this.saveWorld()
+                .then(() => console.log('saved!'))
+                .catch(error => console.error('save error:', error));
               this.setState({ saveDialogOpen: false });
               event.preventDefault();
             }}

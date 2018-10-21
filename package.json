@@ -27,7 +27,7 @@
     "@babel/polyfill": "^7.0.0",
     "@blueprintjs/core": "3.6.1",
     "@blueprintjs/icons": "3.1.0",
-    "@types/lodash": "^4.14.116",
+    "@types/lodash": "^4.14.117",
     "@types/ndarray": "^1.0.6",
     "@types/pixi.js": "^4.8.0",
     "@types/react": "^16.4.11",

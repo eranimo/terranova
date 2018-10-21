@@ -182,7 +182,7 @@ const CellDetailContainer = styled.div`
   border-top-right-radius: 5px;
   padding: 1rem;
   width: 320px;
-  height: 220px;
+  height: 290px;
   box-shadow: 0 0 4px 2px rgba(16, 22, 26, 0.2);
   z-index: 100;
   overflow-y: auto;

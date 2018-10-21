@@ -379,11 +379,16 @@ export const mapModes: Partial<Record<EMapMode, MapModeDef>> = {
         },
         ...Object.values(EBiome).map(biome => ({
           name: `biome-${biome}`,
-          paintCell: (cell: Cell) => (
-            cell.biome === biome
-              ? climateColors.biomes[biome]
-              : null
-          )
+          paintCell: (cell: Cell) => {
+            if (cell.biome === biome) {
+              const color = climateColors.biomes[biome];
+              if (typeof color === 'object') {
+                return color[cell.terrainType];
+              }
+              return color;
+            }
+            return null;
+          }
         }))
       ]
     },

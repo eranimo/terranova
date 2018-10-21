@@ -783,10 +783,14 @@ ctx.onmessage = async (event: MessageEvent) => {
   // console.log('biomes', countUnique(biomes));
   console.timeEnd('Worldgen');
 
+  // convert from SharedArrayBuffer
+  const heightmapC = ndarray(new Uint8ClampedArray(width * height), [width, height]);
+  fill(heightmapC, (x, y) => heightmap.get(x, y));
+
   const output: IWorldgenWorkerOutput = {
     options,
     sealevel,
-    heightmap: heightmap.data,
+    heightmap: heightmapC.data,
     flowDirections: flowDirections.data,
     cellTypes: cellTypes.data,
     cellFeatures: cellFeatures.data,

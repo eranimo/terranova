@@ -2,6 +2,7 @@ import World from './world';
 import localforage from 'localforage';
 const WorldgenWorker = require('worker-loader!./worldgen/main.worker');
 import { IWorldgenOptions, IWorldgenWorkerOutput } from './types';
+import { omit } from 'lodash';
 
 
 export interface IWorldSaveData {
@@ -45,6 +46,7 @@ export class Simulation {
         console.log('World object:', world);
         console.timeEnd('worldgen.worker execution time');
         console.groupEnd();
+        Object.values(message.data).forEach(value => value instanceof SharedArrayBuffer ? console.log('SAB') : null);
         resolve(world);
       }
       worker.onerror = error => {
@@ -88,12 +90,28 @@ export class Simulation {
       options: world.params.options,
       worldString: world.exportString,
     };
-    await this.saveStore.setItem(name, save);
-    await this.saveDataStore.setItem(name, saveData);
+    console.log('Save world', saveData, save);
+
+    try {
+      await this.saveDataStore.setItem(name, saveData);
+    } catch (error) {
+      console.error('Error saving world data');
+      throw error;
+    }
+
+    try {
+      await this.saveStore.setItem(name, save);
+    } catch (error) {
+      console.error('Error saving world');
+      throw error;
+    }
   }
 
   async loadWorld(name: string): Promise<World> {
     const data = await this.saveDataStore.getItem(name) as IWorldSaveData;
+    if (data === null) {
+      throw new Error(`Save '${name}' not found`);
+    }
     return new World(data.worldData as IWorldgenWorkerOutput);
   }
 
