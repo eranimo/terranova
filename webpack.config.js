@@ -11,6 +11,7 @@ module.exports = {
     main: './src/index.ts',
   },
   output: {
+    publicPath: '/',
     path: path.resolve(__dirname, 'public'),
   },
   module: {
