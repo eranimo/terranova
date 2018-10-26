@@ -50,6 +50,6 @@ export class RegionGenerator {
         promises.push(runTask(x, y));
       }
     }
-    await Promise.all(promises)
+    await Promise.all(promises);
   }
 }
