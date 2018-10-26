@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import { WorldGenerator } from '../../simulation';
 import World from "../../simulation/World";
 import { RouteComponentProps } from 'react-router'
-import { IWorldgenOptions, EWorldShape } from '../../simulation/worldgen/types';
+import { IWorldgenOptions, EWorldShape } from '../../simulation/types';
 import {
   NavbarGroup,
   Button,

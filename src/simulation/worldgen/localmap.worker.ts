@@ -1,6 +1,6 @@
-import { IWorldgenOptions } from './types';
+import { IWorldgenOptions } from '../types';
 import ndarray from 'ndarray';
-import { ILocalMapOptions, EWorldShape } from './types';
+import { ILocalMapOptions, EWorldShape } from '../types';
 import { getHeightFactory } from './utils';
 import fill from 'ndarray-fill';
 

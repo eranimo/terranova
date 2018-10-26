@@ -1,6 +1,6 @@
 import ndarray from 'ndarray';
 import ops from 'ndarray-ops';
-import { IWorldgenWorkerOutput } from './worldgen/types';
+import { IWorldgenWorkerOutput } from './types';
 import { mapValues } from 'lodash';
 import { ICell, IDrainageBasin, EDirection, ECellType, ERiverType, ETerrainType, ECellFeature, EBiome } from './worldTypes';
 

@@ -1,10 +1,10 @@
-import { ITerrainWorkerOutput } from './types';
+import { ITerrainWorkerOutput } from '../types';
 import ndarray from 'ndarray';
 import Alea from 'alea';
 import SimplexNoise from 'simplex-noise';
 import fill from 'ndarray-fill';
 import ops from 'ndarray-ops';
-import { IWorldgenOptions, IWorldgenWorkerOutput, EWorldShape } from './types';
+import { IWorldgenOptions, IWorldgenWorkerOutput, EWorldShape } from '../types';
 import {
   ECellType,
   ECellFeature,

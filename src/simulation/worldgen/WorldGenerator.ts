@@ -1,7 +1,7 @@
 import World from "../World";
 import localforage from 'localforage';
 const WorldgenWorker = require('worker-loader!./main.worker');
-import { IWorldgenOptions, IWorldgenWorkerOutput } from './types';
+import { IWorldgenOptions, IWorldgenWorkerOutput } from '../types';
 import { omit } from 'lodash';
 
 

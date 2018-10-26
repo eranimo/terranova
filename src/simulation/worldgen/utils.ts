@@ -1,4 +1,4 @@
-import { EWorldShape } from './types';
+import { EWorldShape } from '../types';
 import ndarray from 'ndarray';
 import { groupBy, mapValues, memoize } from 'lodash';
 import fill from 'ndarray-fill';
