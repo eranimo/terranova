@@ -1,13 +1,13 @@
-import { IWorldgenOptions } from '../types';
+import { IWorldMapGenOptions } from '../types';
 import ndarray from 'ndarray';
-import { ILocalMapOptions, EWorldShape } from '../types';
+import { ICellHeightMapOptions, EWorldShape } from '../types';
 import { getHeightFactory } from './utils';
 import fill from 'ndarray-fill';
 
 
 function generateHeightmap(
-  worldOptions: IWorldgenOptions,
-  localOptions: ILocalMapOptions,
+  worldOptions: IWorldMapGenOptions,
+  localOptions: ICellHeightMapOptions,
 ) {
   const worldSize = worldOptions.size;
   const { size, offset } = localOptions;

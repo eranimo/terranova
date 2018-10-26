@@ -1,11 +1,11 @@
 import ndarray from 'ndarray';
 import Alea from 'alea';
 import SimplexNoise from 'simplex-noise';
-import { IWorldgenOptions, EWorldShape } from '../types';
+import { IWorldMapGenOptions, EWorldShape } from '../types';
 
 
 function generateHeightmap(
-  options: IWorldgenOptions,
+  options: IWorldMapGenOptions,
   heightmap: ndarray,
   cursor: [number, number, number, number],
 ) {

@@ -1,7 +1,7 @@
 import ndarray from 'ndarray';
 
 
-export interface IWorldgenOptions {
+export interface IWorldMapGenOptions {
   seed: string | number,
   sealevel: number,
   size: {
@@ -19,7 +19,7 @@ export interface IWorldgenOptions {
   depressionFillPercent: number, // 0 to 1
 }
 
-export interface ILocalMapOptions {
+export interface ICellHeightMapOptions {
   // offset in world coordinates relative to origin of world map
   offset: {
     x: number;
@@ -39,8 +39,8 @@ export enum EWorldShape {
   RECTANGLE = 'rectangle',
 }
 
-export interface IWorldgenWorkerOutput {
-  options: IWorldgenOptions,
+export interface IWorldWorkerOutput {
+  options: IWorldMapGenOptions,
   sealevel: number,
   heightmap: ndarray.Data<number>,
   riverMap: ndarray.Data<number>,

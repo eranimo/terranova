@@ -1,5 +1,5 @@
 import World from "../World";
-const LocalWorker = require('worker-loader!./localmap.worker');
+const CellHeightWorker = require('worker-loader!./cellHeight.worker');
 
 
 export class RegionGenerator {
@@ -12,7 +12,7 @@ export class RegionGenerator {
   async generateLocal() {
     const workers = new Array<Worker>();
     for (let i = 0; i < 30; i++) {
-      workers.push(new LocalWorker());
+      workers.push(new CellHeightWorker());
     }
     const promises = [];
 

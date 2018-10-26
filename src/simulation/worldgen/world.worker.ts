@@ -4,7 +4,7 @@ import Alea from 'alea';
 import SimplexNoise from 'simplex-noise';
 import fill from 'ndarray-fill';
 import ops from 'ndarray-ops';
-import { IWorldgenOptions, IWorldgenWorkerOutput, EWorldShape } from '../types';
+import { IWorldMapGenOptions, IWorldWorkerOutput, EWorldShape } from '../types';
 import {
   ECellType,
   ECellFeature,
@@ -39,7 +39,7 @@ const ctx: Worker = self as any;
  * https://arxiv.org/pdf/1511.04463v1.pdf
  */
 
-function removeDepressions(options: IWorldgenOptions, heightmap: ndarray, sealevel: number) {
+function removeDepressions(options: IWorldMapGenOptions, heightmap: ndarray, sealevel: number) {
   const { seed, size: { width, height }, depressionFillPercent } = options;
   const rng = new (Alea as any)(seed);
 
@@ -156,7 +156,7 @@ function removeDepressions(options: IWorldgenOptions, heightmap: ndarray, sealev
 }
 
 function determineFlowDirections(
-  options: IWorldgenOptions,
+  options: IWorldMapGenOptions,
   waterheight: ndarray<number>
 ) {
   const { size: { width, height } } = options;
@@ -214,7 +214,7 @@ function determineFlowDirections(
 }
 
 function decideTerrainTypes(
-  options: IWorldgenOptions,
+  options: IWorldMapGenOptions,
   sealevel: number,
   heightmap: ndarray,
   waterheight: ndarray,
@@ -405,7 +405,7 @@ function decideTerrainTypes(
 }
 
 function decideDrainageBasins(
-  options: IWorldgenOptions,
+  options: IWorldMapGenOptions,
   cellNeighbors: [number, number, number][][][],
   waterheight: ndarray,
   cellTypes: ndarray,
@@ -499,7 +499,7 @@ function decideDrainageBasins(
  *    - warmer near shallow waters
  */
 function decideTemperature(
-  options: IWorldgenOptions,
+  options: IWorldMapGenOptions,
   sealevel: number,
   waterheight: ndarray
 ): ndarray {
@@ -540,7 +540,7 @@ function decideTemperature(
 }
 
 function generateMoisture(
-  options: IWorldgenOptions,
+  options: IWorldMapGenOptions,
   heightmap: ndarray,
   sealevel: number,
   cellTypes: ndarray,
@@ -599,7 +599,7 @@ function generateMoisture(
 }
 
 function generateBiomes(
-  options: IWorldgenOptions,
+  options: IWorldMapGenOptions,
   temperatures: ndarray,
   moistureMap: ndarray,
   cellTypes: ndarray,
@@ -649,7 +649,7 @@ function generateBiomes(
 }
 
 function findFeatures(
-  options: IWorldgenOptions,
+  options: IWorldMapGenOptions,
   cellTypes: ndarray,
   riverMap: ndarray,
   oceanCellCount: number
@@ -695,12 +695,12 @@ function runTerrainWorker<T>(
 
 const createWorkerRunner = (
   workerClass: any,
-  options: IWorldgenOptions,
+  options: IWorldMapGenOptions,
   heightmap,
 ) => cursor => runTerrainWorker(workerClass, { options, heightmap, cursor });
 
 ctx.onmessage = async (event: MessageEvent) => {
-  const options: IWorldgenOptions = event.data;
+  const options: IWorldMapGenOptions = event.data;
   const sealevel = options.sealevel;
   console.time('Worldgen');
 
@@ -787,7 +787,7 @@ ctx.onmessage = async (event: MessageEvent) => {
   const heightmapC = ndarray(new Uint8ClampedArray(width * height), [width, height]);
   fill(heightmapC, (x, y) => heightmap.get(x, y));
 
-  const output: IWorldgenWorkerOutput = {
+  const output: IWorldWorkerOutput = {
     options,
     sealevel,
     heightmap: heightmapC.data,

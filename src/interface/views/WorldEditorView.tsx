@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import { WorldGenerator } from '../../simulation';
 import World from "../../simulation/World";
 import { RouteComponentProps } from 'react-router'
-import { IWorldgenOptions, EWorldShape } from '../../simulation/types';
+import { IWorldMapGenOptions, EWorldShape } from '../../simulation/types';
 import {
   NavbarGroup,
   Button,
@@ -60,7 +60,7 @@ const FormGroupContainer = styled.div`
   }
 `;
 
-const initialOptions: IWorldgenOptions = {
+const initialOptions: IWorldMapGenOptions = {
   seed: 'fuck',
   sealevel: 102,
   size: {
@@ -78,7 +78,7 @@ Object.freeze(initialOptions);
 
 
 class WorldConfigEditor extends Component<{
-  options: IWorldgenOptions,
+  options: IWorldMapGenOptions,
   handleOptionChange: (optionName: string, value: any) => void,
   resetOptions: () => void,
   generate: () => void,
@@ -297,7 +297,7 @@ class WorldConfigEditor extends Component<{
 }
 
 export class WorldEditorView extends Component<RouteComponentProps<{}>, {
-  options: IWorldgenOptions,
+  options: IWorldMapGenOptions,
   world?: World,
   isLoading: boolean,
   currentSaveName: string | null,

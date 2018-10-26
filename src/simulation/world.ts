@@ -1,6 +1,6 @@
 import ndarray from 'ndarray';
 import ops from 'ndarray-ops';
-import { IWorldgenWorkerOutput } from './types';
+import { IWorldWorkerOutput } from './types';
 import { mapValues } from 'lodash';
 import { ICell, IDrainageBasin, EDirection, ECellType, ERiverType, ETerrainType, ECellFeature, EBiome } from './worldTypes';
 
@@ -31,10 +31,10 @@ export default class World {
   };
   sealevel: number;
   drainageBasins: IDrainageBasin[];
-  params: IWorldgenWorkerOutput;
+  params: IWorldWorkerOutput;
   stats: IWorldStats;
 
-  constructor(params: IWorldgenWorkerOutput) {
+  constructor(params: IWorldWorkerOutput) {
     this.params = params;
     this.grid = [];
     this.cells = new Set();

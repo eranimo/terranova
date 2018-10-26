@@ -1,20 +1,19 @@
 import World from "../World";
 import localforage from 'localforage';
-const WorldgenWorker = require('worker-loader!./main.worker');
-import { IWorldgenOptions, IWorldgenWorkerOutput } from '../types';
-import { omit } from 'lodash';
+const WorldgenWorker = require('worker-loader!./world.worker');
+import { IWorldMapGenOptions, IWorldWorkerOutput } from '../types';
 
 
 export interface IWorldSaveData {
   name: string;
   saveDate: number;
-  worldData: IWorldgenWorkerOutput;
+  worldData: IWorldWorkerOutput;
 }
 
 export interface IWorldSave {
   name: string;
   date: number;
-  options: IWorldgenOptions;
+  options: IWorldMapGenOptions;
   worldString: string;
 }
 
@@ -33,7 +32,7 @@ export class WorldGenerator {
     });
   }
 
-  generate(options: IWorldgenOptions): Promise<World> {
+  generate(options: IWorldMapGenOptions): Promise<World> {
     console.group('WorldGenerator worker');
     console.time('worldgen.worker execution time');
     // make a new World
@@ -42,7 +41,7 @@ export class WorldGenerator {
     return new Promise((resolve, reject) => {
       worker.onmessage = (message: MessageEvent) => {
         console.log('worldgen.worker result:', message.data);
-        const world: World = new World(message.data as IWorldgenWorkerOutput);
+        const world: World = new World(message.data as IWorldWorkerOutput);
         console.log('World object:', world);
         console.timeEnd('worldgen.worker execution time');
         console.groupEnd();
@@ -59,11 +58,11 @@ export class WorldGenerator {
   }
 
   async importFromString(worldString: string): Promise<World> {
-    const options: IWorldgenOptions = JSON.parse(atob(decodeURIComponent(worldString)));
+    const options: IWorldMapGenOptions = JSON.parse(atob(decodeURIComponent(worldString)));
     return await this.generate(options);
   }
 
-  async importFromSave(saveName: string): Promise<IWorldgenOptions> {
+  async importFromSave(saveName: string): Promise<IWorldMapGenOptions> {
     const world: World = await this.loadWorld(saveName);
     return world.params.options;
   }
@@ -112,7 +111,7 @@ export class WorldGenerator {
     if (data === null) {
       throw new Error(`Save '${name}' not found`);
     }
-    return new World(data.worldData as IWorldgenWorkerOutput);
+    return new World(data.worldData as IWorldWorkerOutput);
   }
 
   async removeSave(name: string): Promise<void> {
