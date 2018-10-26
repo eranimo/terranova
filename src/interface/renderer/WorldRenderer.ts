@@ -105,6 +105,8 @@ export default class WorldRenderer {
     for (const [name, mapMode] of Object.entries(this.chunkRenderer.mapModes)) {
       if (mapMode.renderLegend && mapMode.showLegend) {
         const legend = mapMode.renderLegend();
+        legend.interactive = false;
+        legend.interactiveChildren = false;
         this.legends[name] = legend;
         legendContainer.addChild(legend);
       }

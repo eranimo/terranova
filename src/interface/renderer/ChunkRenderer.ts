@@ -6,6 +6,7 @@ import { EMapMode, mapModes, IMapMode } from './mapModes';
 import { isFunction } from 'lodash';
 import Array2D from '../../utils/Array2D';
 import { makeArrow } from './textures';
+import Viewport from 'pixi-viewport';
 
 
 const directionAngles = {
@@ -141,24 +142,26 @@ export class ChunkRenderer {
     // render map modes
     const mapModeLayers = {};
     for (const [name, mapMode] of Object.entries(this.mapModes)) {
-      const mapModeSprite = mapMode.renderChunk(
+      const mapModeSprite: Sprite = mapMode.renderChunk(
         this.options,
         chunkCells,
         chunkPosition,
       );
+      mapModeSprite.interactive = false;
       mapModeSprite.cacheAsBitmap = true;
       chunk.addChild(mapModeSprite);
 
       mapModeLayers[name] = mapModeSprite;
     }
 
-    const gridSprite = drawGridLines(
+    const gridSprite: Sprite = drawGridLines(
       this.chunkWorldWidth,
       this.chunkWorldHeight,
       cellWidth,
       cellHeight,
     );
     gridSprite.alpha = 0.25;
+    gridSprite.interactive = false;
     gridSprite.cacheAsBitmap = true;
     chunk.addChild(gridSprite);
 
@@ -178,12 +181,14 @@ export class ChunkRenderer {
         0.5, 0.5
       );
       arrowSprite.rotation = directionAngles[cell.flowDir] * (Math.PI / 180);
+      arrowSprite.interactive = false;
       flowArrows.addChild(arrowSprite);
     }
     flowArrows.cacheAsBitmap = true;
+    flowArrows.interactive = false;
     chunk.addChild(flowArrows);
 
-    const coastlineBorder = drawCellBorders(
+    const coastlineBorder: Sprite = drawCellBorders(
       chunkCells,
       chunkPosition,
       this.world,
@@ -194,6 +199,7 @@ export class ChunkRenderer {
       (a: Cell, b: Cell) => a.isLand && !b.isLand,
     );
     coastlineBorder.cacheAsBitmap = true;
+    coastlineBorder.interactive = false;
     chunk.addChild(coastlineBorder);
 
     this.renderedChunks.set(chunkX, chunkY, {

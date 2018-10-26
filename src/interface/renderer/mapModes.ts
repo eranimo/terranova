@@ -140,6 +140,7 @@ class GroupedCellsMapMode implements IMapMode {
 
     const texture = g.generateCanvasTexture();
     const sprite = new Sprite(texture);
+    sprite.interactive = true;
     const container = new Container();
     container.addChild(sprite);
     for (const text of groupTexts) {
