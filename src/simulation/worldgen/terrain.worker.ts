@@ -1,7 +1,7 @@
 import ndarray from 'ndarray';
 import Alea from 'alea';
 import SimplexNoise from 'simplex-noise';
-import { IWorldgenOptions, EWorldShape } from '../types';
+import { IWorldgenOptions, EWorldShape } from './types';
 
 
 function generateHeightmap(

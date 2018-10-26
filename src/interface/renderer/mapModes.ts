@@ -1,6 +1,9 @@
-import { EBiome, ETerrainType, terrainTypeLabels, cellFeatureLabels } from './../../simulation/world';
+import { EBiome, ETerrainType } from '../../simulation/worldTypes';
+import { terrainTypeLabels, cellFeatureLabels } from "../../simulation/labels";
 import { Sprite, Graphics, Point, Container, Text, TextStyle } from 'pixi.js';
-import World, { Cell, climateColors, ECellFeature, ECellType } from '../../simulation/world';
+import { ICell, ECellFeature, ECellType } from '../../simulation/worldTypes';
+import { climateColors } from '../../simulation/colors';
+import World from "../../simulation/World";
 import { IWorldRendererOptions } from './WorldRenderer';
 import { ChunkRenderer } from './ChunkRenderer';
 import colormap from 'colormap';
@@ -62,7 +65,7 @@ export interface IMapMode {
 
   renderChunk(
     renderOptions: IWorldRendererOptions,
-    cells: Cell[],
+    cells: ICell[],
     chunkPosition: Point,
   ): Sprite;
   renderLegend?(): Container;
@@ -73,7 +76,7 @@ interface IGroupDef {
   name: string
   color?: number,
   showLegend?: boolean,
-  paintCell(cell: Cell): number | null
+  paintCell(cell: ICell): number | null
 }
 
 class GroupedCellsMapMode implements IMapMode {
@@ -151,12 +154,12 @@ class GroupedCellsMapMode implements IMapMode {
 
   renderChunk(
     renderOptions: IWorldRendererOptions,
-    cells: Cell[],
+    cells: ICell[],
     chunkPosition: Point,
   ): Sprite {
     const { cellWidth, cellHeight } = renderOptions;
     const g = new PIXI.Graphics(true);
-    const groupedCells: Record<string, Cell[]> = {};
+    const groupedCells: Record<string, ICell[]> = {};
 
     for (const group of this.groups) {
       groupedCells[group.name] = [];
@@ -306,7 +309,7 @@ class ColormapMapMode implements IMapMode {
 
   renderChunk(
     renderOptions: IWorldRendererOptions,
-    cells: Cell[],
+    cells: ICell[],
     chunkPosition: Point,
   ): Sprite {
     const { cellWidth, cellHeight } = renderOptions;
@@ -314,7 +317,7 @@ class ColormapMapMode implements IMapMode {
     const { min, max, colors } = this.mapData;
     let index: number;
     let color: number[];
-    const cellsByColor: Record<any, Cell[]> = {};
+    const cellsByColor: Record<any, ICell[]> = {};
     for (const cell of cells) {
       index = Math.round(((cell[this.datapoint] - min) / (max - min)) * 100);
       if (isNaN(index)) {
@@ -357,7 +360,7 @@ export const mapModes: Partial<Record<EMapMode, MapModeDef>> = {
       groups: [
         {
           name: 'coastal',
-          paintCell: (cell: Cell) => (
+          paintCell: (cell: ICell) => (
               cell.feature === ECellFeature.COASTAL ||
               cell.feature === ECellFeature.LAKE
             )
@@ -366,13 +369,13 @@ export const mapModes: Partial<Record<EMapMode, MapModeDef>> = {
         },
         {
           name: 'rivers',
-          paintCell: (cell: Cell) => cell.riverType > 0
+          paintCell: (cell: ICell) => cell.riverType > 0
             ? climateColors.ocean.coast
             : null,
         },
         {
           name: 'ocean',
-          paintCell: (cell: Cell) => (
+          paintCell: (cell: ICell) => (
             cell.type === ECellType.OCEAN
               ? climateColors.ocean.deep
               : null
@@ -380,7 +383,7 @@ export const mapModes: Partial<Record<EMapMode, MapModeDef>> = {
         },
         ...Object.values(EBiome).map(biome => ({
           name: `biome-${biome}`,
-          paintCell: (cell: Cell) => {
+          paintCell: (cell: ICell) => {
             if (cell.biome === biome) {
               const color = climateColors.biomes[biome];
               if (typeof color === 'object') {
@@ -402,7 +405,7 @@ export const mapModes: Partial<Record<EMapMode, MapModeDef>> = {
       groups: mapEnum(ECellFeature).map(({ name, id }) => ({
         name: cellFeatureLabels[id],
         color: featureColors[id],
-        paintCell: (cell: Cell) => (
+        paintCell: (cell: ICell) => (
           cell.feature === id
             ? featureColors[id]
             : null
@@ -417,7 +420,7 @@ export const mapModes: Partial<Record<EMapMode, MapModeDef>> = {
       groups: mapEnum(ETerrainType).map(({ name, id }) => ({
         name: terrainTypeLabels[id],
         color: terrainTypeColors[id],
-        paintCell: (cell: Cell) => (
+        paintCell: (cell: ICell) => (
           cell.terrainType === id
             ? terrainTypeColors[id]
             : null
@@ -431,7 +434,7 @@ export const mapModes: Partial<Record<EMapMode, MapModeDef>> = {
       groups: [
         {
           name: `drainage-basins`,
-          paintCell: (cell: Cell) => (
+          paintCell: (cell: ICell) => (
             cell.drainageBasin
               ? cell.drainageBasin.color
               : 0xFFF

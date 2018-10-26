@@ -1,1 +1,1 @@
-export { Simulation } from './simulation';
+export { WorldGenerator } from './worldgen/WorldGenerator';

@@ -1,8 +1,8 @@
 import React, { Component } from 'react';
-import { Simulation } from '../../simulation';
-import World from '../../simulation/world';
+import { WorldGenerator } from '../../simulation';
+import World from "../../simulation/World";
 import { RouteComponentProps } from 'react-router'
-import { IWorldgenOptions, EWorldShape } from '../../simulation/types';
+import { IWorldgenOptions, EWorldShape } from '../../simulation/worldgen/types';
 import {
   NavbarGroup,
   Button,
@@ -305,7 +305,7 @@ export class WorldEditorView extends Component<RouteComponentProps<{}>, {
   saveDialogOpen: boolean,
   configDialogOpen: boolean,
 }> {
-  simulation: Simulation;
+  simulation: WorldGenerator;
 
   state = {
     options: cloneDeep(initialOptions),
@@ -319,7 +319,7 @@ export class WorldEditorView extends Component<RouteComponentProps<{}>, {
 
   constructor(props) {
     super(props);
-    this.simulation = new Simulation();
+    this.simulation = new WorldGenerator();
     this.start();
   }
 

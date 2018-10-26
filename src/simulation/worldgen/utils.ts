@@ -1,10 +1,12 @@
+import { EWorldShape } from './types';
 import ndarray from 'ndarray';
 import { groupBy, mapValues, memoize } from 'lodash';
 import fill from 'ndarray-fill';
 import ops from 'ndarray-ops';
 import * as Stats from 'simple-statistics';
-
-import { EDirection } from '../world';
+import Alea from 'alea';
+import SimplexNoise from 'simplex-noise';
+import { EDirection } from '../worldTypes';
 
 
 const rowNeighbors: number[] = [-1, -1, -1,  0, 0,  1, 1, 1];
@@ -144,3 +146,49 @@ export function loopGridCircle(x, y, radius) {
   }
   return cells;
 }
+
+export function getHeightFactory(
+  worldSize: {
+    width: number,
+    height: number,
+  },
+  worldShape: EWorldShape,
+  worldShapePower: number,
+  seed: string | number,
+): (x: number, y: number,) => number {
+  const { width, height } = worldSize;
+  const rng = new (Alea as any)(seed);
+  const simplex = new SimplexNoise(rng);
+  const noiseFunc = (nx, ny) => simplex.noise2D(nx, ny);
+  const centerX = width / 2;
+  const centerY = height / 2;
+  const maxDistanceToCenter = Math.min(width / 2, height / 2);
+
+  return (x, y) => {
+    // use simplex noise to create random terrain
+    const nx = x / width - 0.5;
+    const ny = y / height - 0.5;
+    let value = (
+      0.35 * noiseFunc(2.50 * nx, 2.50 * ny) +
+      0.30 * noiseFunc(5.00 * nx, 5.00 * ny) +
+      0.20 * noiseFunc(10.0 * nx, 10.0 * ny) +
+      0.10 * noiseFunc(20.0 * nx, 20.0 * ny) +
+      0.05 * noiseFunc(40.0 * nx, 40.0 * ny)
+    );
+    value = (value + 1) / 2;
+
+    // decrease the height of cells farther away from the center to create an island
+    if (worldShape === EWorldShape.CIRCLE) {
+      const distanceToCenter = Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2));
+      const distanceRatio = distanceToCenter / maxDistanceToCenter;
+      value = value * (1 - Math.pow(distanceRatio, worldShapePower));
+    } else if (worldShape === EWorldShape.RECTANGLE) {
+      const distanceRatio = Math.max(
+        Math.abs(x - centerX) / (width / 2),
+        Math.abs(y - centerY) / (height / 2),
+      );
+      value = value * (1 - Math.pow(distanceRatio, worldShapePower));
+    }
+    return value * 255;
+  }
+};

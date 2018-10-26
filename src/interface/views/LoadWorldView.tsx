@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
-import { Simulation } from '../../simulation';
-import World from '../../simulation/world';
+import { WorldGenerator } from '../../simulation';
+import World from "../../simulation/World";
 import { RouteComponentProps } from 'react-router'
 import {
   Spinner, NavbarGroup, Alignment, NavbarHeading, NavbarDivider
@@ -12,7 +12,7 @@ import BackButton from '../components/BackButton';
 export class LoadWorldView extends Component<RouteComponentProps<{
   saveName: string
 }>, { world?: World }> {
-  simulation: Simulation;
+  simulation: WorldGenerator;
 
   state = {
     world: null,
@@ -21,7 +21,7 @@ export class LoadWorldView extends Component<RouteComponentProps<{
   constructor(props) {
     super(props);
 
-    this.simulation = new Simulation();
+    this.simulation = new WorldGenerator();
     this.load();
   }
 

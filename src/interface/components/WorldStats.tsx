@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
-import World, { biomeTitles } from '../../simulation/world';
+import { biomeTitles } from "../../simulation/labels";
+import World from "../../simulation/World";
 import { Tabs, Tab } from '@blueprintjs/core';
 
 

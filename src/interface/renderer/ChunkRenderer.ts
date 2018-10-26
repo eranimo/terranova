@@ -1,6 +1,7 @@
-import { EDirection, ECellFeature } from './../../simulation/world';
+import { EDirection, ECellFeature, ECellType } from '../../simulation/worldTypes';
 import { Sprite, Container, Point } from 'pixi.js';
-import World, { Cell } from '../../simulation/world';
+import { ICell } from '../../simulation/worldTypes';
+import World from "../../simulation/World";
 import { IWorldRendererOptions } from './WorldRenderer';
 import { EMapMode, mapModes, IMapMode } from './mapModes';
 import { isFunction } from 'lodash';
@@ -71,7 +72,7 @@ export class ChunkRenderer {
     );
   }
 
-  getChunkAtCell(cell: Cell): IChunkRef {
+  getChunkAtCell(cell: ICell): IChunkRef {
     return {
       chunkX: Math.floor(cell.x / this.options.chunkWidth),
       chunkY: Math.floor(cell.y / this.options.chunkHeight),
@@ -94,11 +95,11 @@ export class ChunkRenderer {
     return this.getChunkAtCell(cell);
   }
 
-  getCellsInChunk(chunkX: number, chunkY: number): Cell[] {
+  getCellsInChunk(chunkX: number, chunkY: number): ICell[] {
     return Array.from(this.mapCellsInChunk(chunkX, chunkY));
   }
 
-  *mapCellsInChunk(chunkX: number, chunkY: number): IterableIterator<Cell> {
+  *mapCellsInChunk(chunkX: number, chunkY: number): IterableIterator<ICell> {
     const { chunkWidth, chunkHeight } = this.options;
     for (let x = chunkX * chunkWidth; x < (chunkX + 1) * chunkWidth; x++) {
       for (let y = chunkY * chunkHeight; y < (chunkY + 1) * chunkHeight; y++) {
@@ -196,7 +197,7 @@ export class ChunkRenderer {
       cellHeight,
       this.chunkWorldWidth,
       this.chunkWorldHeight,
-      (a: Cell, b: Cell) => a.isLand && !b.isLand,
+      (a: ICell, b: ICell) => a.type === ECellType.LAND && b.type !== ECellType.LAND,
     );
     coastlineBorder.cacheAsBitmap = true;
     coastlineBorder.interactive = false;
@@ -272,14 +273,14 @@ function drawGridLines(
 }
 
 function drawCellBorders(
-  chunkCells: Cell[],
+  chunkCells: ICell[],
   chunkPosition: Point,
   world: World,
   cellWidth: number,
   cellHeight: number,
   chunkWidth : number,
   chunkHeight: number,
-  shouldDraw: (a: Cell, b: Cell) => boolean,
+  shouldDraw: (a: ICell, b: ICell) => boolean,
 ): PIXI.Sprite {
   const g = new PIXI.Graphics(true);
 

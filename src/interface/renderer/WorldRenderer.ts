@@ -1,5 +1,5 @@
 import * as PIXI from 'pixi.js';
-import World from '../../simulation/world';
+import World from "../../simulation/World";
 import Viewport from 'pixi-viewport';
 import { ChunkRenderer } from './ChunkRenderer';
 import WorldUI, { UIEvent } from './WorldUI';

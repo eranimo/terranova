@@ -1,7 +1,9 @@
 import React, { Component, Fragment } from 'react';
 import { WorldViewer, IViewOptions } from './WorldViewer';
 import { mapModes, EMapMode, mapModeDesc } from '../renderer/mapModes';
-import World, { Cell, biomeTitles, directionLabels, cellFeatureLabels, temperatureZoneTitles, moistureZoneTitles, terrainTypeLabels } from '../../simulation/world';
+import { ICell } from '../../simulation/worldTypes';
+import { biomeTitles, directionLabels, cellFeatureLabels, temperatureZoneTitles, moistureZoneTitles, terrainTypeLabels } from "../../simulation/labels";
+import World from "../../simulation/World";
 import {
   Navbar,
   NavbarGroup,
@@ -189,7 +191,7 @@ const CellDetailContainer = styled.div`
 `;
 
 class CellDetail extends Component<{
-  cell: Cell,
+  cell: ICell,
   handleClose: () => void,
 }> {
   render() {
@@ -274,7 +276,7 @@ export class WorldViewerContainer extends Component<{
   renderControls?: () => React.ReactNode,
 }, {
   viewOptions: IViewOptions;
-  selectedCell: Cell | null;
+  selectedCell: ICell | null;
 }> {
   constructor(props) {
     super(props);
@@ -315,7 +317,7 @@ export class WorldViewerContainer extends Component<{
       },
     });
   }
-  onCellClick = (cell: Cell) => {
+  onCellClick = (cell: ICell) => {
     if (this.state.selectedCell == cell) {
       // deselect
       this.setState({ selectedCell: null });

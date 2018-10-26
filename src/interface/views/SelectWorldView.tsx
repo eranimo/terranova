@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { Simulation } from '../../simulation';
+import { WorldGenerator } from '../../simulation';
 import { Link } from 'react-router-dom';
 import { RouteComponentProps } from 'react-router'
 
@@ -13,7 +13,7 @@ import {
   Tooltip,
 } from '@blueprintjs/core';
 import styled from 'styled-components';
-import { IWorldSave } from '../../simulation/simulation';
+import { IWorldSave } from '../../simulation/worldgen/WorldGenerator';
 
 const Container = styled.div`
   width: 60%;
@@ -26,7 +26,7 @@ export class SelectWorldView extends Component<RouteComponentProps<{}>, {
   isLoading: boolean,
   deleteModalSaveName: string | null,
 }> {
-  simulation: Simulation;
+  simulation: WorldGenerator;
 
   state = {
     isLoading: true,
@@ -37,7 +37,7 @@ export class SelectWorldView extends Component<RouteComponentProps<{}>, {
   constructor(props) {
     super(props);
 
-    this.simulation = new Simulation();
+    this.simulation = new WorldGenerator();
     this.loadSaves();
   }
 

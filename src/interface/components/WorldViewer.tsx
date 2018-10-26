@@ -1,6 +1,7 @@
 import React from 'react';
 import * as PIXI from 'pixi.js';
-import World, { Cell } from '../../simulation/world';
+import { ICell } from '../../simulation/worldTypes';
+import World from "../../simulation/World";
 import { EMapMode } from '../renderer/mapModes';
 import WorldRenderer from '../renderer/WorldRenderer';
 
@@ -16,8 +17,8 @@ export interface IViewOptions {
 export interface IWorldViewerProps {
   world: World,
   viewOptions: IViewOptions;
-  selectedCell: Cell | null;
-  onCellClick: (cell: Cell) => void;
+  selectedCell: ICell | null;
+  onCellClick: (cell: ICell) => void;
 }
 
 export class WorldViewer extends React.Component<IWorldViewerProps> {
@@ -75,7 +76,7 @@ export class WorldViewer extends React.Component<IWorldViewerProps> {
     this.renderer.destroy();
   }
 
-  selectCell(cell: Cell) {
+  selectCell(cell: ICell) {
     if (cell === null) {
       this.renderer.worldUI.children.selectedCursor.alpha = 0;
     } else {

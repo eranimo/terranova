@@ -19,6 +19,20 @@ export interface IWorldgenOptions {
   depressionFillPercent: number, // 0 to 1
 }
 
+export interface ILocalMapOptions {
+  // offset in world coordinates relative to origin of world map
+  offset: {
+    x: number;
+    y: number;
+  };
+
+  // size of local map in local coordinates
+  size: {
+    width: number,
+    height: number,
+  };
+}
+
 export enum EWorldShape {
   FREEFORM = 'freeform',
   CIRCLE = 'circle',

@@ -1,6 +1,6 @@
-import World from './world';
+import World from "../World";
 import localforage from 'localforage';
-const WorldgenWorker = require('worker-loader!./worldgen/main.worker');
+const WorldgenWorker = require('worker-loader!./main.worker');
 import { IWorldgenOptions, IWorldgenWorkerOutput } from './types';
 import { omit } from 'lodash';
 
@@ -18,7 +18,7 @@ export interface IWorldSave {
   worldString: string;
 }
 
-export class Simulation {
+export class WorldGenerator {
   ticks: number;
   saveStore: LocalForage;
   saveDataStore: LocalForage;
@@ -46,7 +46,7 @@ export class Simulation {
         console.log('World object:', world);
         console.timeEnd('worldgen.worker execution time');
         console.groupEnd();
-        Object.values(message.data).forEach(value => value instanceof SharedArrayBuffer ? console.log('SAB') : null);
+        Object.values(message.data);
         resolve(world);
       }
       worker.onerror = error => {
