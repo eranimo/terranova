@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { WorldGenerator } from '../../simulation';
+import { WorldGenerator, worldStore } from '../../simulation';
 import { Link } from 'react-router-dom';
 import { RouteComponentProps } from 'react-router'
 
@@ -13,7 +13,7 @@ import {
   Tooltip,
 } from '@blueprintjs/core';
 import styled from 'styled-components';
-import { IWorldSave } from '../../simulation/worldgen/WorldGenerator';
+import { ISaveStoreEntry } from '../../simulation/SaveStore';
 
 const Container = styled.div`
   width: 60%;
@@ -22,7 +22,7 @@ const Container = styled.div`
 `;
 
 export class SelectWorldView extends Component<RouteComponentProps<{}>, {
-  saves: IWorldSave[],
+  saves: ISaveStoreEntry[],
   isLoading: boolean,
   deleteModalSaveName: string | null,
 }> {
@@ -42,13 +42,13 @@ export class SelectWorldView extends Component<RouteComponentProps<{}>, {
   }
 
   loadSaves() {
-    this.simulation.getWorldSaves()
+    worldStore.getSaves()
       .then(saves => this.setState({ isLoading: false, saves }))
   }
 
   deleteSave() {
     this.setState({ isLoading: true });
-    this.simulation.removeSave(this.state.deleteModalSaveName)
+    worldStore.removeSave(this.state.deleteModalSaveName)
     this.loadSaves();
     this.setState({ deleteModalSaveName: null });
   }
@@ -76,7 +76,7 @@ export class SelectWorldView extends Component<RouteComponentProps<{}>, {
           </tr>
         </thead>
         <tbody>
-          {this.state.saves.map((save: IWorldSave) => (
+          {this.state.saves.map((save: ISaveStoreEntry) => (
             <tr key={save.name}>
               <td>
                 <Link
@@ -87,7 +87,7 @@ export class SelectWorldView extends Component<RouteComponentProps<{}>, {
                 </Link>
               </td>
               <td>
-                {new Date(save.date).toLocaleDateString()}
+                {new Date(save.createdAt).toLocaleDateString()}
               </td>
               <td>
                 <Tooltip

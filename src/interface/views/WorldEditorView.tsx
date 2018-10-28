@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { WorldGenerator } from '../../simulation';
+import { WorldGenerator, worldStore } from '../../simulation';
 import World from "../../simulation/World";
 import { RouteComponentProps } from 'react-router'
 import { IWorldMapGenOptions, EWorldShape } from '../../simulation/types';
@@ -305,7 +305,7 @@ export class WorldEditorView extends Component<RouteComponentProps<{}>, {
   saveDialogOpen: boolean,
   configDialogOpen: boolean,
 }> {
-  simulation: WorldGenerator;
+  worldgen: WorldGenerator;
 
   state = {
     options: cloneDeep(initialOptions),
@@ -319,7 +319,7 @@ export class WorldEditorView extends Component<RouteComponentProps<{}>, {
 
   constructor(props) {
     super(props);
-    this.simulation = new WorldGenerator();
+    this.worldgen = new WorldGenerator();
     this.start();
   }
 
@@ -328,15 +328,16 @@ export class WorldEditorView extends Component<RouteComponentProps<{}>, {
     const { ws, saveName } = parse(this.props.location.search);
     let world;
     if (ws) {
-      world = await this.simulation.importFromString(ws);
+      world = await this.worldgen.loadFromString(ws);
     } else if (saveName) {
-      const optionsFromSave = await this.simulation.importFromSave(saveName);
+      const loadedWorld = await worldStore.load(saveName);
+      const optionsFromSave = loadedWorld.params.options;
       this.setState({
         options: optionsFromSave,
         currentSaveName: saveName,
       });
     } else {
-      world = await this.simulation.generate(this.state.options);
+      world = await this.worldgen.generate(this.state.options);
     }
     console.log('start', world);
     this.setState({ world, isLoading: false });
@@ -344,7 +345,7 @@ export class WorldEditorView extends Component<RouteComponentProps<{}>, {
 
   async generate() {
     this.setState({ isLoading: true });
-    const world = await this.simulation.generate(this.state.options);
+    const world = await this.worldgen.generate(this.state.options);
     console.log('generate', world);
     localStorage.removeItem('viewportState');
     this.setState({ world, isLoading: false });
@@ -356,7 +357,7 @@ export class WorldEditorView extends Component<RouteComponentProps<{}>, {
       message: `World "${this.state.saveNameInput}" saved`,
       intent: 'primary',
     });
-    await this.simulation.saveWorld(this.state.world, this.state.saveNameInput);
+    await worldStore.save(this.state.world, this.state.saveNameInput);
     this.setState({
       currentSaveName: this.state.saveNameInput,
       saveNameInput: '',

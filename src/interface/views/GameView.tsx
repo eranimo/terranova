@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { WorldGenerator, worldStore } from '../../simulation';
+import { WorldGenerator, RegionGenerator } from '../../simulation';
 import World from "../../simulation/World";
 import { RouteComponentProps } from 'react-router'
 import {
@@ -9,10 +9,11 @@ import { WorldViewerContainer } from '../components/WorldViewerContainer';
 import BackButton from '../components/BackButton';
 
 
-export class LoadWorldView extends Component<RouteComponentProps<{
+export class GameView extends Component<RouteComponentProps<{
   saveName: string
 }>, { world?: World }> {
-  worldgen: WorldGenerator;
+  worldGenerator: WorldGenerator;
+  regionGenerator: RegionGenerator;
 
   state = {
     world: null,
@@ -21,13 +22,13 @@ export class LoadWorldView extends Component<RouteComponentProps<{
   constructor(props) {
     super(props);
 
-    this.worldgen = new WorldGenerator();
+    this.worldGenerator = new WorldGenerator();
     this.load();
   }
 
   async load() {
     const { saveName } = this.props.match.params;
-    const world: World = await worldStore.load(saveName);
+    const world = await this.worldGenerator.loadWorld(saveName);
     console.log('World loaded', world);
     this.setState({ world });
   }
