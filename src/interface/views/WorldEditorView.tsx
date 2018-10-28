@@ -330,8 +330,8 @@ export class WorldEditorView extends Component<RouteComponentProps<{}>, {
     if (ws) {
       world = await this.worldgen.loadFromString(ws);
     } else if (saveName) {
-      const loadedWorld = await worldStore.load(saveName);
-      const optionsFromSave = loadedWorld.params.options;
+      world = await worldStore.load(saveName);
+      const optionsFromSave = world.params.options;
       this.setState({
         options: optionsFromSave,
         currentSaveName: saveName,
