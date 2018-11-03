@@ -525,7 +525,7 @@
     lodash "^4.17.10"
     to-fast-properties "^2.0.0"
 
-"@blueprintjs/core@3.6.1":
+"@blueprintjs/core@3.6.1", "@blueprintjs/core@^3.6.0":
   version "3.6.1"
   resolved "https://registry.yarnpkg.com/@blueprintjs/core/-/core-3.6.1.tgz#d168423b1c38964e50c2cc8aef4cba8076bfe01a"
   dependencies:
@@ -544,6 +544,14 @@
   version "3.1.0"
   resolved "https://registry.yarnpkg.com/@blueprintjs/icons/-/icons-3.1.0.tgz#7bf137bd30eb74a4d35d4e03e736898ef9ab6025"
   dependencies:
+    classnames "^2.2"
+    tslib "^1.9.0"
+
+"@blueprintjs/select@^3.2.1":
+  version "3.2.1"
+  resolved "https://registry.yarnpkg.com/@blueprintjs/select/-/select-3.2.1.tgz#44d2fd82c7d08d03e8decd47131fe848b17d7cc0"
+  dependencies:
+    "@blueprintjs/core" "^3.6.0"
     classnames "^2.2"
     tslib "^1.9.0"
 
@@ -1357,7 +1365,7 @@ class-utils@^0.3.5:
     isobject "^3.0.0"
     static-extend "^0.1.1"
 
-classnames@^2.2:
+classnames@^2.2, classnames@^2.2.6:
   version "2.2.6"
   resolved "https://registry.yarnpkg.com/classnames/-/classnames-2.2.6.tgz#43935bffdd291f326dad0a205309b38d00f650ce"
 

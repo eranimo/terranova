@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { WorldGenerator, worldStore } from '../../simulation';
+import { WorldGenerator, gameStore } from '../../simulation';
 import { Link } from 'react-router-dom';
 import { RouteComponentProps } from 'react-router'
 
@@ -21,7 +21,7 @@ const Container = styled.div`
   margin-top: 2rem;
 `;
 
-export class SelectWorldView extends Component<RouteComponentProps<{}>, {
+export class LoadGameView extends Component<RouteComponentProps<{}>, {
   saves: ISaveStoreEntry[],
   isLoading: boolean,
   deleteModalSaveName: string | null,
@@ -42,13 +42,13 @@ export class SelectWorldView extends Component<RouteComponentProps<{}>, {
   }
 
   loadSaves() {
-    worldStore.getSaves()
+    gameStore.getSaves()
       .then(saves => this.setState({ isLoading: false, saves }))
   }
 
   deleteSave() {
     this.setState({ isLoading: true });
-    worldStore.removeSave(this.state.deleteModalSaveName)
+    gameStore.removeSave(this.state.deleteModalSaveName)
     this.loadSaves();
     this.setState({ deleteModalSaveName: null });
   }
@@ -62,7 +62,7 @@ export class SelectWorldView extends Component<RouteComponentProps<{}>, {
     if (this.state.saves.length === 0) {
       return (
         <div>
-          No saves
+          No game saves
         </div>
       );
     }
@@ -80,7 +80,7 @@ export class SelectWorldView extends Component<RouteComponentProps<{}>, {
             <tr key={save.name}>
               <td>
                 <Link
-                  to={`/world/${save.name}`}
+                  to={`/game/load/${save.name}`}
                   className={Classes.TEXT_LARGE}
                 >
                   {save.name}
@@ -104,17 +104,6 @@ export class SelectWorldView extends Component<RouteComponentProps<{}>, {
                     <Icon icon="delete" iconSize={12} />
                   </Button>
                 </Tooltip>
-                <Tooltip
-                  content="Edit world"
-                >
-                  <Link
-                    to={`/editor?saveName=${save.name}`}
-                    className={[Classes.BUTTON, Classes.MINIMAL].join(' ')}
-                    style={{ minHeight: 17 }}
-                  >
-                    <Icon icon="edit" iconSize={12} />
-                  </Link>
-                </Tooltip>
               </td>
             </tr>
           ))}
@@ -128,7 +117,7 @@ export class SelectWorldView extends Component<RouteComponentProps<{}>, {
       <Container>
         <h1>Terra Nova</h1>
         <Card>
-          <h4 className={Classes.HEADING}>Load Saved World</h4>
+          <h4 className={Classes.HEADING}>Load Saved Game</h4>
           {this.renderSaves()}
         </Card>
         <Alert

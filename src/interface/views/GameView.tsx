@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
-import { WorldGenerator, RegionGenerator } from '../../simulation';
-import World from "../../simulation/World";
+import { WorldGenerator, RegionGenerator, worldStore, gameStore } from '../../simulation';
+import Game from "../../simulation/Game";
 import { RouteComponentProps } from 'react-router'
 import {
   Spinner, NavbarGroup, Alignment, NavbarHeading, NavbarDivider
@@ -10,13 +10,17 @@ import BackButton from '../components/BackButton';
 
 
 export class GameView extends Component<RouteComponentProps<{
-  saveName: string
-}>, { world?: World }> {
+  name: string
+}>, {
+  game?: Game,
+  isLoading: boolean
+}> {
   worldGenerator: WorldGenerator;
   regionGenerator: RegionGenerator;
 
   state = {
-    world: null,
+    game: null,
+    isLoading: true,
   }
 
   constructor(props) {
@@ -27,27 +31,34 @@ export class GameView extends Component<RouteComponentProps<{
   }
 
   async load() {
-    const { saveName } = this.props.match.params;
-    const world = await this.worldGenerator.loadWorld(saveName);
-    console.log('World loaded', world);
-    this.setState({ world });
+    const { name } = this.props.match.params;
+    const game = await gameStore.load(name);
+    await game.init();
+    console.log('Game loaded', game);
+    this.setState({
+      game,
+      isLoading: false
+    });
   }
 
   render() {
-    if (this.state.world === null) {
+    if (this.state.isLoading) {
       return <Spinner/>;
     }
+    console.log(this.state.game.world);
     return (
       <WorldViewerContainer
         renderControls={() => [
           <NavbarGroup align={Alignment.LEFT}>
             <BackButton />
             <NavbarDivider />
-            <NavbarHeading>World Viewer</NavbarHeading>
+            <NavbarHeading>
+              Game <b>{this.state.game.name}</b>
+            </NavbarHeading>
           </NavbarGroup>
         ]}
-        world={this.state.world}
-        isLoading={this.state.world === null}
+        world={this.state.game.world}
+        isLoading={this.state.isLoading}
       />
     );
   }
