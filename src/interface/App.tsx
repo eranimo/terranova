@@ -3,11 +3,13 @@ import { BrowserRouter, Route, Switch } from 'react-router-dom';
 
 import { MainMenu } from './views/MainMenu';
 import { WorldEditorView } from './views/WorldEditorView';
-import { SelectWorldView } from './views/SelectWorldView';
 import { LoadWorldView } from './views/LoadWorldView';
+import { WorldView } from './worldview';
 import { LoadGameView } from './views/LoadGameView';
-import { GameView } from './views/GameView';
+import { GameView } from './gameview';
 import { NewGameView } from './views/NewGameView';
+
+import * as URLS from './urls';
 
 export class Application extends Component {
   render() {
@@ -16,33 +18,33 @@ export class Application extends Component {
         <Switch>
         <Route
             exact
-            path="/"
+            path={URLS.MAIN_MENU_URL}
             component={MainMenu}
           />
           <Route
             exact
-            path="/world/load"
-            component={SelectWorldView}
-          />
-          <Route
-            path="/world/load/:saveName"
+            path={URLS.LOAD_WORLD_VIEW_URL}
             component={LoadWorldView}
           />
           <Route
-            path="/world/editor"
+            path={URLS.WORLD_VIEW_URL}
+            component={WorldView}
+          />
+          <Route
+            path={URLS.NEW_WORLD_VIEW_URL}
             component={WorldEditorView}
           />
           <Route
-            path="/game/new"
+            path={URLS.NEW_GAME_VIEW_URL}
             component={NewGameView}
           />
           <Route
             exact
-            path="/game/load"
+            path={URLS.LOAD_GAME_VIEW_URL}
             component={LoadGameView}
           />
           <Route
-            path="/game/load/:name"
+            path={URLS.GAME_VIEW_URL}
             component={GameView}
           />
         </Switch>

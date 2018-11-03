@@ -31,7 +31,7 @@ import {
   Slider,
   RangeSlider,
 } from '@blueprintjs/core';
-import { WorldViewerContainer } from '../components/WorldViewerContainer';
+import { WorldViewerContainer } from '../worldview/WorldViewerContainer';
 import { set, capitalize, cloneDeep } from 'lodash';
 import styled from 'styled-components';
 import { clamp } from '@blueprintjs/core/lib/esm/common/utils';

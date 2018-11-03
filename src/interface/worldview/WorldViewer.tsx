@@ -2,8 +2,8 @@ import React from 'react';
 import * as PIXI from 'pixi.js';
 import { ICell } from '../../simulation/worldTypes';
 import World from "../../simulation/World";
-import { EMapMode } from '../renderer/mapModes';
-import WorldRenderer from '../renderer/WorldRenderer';
+import { EMapMode } from './mapModes';
+import WorldRenderer from './WorldRenderer';
 
 
 export interface IViewOptions {

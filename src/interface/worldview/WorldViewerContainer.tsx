@@ -1,6 +1,6 @@
 import React, { Component, Fragment } from 'react';
 import { WorldViewer, IViewOptions } from './WorldViewer';
-import { mapModes, EMapMode, mapModeDesc } from '../renderer/mapModes';
+import { mapModes, EMapMode, mapModeDesc } from './mapModes';
 import { ICell } from '../../simulation/worldTypes';
 import { biomeTitles, directionLabels, cellFeatureLabels, temperatureZoneTitles, moistureZoneTitles, terrainTypeLabels } from "../../simulation/labels";
 import World from "../../simulation/World";

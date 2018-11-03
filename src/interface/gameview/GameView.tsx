@@ -5,7 +5,7 @@ import { RouteComponentProps } from 'react-router'
 import {
   Spinner, NavbarGroup, Alignment, NavbarHeading, NavbarDivider
 } from '@blueprintjs/core';
-import { WorldViewerContainer } from '../components/WorldViewerContainer';
+import { WorldViewerContainer } from '../worldview/WorldViewerContainer';
 import BackButton from '../components/BackButton';
 
 

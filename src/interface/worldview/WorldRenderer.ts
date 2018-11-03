@@ -3,7 +3,7 @@ import World from "../../simulation/World";
 import Viewport from 'pixi-viewport';
 import { ChunkRenderer } from './ChunkRenderer';
 import WorldUI, { UIEvent } from './WorldUI';
-import { IWorldViewerProps } from '../components/WorldViewer';
+import { IWorldViewerProps } from './WorldViewer';
 import { debounce, pick } from 'lodash';
 import { EMapMode } from './mapModes';
 

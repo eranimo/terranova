@@ -14,6 +14,7 @@ import {
 } from '@blueprintjs/core';
 import styled from 'styled-components';
 import { ISaveStoreEntry } from '../../simulation/SaveStore';
+import { getGameViewUrl } from '../urls';
 
 const Container = styled.div`
   width: 60%;
@@ -80,7 +81,7 @@ export class LoadGameView extends Component<RouteComponentProps<{}>, {
             <tr key={save.name}>
               <td>
                 <Link
-                  to={`/game/load/${save.name}`}
+                  to={getGameViewUrl(save.name)}
                   className={Classes.TEXT_LARGE}
                 >
                   {save.name}
