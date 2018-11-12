@@ -32,6 +32,15 @@ interface IChunkRef {
   chunkY: number;
 }
 
+/**
+ * ChunkRenderer does two things:
+ * - Renders a grid of cells in square chunks as they become visible on screen
+ * - Renders MapModes which are separate layers which can only be viewed once at a time
+ * - Renders world-level UI elements:
+ *   - cell arrows
+ *   - grid lines
+ *   - border lines
+ */
 export class ChunkRenderer {
   world: World;
   viewport: Viewport;

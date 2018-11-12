@@ -34,6 +34,16 @@ interface IViewportState {
 }
 
 
+ /**
+ * WorldRenderer
+ * - container for PIXI
+ * - controls Viewport
+ * - handles renderer state
+ * - renders UI elements
+ *   - legend
+ *   - selected cell indicator
+ *   - hovered cell indicator
+ */
 export default class WorldRenderer {
   app: PIXI.Application;
   world: World;
