@@ -33,6 +33,7 @@ interface IViewportState {
   };
 }
 
+
 export default class WorldRenderer {
   app: PIXI.Application;
   world: World;

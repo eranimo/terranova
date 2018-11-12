@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { WorldGenerator, RegionGenerator, worldStore, gameStore } from '../../simulation';
+import { gameStore } from '../../simulation';
 import Game from "../../simulation/Game";
 import { RouteComponentProps } from 'react-router'
 import {
@@ -7,6 +7,7 @@ import {
 } from '@blueprintjs/core';
 import { WorldViewerContainer } from '../worldview/WorldViewerContainer';
 import BackButton from '../components/BackButton';
+import GameScreen from './GameScreen';
 
 
 export class GameView extends Component<RouteComponentProps<{
@@ -15,8 +16,6 @@ export class GameView extends Component<RouteComponentProps<{
   game?: Game,
   isLoading: boolean
 }> {
-  worldGenerator: WorldGenerator;
-  regionGenerator: RegionGenerator;
 
   state = {
     game: null,
@@ -25,8 +24,6 @@ export class GameView extends Component<RouteComponentProps<{
 
   constructor(props) {
     super(props);
-
-    this.worldGenerator = new WorldGenerator();
     this.load();
   }
 
@@ -47,18 +44,8 @@ export class GameView extends Component<RouteComponentProps<{
     }
     console.log(this.state.game.world);
     return (
-      <WorldViewerContainer
-        renderControls={() => [
-          <NavbarGroup align={Alignment.LEFT}>
-            <BackButton />
-            <NavbarDivider />
-            <NavbarHeading>
-              Game <b>{this.state.game.name}</b>
-            </NavbarHeading>
-          </NavbarGroup>
-        ]}
-        world={this.state.game.world}
-        isLoading={this.state.isLoading}
+      <GameScreen
+        game={this.state.game}
       />
     );
   }

@@ -3,8 +3,12 @@
  */
 export default class Array2D<T> {
   data: T[][];
+  width: number;
+  height: number;
 
   constructor(width: number, height: number) {
+    this.width = width;
+    this.height = height;
     this.data = [];
     for (let x = 0; x < width; x++) {
       this.data[x] = [];
@@ -33,5 +37,15 @@ export default class Array2D<T> {
    */
   has(x: number, y: number): boolean {
     return typeof this.get(x, y) !== 'undefined';
+  }
+
+  fill(
+    func: (x: number, y: number) => T
+  ) {
+    for (let x = 0; x < this.width; x++) {
+      for (let y = 0; y < this.height; y++) {
+        this.set(x, y, func(x, y));
+      }
+    }
   }
 }

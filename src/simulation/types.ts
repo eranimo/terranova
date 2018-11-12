@@ -18,19 +18,34 @@ export interface IWorldMapGenOptions {
   elevationCoolingAmount: number,
   depressionFillPercent: number, // 0 to 1
 }
-
-export interface ICellHeightMapOptions {
-  // offset in world coordinates relative to origin of world map
-  offset: {
+/**
+ * Terminology
+ * Global Cell = one grid cell in world map
+ * Region = a rectangle area of the world which is generated
+ *          and contains local cells
+ * Local Cell = one grid cell in game map
+ *
+ * Top left cell height of the local region map = height of top left cell of world map
+ */
+export interface IRegionGenInput {
+  // coordinate of this region
+  location: {
     x: number;
     y: number;
   };
 
-  // size of local map in local coordinates
-  size: {
+  // one world cell equals this many local cells
+  scale: number;
+
+  // size of region in global cells
+  regionSize: {
     width: number,
     height: number,
   };
+}
+
+export interface IRegionWorkerOutput {
+  heightmap: ndarray.Data<number>;
 }
 
 export enum EWorldShape {

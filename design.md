@@ -1,17 +1,19 @@
 # Architecture
 ## Classes
 - Game
+  - has a World
+  - has 2D map of Regions
 - World
+- WorldCell: one cell in the world map
 - Region
+  - has 2D map of Cells
+- RegionCell: one cell in the region
 
 ## File Structure
 - simulation/
-  - generators/
-    - worldgen/
-    - regiongen/
-  - Game.tsx
-  - World.tsx
-  - Region.tsx
+  - world/
+    - worldFactory
+  - game/
 - interface
   - common/
     -
