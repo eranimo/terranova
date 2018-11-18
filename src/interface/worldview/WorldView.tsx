@@ -5,7 +5,7 @@ import { RouteComponentProps } from 'react-router'
 import {
   Spinner, NavbarGroup, Alignment, NavbarHeading, NavbarDivider
 } from '@blueprintjs/core';
-import { WorldViewerContainer } from './WorldViewerContainer';
+import WorldViewer from './WorldViewer';
 import BackButton from '../components/BackButton';
 
 
@@ -37,7 +37,7 @@ export class WorldView extends Component<RouteComponentProps<{
       return <Spinner/>;
     }
     return (
-      <WorldViewerContainer
+      <WorldViewer
         renderControls={() => [
           <NavbarGroup align={Alignment.LEFT}>
             <BackButton />

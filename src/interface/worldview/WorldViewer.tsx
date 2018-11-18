@@ -1,94 +1,286 @@
-import React from 'react';
-import * as PIXI from 'pixi.js';
+import React, { Component, Fragment, ChangeEvent } from 'react';
+import { WorldMap, IViewOptions } from './WorldMap';
+import { mapModes, EMapMode, mapModeDesc } from './mapModes';
 import { ICell } from '../../simulation/worldTypes';
-import World from "../../simulation/World";
-import { EMapMode } from './mapModes';
-import WorldRenderer from './WorldRenderer';
+import { biomeTitles, directionLabels, cellFeatureLabels, temperatureZoneTitles, moistureZoneTitles, terrainTypeLabels } from "../../simulation/labels";
+import World from "../../simulation/world";
+import {
+  Navbar,
+  NavbarGroup,
+  Button,
+  Alignment,
+  Checkbox,
+  RadioGroup,
+  Radio,
+  Popover,
+  PopoverInteractionKind,
+  Position,
+  Colors,
+  ControlGroup,
+  InputGroup,
+  FormGroup,
+  ButtonGroup,
+} from '@blueprintjs/core';
+import styled from 'styled-components';
+import WorldStats from '../components/WorldStats';
+import copy from 'clipboard-copy';
+import WorldMapContainer from './WorldMapContainer';
+import { FullSizeBlock } from '../components/layout';
 
 
-export interface IViewOptions {
-  showFlowArrows: boolean;
-  mapMode: EMapMode;
-  drawCoastline: boolean;
-  drawGrid: boolean;
-  showCursor: boolean;
-}
-
-export interface IWorldViewerProps {
+class WorldViewerHeader extends Component <{
   world: World,
-  viewOptions: IViewOptions;
-  selectedCell: ICell | null;
-  onCellClick: (cell: ICell) => void;
+  viewOptions: IViewOptions,
+  onChangeMapMode: (event: any) => any,
+  onChangeField: (field: string) => any,
+  renderControls?: () => React.ReactNode,
+}> {
+  render() {
+    const { renderControls, viewOptions, onChangeMapMode, onChangeField, world } = this.props;
+    return (
+      <Navbar>
+        {renderControls ? renderControls() : null}
+        <NavbarGroup align={Alignment.RIGHT}>
+          <ButtonGroup minimal>
+            <Popover
+              position={Position.BOTTOM}
+              interactionKind={PopoverInteractionKind.CLICK}
+            >
+              <Button
+                text="Export"
+                icon="export"
+                rightIcon={'caret-down'}
+                disabled={world === null}
+              />
+              <div className='tn-popover'>
+                <FormGroup
+                  label="Export world config"
+                  helperText={<span>The above string can be used to<br />replicate this world</span>}
+                >
+                  <ControlGroup>
+                    <InputGroup value={world.exportString} />
+                    <Button
+                      icon="clipboard"
+                      style={{ width: 50 }}
+                      onClick={() => copy(world.exportString)}
+                    />
+                  </ControlGroup>
+                </FormGroup>
+              </div>
+            </Popover>
+            <Popover
+              position={Position.BOTTOM}
+              interactionKind={PopoverInteractionKind.CLICK}
+            >
+              <Button
+                text='World Stats'
+                icon={'panel-stats'}
+                rightIcon={'caret-down'}
+                disabled={world === null}
+              />
+              {world ? <WorldStats world={world} /> : null}
+            </Popover>
+            <Popover
+              position={Position.BOTTOM}
+              interactionKind={PopoverInteractionKind.CLICK}
+            >
+              <Button
+                text='View Options'
+                icon={'settings'}
+                rightIcon={'caret-down'}
+              />
+              <div className='tn-popover'>
+                <ul className="bp3-list-unstyled">
+                  <li>
+                    <Checkbox
+                      inline
+                      checked={viewOptions.showFlowArrows}
+                      onChange={onChangeField('showFlowArrows')}
+                      label='Flow direction arrows'
+                    />
+                  </li>
+                  <li>
+                    <Checkbox
+                      inline
+                      checked={viewOptions.drawCoastline}
+                      onChange={onChangeField('drawCoastline')}
+                      label='Coastline borders'
+                    />
+                  </li>
+                  <li>
+                    <Checkbox
+                      inline
+                      checked={viewOptions.drawGrid}
+                      onChange={onChangeField('drawGrid')}
+                      label='Grid Lines'
+                    />
+                  </li>
+                  <li>
+                    <Checkbox
+                      inline
+                      checked={viewOptions.showCursor}
+                      onChange={onChangeField('showCursor')}
+                      label='Show cursor'
+                    />
+                  </li>
+                </ul>
+              </div>
+            </Popover>
+            <Popover
+              position={Position.BOTTOM_RIGHT}
+              interactionKind={PopoverInteractionKind.CLICK}
+            >
+              <Button
+                icon={'map'}
+                rightIcon={'caret-down'}
+              >
+                Map Mode: <b>{mapModeDesc[viewOptions.mapMode]}</b>
+              </Button>
+              <div className='tn-popover'>
+                <RadioGroup
+                  onChange={(event: any) => onChangeMapMode(event.target.value)}
+                  selectedValue={viewOptions.mapMode}
+                >
+                  {Object.entries(mapModeDesc).map(([name, title]) => (
+                    <Radio
+                      key={name}
+                      label={title}
+                      value={name}
+                    />
+                  ))}
+                </RadioGroup>
+              </div>
+            </Popover>
+          </ButtonGroup>
+        </NavbarGroup>
+      </Navbar>
+    )
+  }
 }
 
-export class WorldViewer extends React.Component<IWorldViewerProps> {
-  root: React.RefObject<HTMLDivElement>;
-  arrowTexture: PIXI.Texture;
-  renderer: WorldRenderer;
+const CellDetailContainer = styled.div`
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  background-color: rgba(57, 75, 89, 0.90);
+  border-top: 1px solid ${Colors.DARK_GRAY3};
+  border-right: 1px solid ${Colors.DARK_GRAY3};
+  border-top-right-radius: 5px;
+  padding: 1rem;
+  width: 320px;
+  height: 290px;
+  box-shadow: 0 0 4px 2px rgba(16, 22, 26, 0.2);
+  z-index: 100;
+  overflow-y: auto;
+`;
 
-  constructor(props) {
-    super(props);
-    this.root = React.createRef();
-  }
-
-  componentDidMount() {
-    this.renderer = new WorldRenderer({
-      world: this.props.world,
-      element: this.root.current,
-      eventCallbacks: {
-        onCellClick: this.props.onCellClick,
-      }
-    });
-    console.log(this.renderer);
-
-    // add pixi to the DOM
-    this.root.current.appendChild(this.renderer.app.view);
-
-    // directly manipulate the PIXI objects when state changes
-    this.updateView(this.props);
-  }
-
-  shouldComponentUpdate(nextProps) {
-    if (nextProps.selectedCell !== this.props.selectedCell) {
-      console.log('select', nextProps.selectedCell);
-      this.selectCell(nextProps.selectedCell);
-    }
-    if (nextProps.world != this.props.world) {
-      console.log('update WorldViewer', this.props.world);
-      this.renderer = new WorldRenderer({
-        world: nextProps.world,
-        element: this.root.current,
-        eventCallbacks: {
-          onCellClick: this.props.onCellClick,
-        }
-      });
-      this.updateView(this.props);
-    }
-    this.updateView(nextProps);
-    return false;
-  }
-
-  updateView(props: IWorldViewerProps) {
-    this.renderer.onStateChange(props);
-  }
-
-  componentWillUnmount() {
-    this.renderer.destroy();
-  }
-
-  selectCell(cell: ICell) {
-    if (cell === null) {
-      this.renderer.worldUI.children.selectedCursor.alpha = 0;
-    } else {
-      this.renderer.worldUI.children.selectedCursor.alpha = 1;
-      this.renderer.worldUI.children.selectedCursor.position.set(
-        cell.x * this.renderer.options.cellWidth,
-        cell.y * this.renderer.options.cellHeight,
-      );
-    }
-  }
-
+class CellDetail extends Component<{
+  cell: ICell,
+  handleClose: () => void,
+}> {
   render() {
-    return <div id="worldviewer" ref={this.root} />;
+    const { cell, handleClose } = this.props;
+
+    return (
+      <CellDetailContainer>
+        <h3 className="bp3-heading">
+          Cell ({cell.x}, {cell.y})
+          <Button
+            icon="cross"
+            style={{ float: 'right' }}
+            minimal
+            onClick={handleClose}
+          />
+        </h3>
+        <table className="detail-table">
+          <tbody>
+            <tr>
+              <td>Height</td>
+              <td>{cell.height}</td>
+            </tr>
+            <tr>
+              <td>Feature</td>
+              <td>{cellFeatureLabels[cell.feature]}</td>
+            </tr>
+            {cell.terrainType !== 0 && <tr>
+              <td>Terrain type</td>
+              <td>{terrainTypeLabels[cell.terrainType]}</td>
+            </tr>}
+            <tr>
+              <td>Is River?</td>
+              <td>{cell.riverType > 0 ? 'Yes' : 'No'}</td>
+            </tr>
+            {cell.biome !== 0 && <tr>
+              <td>Biome</td>
+              <td>{biomeTitles[cell.biome]}</td>
+            </tr>}
+            <tr>
+              <td>Temperature</td>
+              <td>{cell.temperature} &deg;C</td>
+            </tr>
+            <tr>
+              <td>Moisture</td>
+              <td>{cell.moisture.toLocaleString()}</td>
+            </tr>
+            <tr>
+              <td>Upstream count</td>
+              <td>{cell.upstreamCount.toLocaleString()}</td>
+            </tr>
+            <tr>
+              <td>Flow Direction</td>
+              <td>{directionLabels[cell.flowDir]}</td>
+            </tr>
+            <tr>
+              <td>Temperature Zone</td>
+              <td>{temperatureZoneTitles[cell.temperatureZone]}</td>
+            </tr>
+            <tr>
+              <td>Moisture Zone</td>
+              <td>{moistureZoneTitles[cell.moistureZone]}</td>
+            </tr>
+          </tbody>
+        </table>
+      </CellDetailContainer>
+    )
+  }
+}
+
+
+interface IWorldViewerProps {
+  world: World,
+  isLoading: boolean,
+  renderControls?: () => React.ReactNode,
+}
+export default class WorldViewer extends Component<IWorldViewerProps> {
+  render() {
+    const { world, renderControls, isLoading } = this.props;
+
+    return (
+      <FullSizeBlock>
+        <WorldMapContainer
+          world={world}
+          isLoading={isLoading}
+        >
+          {({ viewOptions, selectedCell, onChangeField, onChangeMapMode, deselect }) => (
+            <Fragment>
+              <WorldViewerHeader
+                key={world.exportString}
+                world={world}
+                viewOptions={viewOptions}
+                onChangeField={onChangeField}
+                onChangeMapMode={onChangeMapMode}
+                renderControls={renderControls}
+              />
+              {selectedCell !== null
+                ? <CellDetail
+                    cell={selectedCell}
+                    handleClose={deselect}
+                  />
+                : null}
+            </Fragment>
+          )}
+        </WorldMapContainer>
+      </FullSizeBlock>
+    )
   }
 }

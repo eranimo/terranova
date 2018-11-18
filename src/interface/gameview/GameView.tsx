@@ -3,20 +3,22 @@ import { gameStore } from '../../simulation';
 import Game from "../../simulation/Game";
 import { RouteComponentProps } from 'react-router'
 import {
-  Spinner, NavbarGroup, Alignment, NavbarHeading, NavbarDivider
+  Spinner
 } from '@blueprintjs/core';
-import { WorldViewerContainer } from '../worldview/WorldViewerContainer';
-import BackButton from '../components/BackButton';
-import GameScreen from './GameScreen';
+import GameViewer from './GameViewer';
+import { EMapMode } from '../worldview/mapModes';
 
 
-export class GameView extends Component<RouteComponentProps<{
+type GameViewProps = RouteComponentProps<{
   name: string
-}>, {
+}>
+
+type GameViewState = {
   game?: Game,
   isLoading: boolean
-}> {
+}
 
+export class GameView extends Component<GameViewProps, GameViewState> {
   state = {
     game: null,
     isLoading: true,
@@ -42,10 +44,12 @@ export class GameView extends Component<RouteComponentProps<{
     if (this.state.isLoading) {
       return <Spinner/>;
     }
+
     console.log(this.state.game.world);
     return (
-      <GameScreen
-        game={this.state.game}
+      <GameViewer
+        world={this.state.game.world}
+        isLoading={this.state.isLoading}
       />
     );
   }

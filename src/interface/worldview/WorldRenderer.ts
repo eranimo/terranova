@@ -3,7 +3,7 @@ import World from "../../simulation/World";
 import Viewport from 'pixi-viewport';
 import { ChunkRenderer } from './ChunkRenderer';
 import WorldUI, { UIEvent } from './WorldUI';
-import { IWorldViewerProps } from './WorldViewer';
+import { IWorldViewerProps } from './WorldMap';
 import { debounce, pick } from 'lodash';
 import { EMapMode } from './mapModes';
 
@@ -34,7 +34,7 @@ interface IViewportState {
 }
 
 
- /**
+/**
  * WorldRenderer
  * - container for PIXI
  * - controls Viewport
@@ -84,7 +84,7 @@ export default class WorldRenderer {
       forceCanvas: false,
       legacy: true,
       resolution: devicePixelRatio,
-    });;
+    });
     PIXI.settings.SCALE_MODE = PIXI.SCALE_MODES.NEAREST;
     element.style.cursor = 'default';
     element.appendChild(this.app.view);
