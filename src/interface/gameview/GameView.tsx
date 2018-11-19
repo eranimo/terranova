@@ -38,6 +38,7 @@ export class GameView extends Component<GameViewProps, GameViewState> {
       game,
       isLoading: false
     });
+    (window as any).game = game;
   }
 
   render() {
@@ -48,7 +49,7 @@ export class GameView extends Component<GameViewProps, GameViewState> {
     console.log(this.state.game.world);
     return (
       <GameViewer
-        world={this.state.game.world}
+        game={this.state.game}
         isLoading={this.state.isLoading}
       />
     );

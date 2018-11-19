@@ -3,16 +3,18 @@ import World from "../../simulation/world";
 import styled from 'styled-components';
 import WorldMapContainer, { IWorldMapContainerChildProps } from '../worldview/WorldMapContainer';
 import { FullSizeBlock } from '../components/layout';
-import { Button, Colors, ButtonGroup, Tooltip, Position, Intent, Popover, Menu, Classes, Divider } from '@blueprintjs/core';
+import { Button, Colors, ButtonGroup, Tooltip, Position, Intent, Popover, Menu, Classes, Divider, Icon } from '@blueprintjs/core';
 import { mapModeDesc, EMapMode } from '../worldview/mapModes';
 import { Link } from 'react-router-dom';
 import classnames from 'classnames';
+import Game, { EGameSpeed, gameSpeedTitles } from '../../simulation/Game';
+import { clamp } from '@blueprintjs/core/lib/esm/common/utils';
 
 
 const GameViewContainer = styled.div`
   display: flex;
   position: fixed;
-  background-color: rgba(47,65,79,0.8);
+  background-color: rgba(47,65,79,0.9);
   border: 1px solid rgba(47,65,79,1);
   padding: 0.5rem;
   box-shadow: 1px 1px 20px 0px rgba(0, 0, 0, 0.5);
@@ -25,8 +27,119 @@ const GameMenuContainer = styled(GameViewContainer)`
   left: 0;
 `;
 
-export class GameMenu extends Component {
+enum EMonths {
+  JANUARY,
+  FEBRUARY,
+  MARCH,
+  APRIL,
+  MAY,
+  JUNE,
+  JULY,
+  AUGUST,
+  SEPTEMBER,
+  OCTOBER,
+  NOVEMBER,
+  DECEMBER,
+}
+
+const MONTHS_IN_YEAR = 12;
+const DAYS_IN_MONTH = 30;
+
+const monthTitles = {
+  [EMonths.JANUARY]: 'January',
+  [EMonths.FEBRUARY]: 'February',
+  [EMonths.MARCH]: 'March',
+  [EMonths.APRIL]: 'April',
+  [EMonths.MAY]: 'May',
+  [EMonths.JUNE]: 'June',
+  [EMonths.JULY]: 'July',
+  [EMonths.AUGUST]: 'August',
+  [EMonths.SEPTEMBER]: 'September',
+  [EMonths.OCTOBER]: 'October',
+  [EMonths.NOVEMBER]: 'November',
+  [EMonths.DECEMBER]: 'December',
+}
+
+class TimeDisplay extends Component<{ game: Game }, { days: number }> {
+  state = {
+    days: 0,
+  }
+
+  componentWillMount() {
+    this.props.game.state.days.subscribe(days => this.setState({ days }));
+  }
+
   render() {
+    const { days } = this.state;
+    const years = days / (MONTHS_IN_YEAR * DAYS_IN_MONTH);
+    const month = (years - Math.floor(years)) * MONTHS_IN_YEAR;
+    const monthName = monthTitles[Math.floor(month)];
+    const dayOfMonth = Math.round((month - Math.floor(month)) * DAYS_IN_MONTH) + 1;
+    const yearNum = Math.floor(years + 1).toLocaleString();
+
+
+    return `${monthName} ${dayOfMonth}, Y${yearNum}`;
+  }
+}
+
+class PlayButton extends Component<{ game: Game }, { running: boolean }> {
+  state = {
+    running: false,
+  }
+
+  componentWillMount() {
+    this.props.game.state.running.subscribe(running => this.setState({ running }));
+  }
+
+  render() {
+    return (
+      <Button
+        minimal
+        icon={this.state.running ? 'pause' : 'play'}
+        onClick={() => this.props.game.togglePlay()}
+      />
+    );
+  }
+}
+
+class GameSpeedControls extends Component<{ game: Game }, { speed: EGameSpeed, speedIndex: number }> {
+  state = {
+    speed: 0,
+    speedIndex: 0,
+  }
+
+  componentWillMount() {
+    this.props.game.state.speed.subscribe(speed => this.setState({ speed }));
+    this.props.game.state.speedIndex.subscribe(speedIndex => this.setState({ speedIndex }));
+  }
+
+  render() {
+    const { game } = this.props;
+    const { speed, speedIndex } = this.state;
+
+    return (
+      <ButtonGroup minimal>
+        <Button
+          icon="double-chevron-left"
+          disabled={speedIndex === 0}
+          onClick={() => game.slower()}
+        />
+        <Button style={{ width: 134 }}>
+          Speed: <b>{gameSpeedTitles[speed.toString()]}</b>
+        </Button>
+        <Button
+          icon="double-chevron-right"
+          disabled={speedIndex === (game.MAX_SPEED - 1)}
+          onClick={() => game.faster()}
+        />
+      </ButtonGroup>
+    )
+  }
+}
+
+export class GameMenu extends Component<{ game: Game }> {
+  render() {
+    const { game } = this.props;
     const menu = (
       <Menu>
         <Link to="/" className={classnames(Classes.MENU_ITEM, Classes.iconClass('log-out'))}>
@@ -40,6 +153,15 @@ export class GameMenu extends Component {
         <Popover content={menu} position={Position.BOTTOM}>
           <Button icon="menu" minimal />
         </Popover>
+        <Divider />
+        <PlayButton game={game} />
+        <Button
+          minimal
+          style={{ width: 140 }}
+        >
+          <TimeDisplay game={game} />
+        </Button>
+        <GameSpeedControls game={game} />
       </GameMenuContainer>
     )
   }
@@ -105,23 +227,23 @@ export class GameControls extends Component<IWorldMapContainerChildProps> {
 }
 
 interface IGameViewerProps {
-  world: World,
+  game: Game,
   isLoading: boolean,
 }
 export default class GameViewer extends Component<IGameViewerProps> {
   render() {
-    const { world, isLoading } = this.props;
+    const { game, isLoading } = this.props;
 
     return (
       <FullSizeBlock>
         <WorldMapContainer
-          world={world}
+          world={game.world}
           isLoading={isLoading}
           style={{ top: 0 }}
         >
           {(props: IWorldMapContainerChildProps) => (
             <Fragment>
-              <GameMenu />
+              <GameMenu game={game} />
               <GameControls {...props} />
             </Fragment>
           )}
