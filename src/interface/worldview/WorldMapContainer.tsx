@@ -154,8 +154,6 @@ export default class WorldMapContainer extends Component<{
   render() {
     const { world, isLoading, children } = this.props;
 
-    console.log(children);
-
     if (world !== null) {
       return (
         <Fragment>

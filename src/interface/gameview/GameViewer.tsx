@@ -1,5 +1,4 @@
 import React, { Component, Fragment } from 'react';
-import World from "../../simulation/world";
 import styled from 'styled-components';
 import WorldMapContainer, { IWorldMapContainerChildProps } from '../worldview/WorldMapContainer';
 import { FullSizeBlock } from '../components/layout';
@@ -7,8 +6,8 @@ import { Button, Colors, ButtonGroup, Tooltip, Position, Intent, Popover, Menu, 
 import { mapModeDesc, EMapMode } from '../worldview/mapModes';
 import { Link } from 'react-router-dom';
 import classnames from 'classnames';
-import Game, { EGameSpeed, gameSpeedTitles } from '../../simulation/Game';
-import { clamp } from '@blueprintjs/core/lib/esm/common/utils';
+import Game from '../../simulation/Game';
+import { EGameSpeed, gameSpeedTitles, EMonth, IGameDate } from '../../simulation/GameLoop';
 
 
 const GameViewContainer = styled.div`
@@ -27,56 +26,38 @@ const GameMenuContainer = styled(GameViewContainer)`
   left: 0;
 `;
 
-enum EMonths {
-  JANUARY,
-  FEBRUARY,
-  MARCH,
-  APRIL,
-  MAY,
-  JUNE,
-  JULY,
-  AUGUST,
-  SEPTEMBER,
-  OCTOBER,
-  NOVEMBER,
-  DECEMBER,
-}
-
-const MONTHS_IN_YEAR = 12;
-const DAYS_IN_MONTH = 30;
-
 const monthTitles = {
-  [EMonths.JANUARY]: 'January',
-  [EMonths.FEBRUARY]: 'February',
-  [EMonths.MARCH]: 'March',
-  [EMonths.APRIL]: 'April',
-  [EMonths.MAY]: 'May',
-  [EMonths.JUNE]: 'June',
-  [EMonths.JULY]: 'July',
-  [EMonths.AUGUST]: 'August',
-  [EMonths.SEPTEMBER]: 'September',
-  [EMonths.OCTOBER]: 'October',
-  [EMonths.NOVEMBER]: 'November',
-  [EMonths.DECEMBER]: 'December',
+  [EMonth.JANUARY]: 'January',
+  [EMonth.FEBRUARY]: 'February',
+  [EMonth.MARCH]: 'March',
+  [EMonth.APRIL]: 'April',
+  [EMonth.MAY]: 'May',
+  [EMonth.JUNE]: 'June',
+  [EMonth.JULY]: 'July',
+  [EMonth.AUGUST]: 'August',
+  [EMonth.SEPTEMBER]: 'September',
+  [EMonth.OCTOBER]: 'October',
+  [EMonth.NOVEMBER]: 'November',
+  [EMonth.DECEMBER]: 'December',
 }
 
-class TimeDisplay extends Component<{ game: Game }, { days: number }> {
+class TimeDisplay extends Component<{ game: Game }, { date: IGameDate }> {
   state = {
-    days: 0,
+    date: {
+      dayOfMonth: 0,
+      month: 0,
+      year: 0,
+    },
   }
 
   componentWillMount() {
-    this.props.game.state.days.subscribe(days => this.setState({ days }));
+    this.props.game.date$.subscribe(date => this.setState({ date }));
   }
 
   render() {
-    const { days } = this.state;
-    const years = days / (MONTHS_IN_YEAR * DAYS_IN_MONTH);
-    const month = (years - Math.floor(years)) * MONTHS_IN_YEAR;
-    const monthName = monthTitles[Math.floor(month)];
-    const dayOfMonth = Math.round((month - Math.floor(month)) * DAYS_IN_MONTH) + 1;
-    const yearNum = Math.floor(years + 1).toLocaleString();
-
+    const { dayOfMonth, month, year } = this.state.date;
+    const monthName = monthTitles[month];
+    const yearNum = year.toLocaleString();
 
     return `${monthName} ${dayOfMonth}, Y${yearNum}`;
   }
