@@ -141,7 +141,7 @@ export default class GameLoop {
       this.lastFPSUpdate = timestamp;
       this.framesThisSecond = 0;
       this.frameID = requestAnimationFrame(this.mainLoop.bind(this));
-    })
+    });
   }
 
   public stop() {

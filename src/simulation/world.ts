@@ -2,7 +2,18 @@ import ndarray from 'ndarray';
 import ops from 'ndarray-ops';
 import { IWorldWorkerOutput } from './types';
 import { mapValues } from 'lodash';
-import { ICell, IDrainageBasin, EDirection, ECellType, ERiverType, ETerrainType, ECellFeature, EBiome } from './worldTypes';
+import {
+  ICell,
+  IDrainageBasin,
+  EDirection,
+  ECellType,
+  ERiverType,
+  ETerrainType,
+  ECellFeature,
+  EBiome,
+  EDirection8,
+  tileDirectionWeights,
+} from './worldTypes';
 
 
 interface IRange {
@@ -108,6 +119,50 @@ export default class World {
       height: ndarrayRange(heightmap),
     };
     this.stats = { biomePercents, ranges };
+  }
+
+  getNeighbor(x: number, y: number, dir8: EDirection8): ICell | null {
+    switch (dir8) {
+      case EDirection8.NORTH_WEST:
+        return this.getCell(x - 1, y - 1);
+      case EDirection8.NORTH:
+        return this.getCell(x, y - 1);
+      case EDirection8.NORTH_EAST:
+        return this.getCell(x + 1, y - 1);
+      case EDirection8.WEST:
+        return this.getCell(x - 1, y);
+      case EDirection8.EAST:
+        return this.getCell(x + 1, y);
+      case EDirection8.SOUTH_WEST:
+        return this.getCell(x - 1, y + 1);
+      case EDirection8.SOUTH:
+        return this.getCell(x, y + 1);
+      case EDirection8.SOUTH_EAST:
+        return this.getCell(x + 1, y + 1);
+      default:
+        return null;
+    }
+  }
+
+  getTileType(x: number, y: number) {
+    const cell = this.getCell(x, y);
+    switch (cell.feature) {
+      case ECellFeature.OCEANIC:
+        return 0;
+      case ECellFeature.COASTAL:
+        return 1;
+      case ECellFeature.LAND:
+        return cell.biome + 1;
+    }
+  }
+
+  getTileIndex(x: number, y: number) {
+    let index = 0;
+    for (const [direction, weight] of tileDirectionWeights) {
+      const cell = this.getNeighbor(x, y, direction);
+      index += Math.pow(14, weight);
+    }
+    return index;
   }
 
   get cellCount() {

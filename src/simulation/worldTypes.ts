@@ -151,3 +151,45 @@ export interface IDrainageBasin {
   cells: ICell[];
 }
 
+
+export enum EDirection8 {
+  NONE,
+  NORTH_WEST,
+  NORTH,
+  NORTH_EAST,
+  WEST,
+  EAST,
+  SOUTH_WEST,
+  SOUTH,
+  SOUTH_EAST,
+}
+
+export const tileDirections = [
+  EDirection8.NORTH,
+  EDirection8.NORTH_EAST,
+  EDirection8.EAST,
+  EDirection8.SOUTH_EAST,
+  EDirection8.SOUTH,
+  EDirection8.SOUTH_WEST,
+  EDirection8.WEST,
+  EDirection8.NORTH_WEST,
+]
+
+export const tileDirectionWeights = [
+  [EDirection8.NORTH_WEST, 1],
+  [EDirection8.NORTH, 2],
+  [EDirection8.NORTH_EAST, 4],
+  [EDirection8.WEST, 8],
+  [EDirection8.EAST, 16],
+  [EDirection8.SOUTH_WEST, 32],
+  [EDirection8.SOUTH, 64],
+  [EDirection8.SOUTH_EAST, 128],
+]
+
+export const cellTileBase = 4;
+export const cellFeatureTileIndex = {
+  [ECellFeature.COASTAL]: 0,
+  [ECellFeature.OCEANIC]: 1,
+  [ECellFeature.LAND]: 2,
+  [ECellFeature.LAKE]: 3,
+}

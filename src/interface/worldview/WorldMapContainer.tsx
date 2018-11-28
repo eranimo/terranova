@@ -94,6 +94,8 @@ export default class WorldMapContainer extends Component<{
     });
   }
   onCellClick = (cell: ICell) => {
+    const index = this.props.world.getTileIndex(cell.x, cell.y);
+    console.log('tile index:', index);
     if (this.state.selectedCell == cell) {
       // deselect
       this.setState({ selectedCell: null });
