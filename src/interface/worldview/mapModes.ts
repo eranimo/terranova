@@ -1,7 +1,8 @@
+import { EMoistureZone } from './../../simulation/worldTypes';
 import { EBiome, ETerrainType } from '../../simulation/worldTypes';
-import { terrainTypeLabels, cellFeatureLabels } from "../../simulation/labels";
+import { terrainTypeLabels, cellFeatureLabels, temperatureZoneTitles, moistureZoneTitles } from "../../simulation/labels";
 import { Sprite, Graphics, Point, Container, Text, TextStyle } from 'pixi.js';
-import { ICell, ECellFeature, ECellType } from '../../simulation/worldTypes';
+import { ICell, ECellFeature, ECellType, ETemperatureZone } from '../../simulation/worldTypes';
 import { climateColors } from '../../simulation/colors';
 import World from "../../simulation/World";
 import { IWorldRendererOptions } from './WorldRenderer';
@@ -56,6 +57,22 @@ export const terrainTypeColors: Record<string, number> = {
   [ETerrainType.FOOTHILLS]: 0x56914d,
   [ETerrainType.PLATEAU]: 0x939311,
   [ETerrainType.HIGHLANDS]: 0x7a7a50,
+}
+
+export const temperatureZoneColors: Record<string, number> = {
+  [ETemperatureZone.ARCTIC]: 0xcbd8ed,
+  [ETemperatureZone.SUBARCTIC]: 0x677a5f,
+  [ETemperatureZone.TEMPERATE]: 0x428725,
+  [ETemperatureZone.SUBTROPICAL]: 0xF57F33,
+  [ETemperatureZone.TROPICAL]: 0x9E486F,
+}
+
+export const moistureZoneColors: Record<string, number> = {
+  [EMoistureZone.BARREN]: 0xAC3931,
+  [EMoistureZone.ARID]: 0xE5D352,
+  [EMoistureZone.SEMIARID]: 0xD9E76C,
+  [EMoistureZone.SEMIWET]: 0x73C4C1,
+  [EMoistureZone.WET]: 0x5595D6,
 }
 
 export interface IMapMode {
@@ -472,19 +489,33 @@ export const mapModes: Partial<Record<EMapMode, MapModeDef>> = {
     }, chunkRenderer)
   ),
   [EMapMode.MOISTURE_ZONES]: (chunkRenderer: ChunkRenderer) => (
-    new ColormapMapMode({
+    new GroupedCellsMapMode({
       title: 'Moisture Zones',
-      datapoint: 'moistureZone',
-      colormap: 'cool',
-      showLegend: false,
+      showLegend: true,
+      groups: mapEnum(ETerrainType).map(({ name, id }) => ({
+        name: moistureZoneTitles[id],
+        color: moistureZoneColors[id],
+        paintCell: (cell: ICell) => (
+          cell.moistureZone === id
+            ? moistureZoneColors[id]
+            : null
+        )
+      }))
     }, chunkRenderer)
   ),
   [EMapMode.TEMPERATURE_ZONES]: (chunkRenderer: ChunkRenderer) => (
-    new ColormapMapMode({
+    new GroupedCellsMapMode({
       title: 'Temperature Zones',
-      datapoint: 'temperatureZone',
-      colormap: 'temperature',
-      showLegend: false,
+      showLegend: true,
+      groups: mapEnum(ETerrainType).map(({ name, id }) => ({
+        name: temperatureZoneTitles[id],
+        color: temperatureZoneColors[id],
+        paintCell: (cell: ICell) => (
+          cell.temperatureZone === id
+            ? temperatureZoneColors[id]
+            : null
+        )
+      }))
     }, chunkRenderer)
   ),
   [EMapMode.TERRAIN_ROUGHNESS]: (chunkRenderer: ChunkRenderer) => (
