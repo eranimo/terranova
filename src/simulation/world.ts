@@ -44,6 +44,7 @@ export default class World {
   drainageBasins: IDrainageBasin[];
   params: IWorldWorkerOutput;
   stats: IWorldStats;
+  generatedTime: number;
 
   constructor(params: IWorldWorkerOutput) {
     this.params = params;
@@ -64,6 +65,7 @@ export default class World {
     const moistureMap = ndarray(params.moistureMap, [this.size.width, this.size.height]);
     const biomes = ndarray(params.biomes, [this.size.width, this.size.height]);
     const terrainRoughness = ndarray(params.terrainRoughness, [this.size.width, this.size.height]);
+    this.generatedTime = +new Date();
 
     for (let x = 0; x < this.size.width; x++) {
       this.grid[x] = [];
@@ -177,6 +179,10 @@ export default class World {
 
   get exportString() {
     return encodeURIComponent(btoa(JSON.stringify(this.params.options)));
+  }
+
+  get hash() {
+    return this.exportString + this.generatedTime;
   }
 
   getCell(x: number, y: number): ICell | null {

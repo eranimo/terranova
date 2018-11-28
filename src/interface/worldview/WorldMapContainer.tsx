@@ -172,7 +172,7 @@ export default class WorldMapContainer extends Component<{
             deselect: this.deselect,
           })}
           <WorldMap
-            key={world.exportString}
+            key={world.hash}
             world={world}
             viewOptions={this.state.viewOptions}
             selectedCell={this.state.selectedCell}

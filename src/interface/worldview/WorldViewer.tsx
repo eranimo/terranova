@@ -264,7 +264,7 @@ export default class WorldViewer extends Component<IWorldViewerProps> {
           {({ viewOptions, selectedCell, onChangeField, onChangeMapMode, deselect }) => (
             <Fragment>
               <WorldViewerHeader
-                key={world.exportString}
+                key={world.hash}
                 world={world}
                 viewOptions={viewOptions}
                 onChangeField={onChangeField}
