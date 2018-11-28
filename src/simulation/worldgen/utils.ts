@@ -78,6 +78,10 @@ export function ndarrayStats(ndarray: ndarray) {
   };
 }
 
+export function hashCoordinate(x: number, y: number): number {
+  return (y << 16) ^ x;
+}
+
 export function countUnique(ndarray: ndarray) {
   const data = Array.from(ndarray.data);
   return mapValues(groupBy(data, i => i), i => i.length);
@@ -90,7 +94,7 @@ const _getNeighborsLabelled = (x: number, y: number): number[][] => [
   [x, y + 1, EDirection.DOWN],
 ];
 
-export const getNeighborsLabelled = memoize(_getNeighborsLabelled, (x: number, y: number) => `${x},${y}`);
+export const getNeighborsLabelled = memoize(_getNeighborsLabelled, (x: number, y: number) => hashCoordinate(x, y));
 
 
 export const neighborForDirection = {

@@ -99,7 +99,6 @@ function removeDepressions(options: IWorldMapGenOptions, heightmap: ndarray, sea
   }
 
   // turn lakes into hills by inverting them
-
   let depressions: number[][][] = [];
   const depressionCellsGrid = ndarray(new Uint8ClampedArray(width * height), [width, height]);
   for (let x = 0; x < width; x++) {
