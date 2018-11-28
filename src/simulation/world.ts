@@ -99,6 +99,12 @@ export default class World {
       this.drainageBasins.push(drainageBasin);
     }
 
+    for (const basin of this.drainageBasins) {
+      for (const cell of basin.cells) {
+        cell.drainageBasin = basin;
+      }
+    }
+
     // make stats
     const biomeCounts: any = {};
     let landCount = 0;
