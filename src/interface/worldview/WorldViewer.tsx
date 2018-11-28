@@ -3,7 +3,7 @@ import { WorldMap, IViewOptions } from './WorldMap';
 import { mapModes, EMapMode, mapModeDesc } from './mapModes';
 import { ICell } from '../../simulation/worldTypes';
 import { biomeTitles, directionLabels, cellFeatureLabels, temperatureZoneTitles, moistureZoneTitles, terrainTypeLabels } from "../../simulation/labels";
-import World from "../../simulation/world";
+import World from "../../simulation/World";
 import {
   Navbar,
   NavbarGroup,

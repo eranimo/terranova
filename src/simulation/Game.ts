@@ -1,5 +1,5 @@
 import { worldStore } from './index';
-import World from "./world";
+import World from "./World";
 import GameLoop from './GameLoop';
 
 
