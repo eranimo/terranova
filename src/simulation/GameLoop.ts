@@ -2,26 +2,6 @@ import { BehaviorSubject, Subject } from 'rxjs';
 import { clamp } from '@blueprintjs/core/lib/esm/common/utils';
 
 
-class Value<T> extends BehaviorSubject<T> {
-  private data: T;
-
-  constructor(initialValue: T) {
-    super(initialValue);
-    this.data = initialValue;
-  }
-
-  set(value: T) {
-    if (value !== this.data) {
-      this.data = value;
-    }
-    this.next(value);
-  }
-
-  get(): T {
-    return this.data;
-  }
-}
-
 export enum EMonth {
   JANUARY,
   FEBRUARY,
@@ -57,12 +37,12 @@ export interface IGameDate {
 }
 
 interface IGameState {
-  started: Value<boolean>;
-  running: Value<boolean>;
-  ticks: Value<number>;
-  dayCount: Value<number>;
-  speed: Value<EGameSpeed>;
-  speedIndex: Value<number>;
+  started: BehaviorSubject<boolean>;
+  running: BehaviorSubject<boolean>;
+  ticks: BehaviorSubject<number>;
+  dayCount: BehaviorSubject<number>;
+  speed: BehaviorSubject<EGameSpeed>;
+  speedIndex: BehaviorSubject<number>;
 }
 
 export enum EGameSpeed {
@@ -105,12 +85,12 @@ export default class GameLoop {
     maxFPS: number = 60,
   ) {
     this.state = {
-      started: new Value<boolean>(false),
-      running: new Value<boolean>(false),
-      ticks: new Value<number>(0),
-      dayCount: new Value<number>(0),
-      speed: new Value<EGameSpeed>(EGameSpeed.NORMAL),
-      speedIndex: new Value<EGameSpeed>(1),
+      started: new BehaviorSubject<boolean>(false),
+      running: new BehaviorSubject<boolean>(false),
+      ticks: new BehaviorSubject<number>(0),
+      dayCount: new BehaviorSubject<number>(0),
+      speed: new BehaviorSubject<EGameSpeed>(EGameSpeed.NORMAL),
+      speedIndex: new BehaviorSubject<EGameSpeed>(1),
     };
     this.lastFrameTimeMs = 0;
     this.lastFPSUpdate = 0;
@@ -118,7 +98,7 @@ export default class GameLoop {
     this.maxFPS = maxFPS;
     this.fps = 0;
     this.delta = 0;
-    this.timestep = 1000 / (this.maxFPS * this.state.speed.get());
+    this.timestep = 1000 / (this.maxFPS * this.state.speed.value);
     this.date$ = new BehaviorSubject<IGameDate>({
       dayOfMonth: 1,
       month: 0,
@@ -128,15 +108,15 @@ export default class GameLoop {
     // update date when dayCount changes
     this.state.dayCount.subscribe(dayCount => this.date$.next(dateFormat(dayCount)));
     this.state.speed.subscribe(speed => {
-      this.timestep = 1000 / (this.maxFPS * this.state.speed.get());
+      this.timestep = 1000 / (this.maxFPS * this.state.speed.value);
     });
   }
 
   public start() {
-    if (this.state.started.get()) return;
-    this.state.started.set(true);
+    if (this.state.started.value) return;
+    this.state.started.next(true);
     this.frameID = requestAnimationFrame(timestamp => {
-      this.state.running.set(true);
+      this.state.running.next(true);
       this.lastFrameTimeMs = timestamp;
       this.lastFPSUpdate = timestamp;
       this.framesThisSecond = 0;
@@ -145,13 +125,13 @@ export default class GameLoop {
   }
 
   public stop() {
-    this.state.running.set(false);
-    this.state.started.set(false);
+    this.state.running.next(false);
+    this.state.started.next(false);
     cancelAnimationFrame(this.frameID);
   }
 
   public togglePlay() {
-    if (this.state.running.get()) {
+    if (this.state.running.value) {
       this.stop();
     } else {
       this.start();
@@ -159,15 +139,15 @@ export default class GameLoop {
   }
 
   public slower() {
-    const newIndex = clamp(this.state.speedIndex.get() - 1, 0, speeds.length);
-    this.state.speedIndex.set(newIndex);
-    this.state.speed.set(speeds[newIndex]);
+    const newIndex = clamp(this.state.speedIndex.value - 1, 0, speeds.length);
+    this.state.speedIndex.next(newIndex);
+    this.state.speed.next(speeds[newIndex]);
   }
 
   public faster() {
-    const newIndex = clamp(this.state.speedIndex.get() + 1, 0, speeds.length);
-    this.state.speedIndex.set(newIndex);
-    this.state.speed.set(speeds[newIndex]);
+    const newIndex = clamp(this.state.speedIndex.value + 1, 0, speeds.length);
+    this.state.speedIndex.next(newIndex);
+    this.state.speed.next(speeds[newIndex]);
   }
 
   private mainLoop(timestamp: number) {
@@ -189,9 +169,9 @@ export default class GameLoop {
 
     let numUpdateSteps = 0;
     while (this.delta >= this.timestep) {
-      this.state.ticks.set(this.state.ticks.get() + 1);
-      this.state.dayCount.set(
-        Math.floor(this.state.ticks.get() / 60)
+      this.state.ticks.next(this.state.ticks.value + 1);
+      this.state.dayCount.next(
+        Math.floor(this.state.ticks.value / 60)
       );
       this.update(this.timestep);
       this.delta -= this.timestep;
