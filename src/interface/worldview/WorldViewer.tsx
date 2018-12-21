@@ -1,7 +1,7 @@
 import React, { Component, Fragment, ChangeEvent } from 'react';
 import { WorldMap, IViewOptions } from './WorldMap';
 import { mapModes, EMapMode, mapModeDesc } from './mapModes';
-import { ICell } from '../../simulation/worldTypes';
+import { IWorldCell } from '../../simulation/worldTypes';
 import { biomeTitles, directionLabels, cellFeatureLabels, temperatureZoneTitles, moistureZoneTitles, terrainTypeLabels } from "../../simulation/labels";
 import World from "../../simulation/World";
 import {
@@ -175,7 +175,7 @@ const CellDetailContainer = styled.div`
 `;
 
 class CellDetail extends Component<{
-  cell: ICell,
+  cell: IWorldCell,
   handleClose: () => void,
 }> {
   render() {
@@ -260,6 +260,7 @@ export default class WorldViewer extends Component<IWorldViewerProps> {
         <WorldMapContainer
           world={world}
           isLoading={isLoading}
+          mapModes={mapModes}
         >
           {({ viewOptions, selectedCell, onChangeField, onChangeMapMode, deselect }) => (
             <Fragment>

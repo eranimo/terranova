@@ -1,8 +1,8 @@
 import React from 'react';
 import * as PIXI from 'pixi.js';
-import { ICell } from '../../simulation/worldTypes';
+import { IWorldCell } from '../../simulation/worldTypes';
 import World from "../../simulation/World";
-import { EMapMode } from './mapModes';
+import { EMapMode, MapModeMap } from './mapModes';
 import WorldRenderer from './WorldRenderer';
 
 
@@ -14,14 +14,15 @@ export interface IViewOptions {
   showCursor: boolean;
 }
 
-export interface IWorldViewerProps {
+export interface IWorldMapProps {
   world: World,
   viewOptions: IViewOptions;
-  selectedCell: ICell | null;
-  onCellClick: (cell: ICell) => void;
+  mapModes: MapModeMap;
+  selectedCell: IWorldCell | null;
+  onCellClick: (cell: IWorldCell) => void;
 }
 
-export class WorldMap extends React.Component<IWorldViewerProps> {
+export class WorldMap extends React.Component<IWorldMapProps> {
   root: React.RefObject<HTMLDivElement>;
   arrowTexture: PIXI.Texture;
   renderer: WorldRenderer;
@@ -35,6 +36,7 @@ export class WorldMap extends React.Component<IWorldViewerProps> {
     this.renderer = new WorldRenderer({
       world: this.props.world,
       element: this.root.current,
+      mapModes: this.props.mapModes,
       eventCallbacks: {
         onCellClick: this.props.onCellClick,
       }
@@ -58,6 +60,7 @@ export class WorldMap extends React.Component<IWorldViewerProps> {
       this.renderer = new WorldRenderer({
         world: nextProps.world,
         element: this.root.current,
+        mapModes: this.props.mapModes,
         eventCallbacks: {
           onCellClick: this.props.onCellClick,
         }
@@ -68,7 +71,7 @@ export class WorldMap extends React.Component<IWorldViewerProps> {
     return false;
   }
 
-  updateView(props: IWorldViewerProps) {
+  updateView(props: IWorldMapProps) {
     this.renderer.onStateChange(props);
   }
 
@@ -76,7 +79,7 @@ export class WorldMap extends React.Component<IWorldViewerProps> {
     this.renderer.destroy();
   }
 
-  selectCell(cell: ICell) {
+  selectCell(cell: IWorldCell) {
     if (cell === null) {
       this.renderer.worldUI.children.selectedCursor.alpha = 0;
     } else {

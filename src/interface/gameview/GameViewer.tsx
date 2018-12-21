@@ -3,11 +3,12 @@ import styled from 'styled-components';
 import WorldMapContainer, { IWorldMapContainerChildProps } from '../worldview/WorldMapContainer';
 import { FullSizeBlock } from '../components/layout';
 import { Button, Colors, ButtonGroup, Tooltip, Position, Intent, Popover, Menu, Classes, Divider, Icon } from '@blueprintjs/core';
-import { mapModeDesc, EMapMode } from '../worldview/mapModes';
+import { mapModeDesc, EMapMode, mapModes, MapModeMap } from '../worldview/mapModes';
 import { Link } from 'react-router-dom';
 import classnames from 'classnames';
-import Game from '../../simulation/Game';
+import GameManager from '../../simulation/GameManager';
 import { EGameSpeed, gameSpeedTitles, EMonth, IGameDate } from '../../simulation/GameLoop';
+import { gameMapModes } from './gameMapModes';
 
 
 const GameViewContainer = styled.div`
@@ -41,7 +42,7 @@ const monthTitles = {
   [EMonth.DECEMBER]: 'December',
 }
 
-class TimeDisplay extends Component<{ game: Game }, { date: IGameDate }> {
+class TimeDisplay extends Component<{ game: GameManager }, { date: IGameDate }> {
   state = {
     date: {
       dayOfMonth: 0,
@@ -63,7 +64,7 @@ class TimeDisplay extends Component<{ game: Game }, { date: IGameDate }> {
   }
 }
 
-class PlayButton extends Component<{ game: Game }, { running: boolean }> {
+class PlayButton extends Component<{ game: GameManager }, { running: boolean }> {
   state = {
     running: false,
   }
@@ -83,7 +84,7 @@ class PlayButton extends Component<{ game: Game }, { running: boolean }> {
   }
 }
 
-class GameSpeedControls extends Component<{ game: Game }, { speed: EGameSpeed, speedIndex: number }> {
+class GameSpeedControls extends Component<{ game: GameManager }, { speed: EGameSpeed, speedIndex: number }> {
   state = {
     speed: 0,
     speedIndex: 0,
@@ -105,12 +106,12 @@ class GameSpeedControls extends Component<{ game: Game }, { speed: EGameSpeed, s
           disabled={speedIndex === 0}
           onClick={() => game.slower()}
         />
-        <Button style={{ width: 134 }}>
+        {speed && <Button style={{ width: 134 }}>
           Speed: <b>{gameSpeedTitles[speed.toString()]}</b>
-        </Button>
+        </Button>}
         <Button
           icon="double-chevron-right"
-          disabled={speedIndex === (game.MAX_SPEED - 1)}
+          disabled={speedIndex === 3}
           onClick={() => game.faster()}
         />
       </ButtonGroup>
@@ -118,7 +119,7 @@ class GameSpeedControls extends Component<{ game: Game }, { speed: EGameSpeed, s
   }
 }
 
-export class GameMenu extends Component<{ game: Game }> {
+export class GameMenu extends Component<{ game: GameManager }> {
   render() {
     const { game } = this.props;
     const menu = (
@@ -208,7 +209,7 @@ export class GameControls extends Component<IWorldMapContainerChildProps> {
 }
 
 interface IGameViewerProps {
-  game: Game,
+  game: GameManager,
   isLoading: boolean,
 }
 export default class GameViewer extends Component<IGameViewerProps> {
@@ -220,6 +221,7 @@ export default class GameViewer extends Component<IGameViewerProps> {
         <WorldMapContainer
           world={game.world}
           isLoading={isLoading}
+          mapModes={gameMapModes}
           style={{ top: 0 }}
         >
           {(props: IWorldMapContainerChildProps) => (

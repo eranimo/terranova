@@ -3,7 +3,7 @@ import ops from 'ndarray-ops';
 import { IWorldWorkerOutput } from './types';
 import { mapValues } from 'lodash';
 import {
-  ICell,
+  IWorldCell,
   IDrainageBasin,
   EDirection,
   ECellType,
@@ -34,8 +34,8 @@ export function ndarrayRange(array: ndarray): IRange {
 }
 
 export default class World {
-  grid: ICell[][];
-  cells: Set<ICell>;
+  grid: IWorldCell[][];
+  cells: Set<IWorldCell>;
   size: {
     width: number;
     height: number;
@@ -70,7 +70,7 @@ export default class World {
     for (let x = 0; x < this.size.width; x++) {
       this.grid[x] = [];
       for (let y = 0; y < this.size.height; y++) {
-        const cell: ICell = {
+        const cell: IWorldCell = {
           world: this,
           x, y,
           height: heightmap.get(x, y),
@@ -129,7 +129,7 @@ export default class World {
     this.stats = { biomePercents, ranges };
   }
 
-  getNeighbor(x: number, y: number, dir8: EDirection8): ICell | null {
+  getNeighbor(x: number, y: number, dir8: EDirection8): IWorldCell | null {
     switch (dir8) {
       case EDirection8.NORTH_WEST:
         return this.getCell(x - 1, y - 1);
@@ -185,7 +185,7 @@ export default class World {
     return this.exportString + this.generatedTime;
   }
 
-  getCell(x: number, y: number): ICell | null {
+  getCell(x: number, y: number): IWorldCell | null {
     if (x < 0 || y < 0 || x >= this.size.width || y >= this.size.height) {
       return null;
     }

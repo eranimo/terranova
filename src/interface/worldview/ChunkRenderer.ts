@@ -1,9 +1,9 @@
 import { EDirection, ECellFeature, ECellType } from '../../simulation/worldTypes';
 import { Sprite, Container, Point } from 'pixi.js';
-import { ICell } from '../../simulation/worldTypes';
+import { IWorldCell } from '../../simulation/worldTypes';
 import World from "../../simulation/World";
 import { IWorldRendererOptions } from './WorldRenderer';
-import { EMapMode, mapModes, IMapMode } from './mapModes';
+import { EMapMode, IMapMode, MapModeMap } from './mapModes';
 import { isFunction } from 'lodash';
 import Array2D from '../../utils/Array2D';
 import { makeArrow } from './textures';
@@ -55,7 +55,12 @@ export class ChunkRenderer {
   chunkWorldWidth: number;
   chunkWorldHeight: number;
 
-  constructor(world: World, viewport: Viewport, options: IWorldRendererOptions) {
+  constructor(
+    world: World,
+    viewport: Viewport,
+    options: IWorldRendererOptions,
+    mapModes: MapModeMap,
+  ) {
     this.world = world;
     this.viewport = viewport;
     this.options = options;
@@ -81,7 +86,7 @@ export class ChunkRenderer {
     );
   }
 
-  getChunkAtCell(cell: ICell): IChunkRef {
+  getChunkAtCell(cell: IWorldCell): IChunkRef {
     return {
       chunkX: Math.floor(cell.x / this.options.chunkWidth),
       chunkY: Math.floor(cell.y / this.options.chunkHeight),
@@ -104,11 +109,11 @@ export class ChunkRenderer {
     return this.getChunkAtCell(cell);
   }
 
-  getCellsInChunk(chunkX: number, chunkY: number): ICell[] {
+  getCellsInChunk(chunkX: number, chunkY: number): IWorldCell[] {
     return Array.from(this.mapCellsInChunk(chunkX, chunkY));
   }
 
-  *mapCellsInChunk(chunkX: number, chunkY: number): IterableIterator<ICell> {
+  *mapCellsInChunk(chunkX: number, chunkY: number): IterableIterator<IWorldCell> {
     const { chunkWidth, chunkHeight } = this.options;
     for (let x = chunkX * chunkWidth; x < (chunkX + 1) * chunkWidth; x++) {
       for (let y = chunkY * chunkHeight; y < (chunkY + 1) * chunkHeight; y++) {
@@ -206,7 +211,7 @@ export class ChunkRenderer {
       cellHeight,
       this.chunkWorldWidth,
       this.chunkWorldHeight,
-      (a: ICell, b: ICell) => a.type === ECellType.LAND && b.type !== ECellType.LAND,
+      (a: IWorldCell, b: IWorldCell) => a.type === ECellType.LAND && b.type !== ECellType.LAND,
     );
     coastlineBorder.cacheAsBitmap = true;
     coastlineBorder.interactive = false;
@@ -282,14 +287,14 @@ function drawGridLines(
 }
 
 function drawCellBorders(
-  chunkCells: ICell[],
+  chunkCells: IWorldCell[],
   chunkPosition: Point,
   world: World,
   cellWidth: number,
   cellHeight: number,
   chunkWidth : number,
   chunkHeight: number,
-  shouldDraw: (a: ICell, b: ICell) => boolean,
+  shouldDraw: (a: IWorldCell, b: IWorldCell) => boolean,
 ): PIXI.Sprite {
   const g = new PIXI.Graphics(true);
 

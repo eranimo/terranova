@@ -3,9 +3,9 @@ import World from "../../simulation/World";
 import Viewport from 'pixi-viewport';
 import { ChunkRenderer } from './ChunkRenderer';
 import WorldUI, { UIEvent } from './WorldUI';
-import { IWorldViewerProps } from './WorldMap';
+import { IWorldMapProps } from './WorldMap';
 import { debounce, pick } from 'lodash';
-import { EMapMode } from './mapModes';
+import { EMapMode, MapModeMap } from './mapModes';
 
 
 export interface IWorldRendererOptions {
@@ -55,7 +55,7 @@ export default class WorldRenderer {
 
   chunkRenderer: ChunkRenderer;
   worldUI: WorldUI;
-  state: IWorldViewerProps;
+  state: IWorldMapProps;
   textures: Record<string, PIXI.Texture>;
   legends: Partial<Record<EMapMode, PIXI.Sprite>>;
 
@@ -63,11 +63,13 @@ export default class WorldRenderer {
     world,
     element,
     options = defaultRendererOptions,
+    mapModes,
     eventCallbacks
   }: {
     world: World,
     element: HTMLElement,
     options?: IWorldRendererOptions,
+    mapModes: MapModeMap,
     eventCallbacks: Record<string, UIEvent>,
   }) {
     this.world = world;
@@ -102,7 +104,7 @@ export default class WorldRenderer {
     this.viewport.zoomPercent(1/3);
 
     // create chunk renderer
-    this.chunkRenderer = new ChunkRenderer(world, this.viewport, options);
+    this.chunkRenderer = new ChunkRenderer(world, this.viewport, this.options, mapModes);
     this.viewport.addChild(this.chunkRenderer.chunkContainer);
 
     // create UI
@@ -223,7 +225,7 @@ export default class WorldRenderer {
       // });
   }
 
-  public onStateChange(mapViewerProps: IWorldViewerProps) {
+  public onStateChange(mapViewerProps: IWorldMapProps) {
     this.state = mapViewerProps;
     this.update();
   }

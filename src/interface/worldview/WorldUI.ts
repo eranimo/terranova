@@ -1,12 +1,12 @@
 import { Sprite, Container } from 'pixi.js';
 import Viewport from 'pixi-viewport';
 import WorldRenderer from './WorldRenderer';
-import { ICell } from '../../simulation/worldTypes';
+import { IWorldCell } from '../../simulation/worldTypes';
 import { isFunction } from 'lodash';
 import { drawHoverCursor, drawSelectCursor } from './textures';
 
 
-export type UIEvent = (cell: ICell) => void | Function;
+export type UIEvent = (cell: IWorldCell) => void | Function;
 
 export default class WorldUI {
   renderer: WorldRenderer;

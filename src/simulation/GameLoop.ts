@@ -130,14 +130,6 @@ export default class GameLoop {
     cancelAnimationFrame(this.frameID);
   }
 
-  public togglePlay() {
-    if (this.state.running.value) {
-      this.stop();
-    } else {
-      this.start();
-    }
-  }
-
   public slower() {
     const newIndex = clamp(this.state.speedIndex.value - 1, 0, speeds.length);
     this.state.speedIndex.next(newIndex);
@@ -192,7 +184,9 @@ export default class GameLoop {
   }
 
   update(delta: number) {
-
+    // simulate a really slow game
+    // let i = 0;
+    // for (let x = 0; x < 1e6; x++) i = i ** i;
   }
 
   draw(delta: number) {

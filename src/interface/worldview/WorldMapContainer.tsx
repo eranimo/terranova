@@ -1,7 +1,7 @@
 import React, { Component, Fragment } from 'react';
 import { WorldMap, IViewOptions } from './WorldMap';
-import { EMapMode } from './mapModes';
-import { ICell } from '../../simulation/worldTypes';
+import { EMapMode, MapModeMap } from './mapModes';
+import { IWorldCell } from '../../simulation/worldTypes';
 import World from "../../simulation/World";
 import {
   Spinner,
@@ -33,27 +33,33 @@ const initialViewOptions: IViewOptions = {
 
 export interface IWorldMapContainerChildProps {
   viewOptions: IViewOptions,
-  selectedCell: ICell,
+  selectedCell: IWorldCell,
   onChangeField: (fieldName: keyof IViewOptions) => (event: any) => void,
   onChangeMapMode: (mapMode: EMapMode) => void,
   deselect: () => void,
 }
-@HotkeysTarget
-export default class WorldMapContainer extends Component<{
-  world: World,
-  isLoading: boolean,
+
+interface IWorldMapContainerProps {
+  world: World;
+  isLoading: boolean;
+  mapModes: MapModeMap;
   children: ({
     viewOptions,
     selectedCell,
     onChangeField,
     onChangeMapMode,
     deselect,
-  }: IWorldMapContainerChildProps) => React.ReactChild
-  style?: any,
-}, {
+  }: IWorldMapContainerChildProps) => React.ReactChild;
+  style?: any;
+}
+
+interface IWorldMapContainerState {
   viewOptions: IViewOptions;
-  selectedCell: ICell | null;
-}> {
+  selectedCell: IWorldCell | null;
+}
+
+@HotkeysTarget
+export default class WorldMapContainer extends Component<IWorldMapContainerProps, IWorldMapContainerState> {
   constructor(props) {
     super(props);
     let loadedViewOptions = JSON.parse(localStorage.getItem('viewOptions'));
@@ -93,7 +99,7 @@ export default class WorldMapContainer extends Component<{
       },
     });
   }
-  onCellClick = (cell: ICell) => {
+  onCellClick = (cell: IWorldCell) => {
     const index = this.props.world.getTileIndex(cell.x, cell.y);
     console.log('tile index:', index);
     if (this.state.selectedCell == cell) {
@@ -154,7 +160,7 @@ export default class WorldMapContainer extends Component<{
   }
 
   render() {
-    const { world, isLoading, children } = this.props;
+    const { world, isLoading, children, mapModes } = this.props;
 
     if (world !== null) {
       return (
@@ -177,6 +183,7 @@ export default class WorldMapContainer extends Component<{
             viewOptions={this.state.viewOptions}
             selectedCell={this.state.selectedCell}
             onCellClick={this.onCellClick}
+            mapModes={mapModes}
             {...this.props}
           />
         </Fragment>

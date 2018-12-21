@@ -125,7 +125,7 @@ export enum ERiverType {
   RIVER,
 }
 
-export interface ICell {
+export interface IWorldCell {
   world: World;
   x: number;
   y: number;
@@ -148,7 +148,7 @@ export interface ICell {
 export interface IDrainageBasin {
   id: number;
   color: number;
-  cells: ICell[];
+  cells: IWorldCell[];
 }
 
 

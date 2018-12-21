@@ -14,17 +14,17 @@ export const worldStore = new SaveStore<World>({
   createRecord: (world: World) => world.params,
 });
 
-export const gameStore = new SaveStore<Game>({
+export const gameStore = new SaveStore<IGameParams>({
   name: 'game',
-  load: ({ data }) => new Game(data as IGameParams),
-  createEntry: (game: Game) => ({
+  load: ({ data }) => data,
+  createEntry: (game: IGameParams) => ({
     name: game.name,
   }),
-  createRecord: (game: Game) => game.params,
+  createRecord: (game: IGameParams) => game,
 });
 
 export async function gameFactory(params: IGameParams): Promise<Game> {
   const game = new Game(params);
-  await gameStore.save(game, params.name);
+  await gameStore.save(game.params, params.name);
   return game;
 }

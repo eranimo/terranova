@@ -6,7 +6,7 @@ import {
   Spinner
 } from '@blueprintjs/core';
 import GameViewer from './GameViewer';
-import { EMapMode } from '../worldview/mapModes';
+import GameManager from '../../simulation/GameManager';
 
 
 type GameViewProps = RouteComponentProps<{
@@ -14,7 +14,7 @@ type GameViewProps = RouteComponentProps<{
 }>
 
 type GameViewState = {
-  game?: Game,
+  game?: GameManager,
   isLoading: boolean
 }
 
@@ -31,14 +31,17 @@ export class GameView extends Component<GameViewProps, GameViewState> {
 
   async load() {
     const { name } = this.props.match.params;
-    const game = await gameStore.load(name);
-    await game.init();
-    console.log('Game loaded', game);
+
+    const gameManager = new GameManager(name);
+    await gameManager.init();
+
+    console.log('Game loaded', gameManager);
+
     this.setState({
-      game,
+      game: gameManager,
       isLoading: false
     });
-    (window as any).game = game;
+    (window as any).game = gameManager;
   }
 
   render() {
