@@ -36,24 +36,21 @@ interface IChunkRef {
  * ChunkRenderer does two things:
  * - Renders a grid of cells in square chunks as they become visible on screen
  * - Renders MapModes which are separate layers which can only be viewed once at a time
- * - Renders world-level UI elements:
- *   - cell arrows
- *   - grid lines
- *   - border lines
  */
 export class ChunkRenderer {
-  world: World;
-  viewport: Viewport;
-  options: IWorldRendererOptions;
-  renderedChunks: Array2D<IChunkData>;
-  chunkColumns: number;
-  chunkRows: number;
-  mapModes: Partial<Record<EMapMode, IMapMode>>;
-  chunkContainer: Container;
-  overpaint: Point;
-  visibleChunks: IChunkData[];
-  chunkWorldWidth: number;
-  chunkWorldHeight: number;
+  private viewport: Viewport;
+  private options: IWorldRendererOptions;
+  private renderedChunks: Array2D<IChunkData>;
+  private chunkColumns: number;
+  private chunkRows: number;
+  private overpaint: Point;
+  private visibleChunks: IChunkData[];
+  private chunkWorldWidth: number;
+  private chunkWorldHeight: number;
+
+  public world: World;
+  public mapModes: Partial<Record<EMapMode, IMapMode>>;
+  public chunkContainer: Container;
 
   constructor(
     world: World,
@@ -86,21 +83,21 @@ export class ChunkRenderer {
     );
   }
 
-  getChunkAtCell(cell: IWorldCell): IChunkRef {
+  private getChunkAtCell(cell: IWorldCell): IChunkRef {
     return {
       chunkX: Math.floor(cell.x / this.options.chunkWidth),
       chunkY: Math.floor(cell.y / this.options.chunkHeight),
     };
   }
 
-  getCellAtPoint(x: number, y: number) {
+  private getCellAtPoint(x: number, y: number) {
     return {
       cellX: Math.floor(x / this.options.cellWidth),
       cellY: Math.floor(y / this.options.cellHeight),
     };
   }
 
-  getChunkAtPoint(x: number, y: number): IChunkRef {
+  private getChunkAtPoint(x: number, y: number): IChunkRef {
     const { cellX, cellY } = this.getCellAtPoint(x, y);
     const cell = this.world.getCell(cellX, cellY);
     if (cell === null) {
@@ -109,11 +106,11 @@ export class ChunkRenderer {
     return this.getChunkAtCell(cell);
   }
 
-  getCellsInChunk(chunkX: number, chunkY: number): IWorldCell[] {
+  private getCellsInChunk(chunkX: number, chunkY: number): IWorldCell[] {
     return Array.from(this.mapCellsInChunk(chunkX, chunkY));
   }
 
-  *mapCellsInChunk(chunkX: number, chunkY: number): IterableIterator<IWorldCell> {
+  private *mapCellsInChunk(chunkX: number, chunkY: number): IterableIterator<IWorldCell> {
     const { chunkWidth, chunkHeight } = this.options;
     for (let x = chunkX * chunkWidth; x < (chunkX + 1) * chunkWidth; x++) {
       for (let y = chunkY * chunkHeight; y < (chunkY + 1) * chunkHeight; y++) {
@@ -129,11 +126,6 @@ export class ChunkRenderer {
       }
     }
   }
-
-  get chunkCount() {
-    return this.chunkColumns * this.chunkRows;
-  }
-
 
   private renderChunk(chunkX: number, chunkY: number) {
     if (this.renderedChunks.has(chunkX, chunkY)) {
@@ -260,7 +252,21 @@ export class ChunkRenderer {
     }
   }
 
-  public render(): void {
+  public update(viewOptions) {
+    for (const chunk of this.mapChunks()) {
+      if (chunk) {
+        chunk.grid.visible = viewOptions.drawGrid;
+        chunk.flowArrows.visible = viewOptions.showFlowArrows;
+        chunk.coastlineBorder.visible = viewOptions.drawCoastline;
+
+        for (const [mapMode, sprite] of Object.entries(chunk.mapModes)) {
+          sprite.visible = viewOptions.mapMode === mapMode;
+        }
+      }
+    }
+  }
+
+  public render() {
     this.hideAllChunks();
     this.renderVisibleChunks();
   }

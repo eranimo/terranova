@@ -3,7 +3,7 @@ import World from "../../simulation/World";
 import Viewport from 'pixi-viewport';
 import { ChunkRenderer } from './ChunkRenderer';
 import WorldUI, { UIEvent } from './WorldUI';
-import { IWorldMapProps } from './WorldMap';
+import { IWorldMapProps, IViewOptions } from './WorldMap';
 import { debounce, pick } from 'lodash';
 import { EMapMode, MapModeMap } from './mapModes';
 
@@ -33,6 +33,9 @@ interface IViewportState {
   };
 }
 
+interface IWorldRendererState {
+  viewOptions: IViewOptions;
+}
 
 /**
  * WorldRenderer
@@ -55,7 +58,7 @@ export default class WorldRenderer {
 
   chunkRenderer: ChunkRenderer;
   worldUI: WorldUI;
-  state: IWorldMapProps;
+  state: IWorldRendererState;
   textures: Record<string, PIXI.Texture>;
   legends: Partial<Record<EMapMode, PIXI.Sprite>>;
 
@@ -210,19 +213,7 @@ export default class WorldRenderer {
         this.chunkRenderer.render();
         this.update();
         this.updateViewportState();
-      })
-      // .on('drag-end', () => {
-      //   this.viewport.moveCorner(
-      //     Math.round(this.viewport.left),
-      //     Math.round(this.viewport.top),
-      //   );
-      // })
-      // .on('moved', () => {
-      //   this.viewport.moveCorner(
-      //     Math.round(this.viewport.left),
-      //     Math.round(this.viewport.top),
-      //   );
-      // });
+      });
   }
 
   public onStateChange(mapViewerProps: IWorldMapProps) {
@@ -234,19 +225,11 @@ export default class WorldRenderer {
     if (!this.state) {
       throw new Error('Must call onStateChange() before update()');
     }
-    for (const chunk of this.chunkRenderer.mapChunks()) {
-      if (chunk) {
-        chunk.grid.visible = this.state.viewOptions.drawGrid;
-        chunk.flowArrows.visible = this.state.viewOptions.showFlowArrows;
-        chunk.coastlineBorder.visible = this.state.viewOptions.drawCoastline;
-
-        for (const [mapMode, sprite] of Object.entries(chunk.mapModes)) {
-          const visible = this.state.viewOptions.mapMode === mapMode;
-          if (mapMode in this.legends) {
-            (this.legends[mapMode] as PIXI.Sprite).visible = visible;
-          }
-          sprite.visible = visible;
-        }
+    this.chunkRenderer.update(this.state.viewOptions);
+    for (const [mapMode, sprite] of Object.entries(this.chunkRenderer.mapModes)) {
+      const visible = this.state.viewOptions.mapMode === mapMode;
+      if (mapMode in this.legends) {
+        (this.legends[mapMode] as PIXI.Sprite).visible = visible;
       }
     }
     this.worldUI.children.hoverCursor.visible = this.state.viewOptions.showCursor

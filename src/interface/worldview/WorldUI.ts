@@ -1,3 +1,4 @@
+import { EMapMode, MapModeMap } from './mapModes';
 import { Sprite, Container } from 'pixi.js';
 import Viewport from 'pixi-viewport';
 import WorldRenderer from './WorldRenderer';
@@ -9,24 +10,21 @@ import { drawHoverCursor, drawSelectCursor } from './textures';
 export type UIEvent = (cell: IWorldCell) => void | Function;
 
 export default class WorldUI {
-  renderer: WorldRenderer;
   viewport: Viewport;
   uiContainer: Container;
   children: Record<string, Sprite>;
-  eventCallbacks: Record<string, UIEvent>;
+  legends: Partial<Record<EMapMode, PIXI.Sprite>>;
 
   constructor(
-    renderer: WorldRenderer,
-    eventCallbacks: Record<string, UIEvent> = {}
+    public renderer: WorldRenderer,
+    public eventCallbacks: Record<string, UIEvent> = {},
   ) {
-    this.renderer = renderer;
     this.viewport = renderer.viewport;
 
     this.uiContainer = new Container();
     this.uiContainer.width = renderer.worldWidth;
     this.uiContainer.height = renderer.worldHeight;
 
-    this.eventCallbacks = eventCallbacks;
     this.children = {};
     this.render();
     this.setupEvents();
