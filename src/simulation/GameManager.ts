@@ -6,7 +6,7 @@ import World from './World';
 import { worldStore, gameStore } from './index';
 
 
-const GameWorker = require('worker-loader!./game.worker');
+const GameWorker = require('./game.worker');
 
 /**
  * Interface between the UI & Renderer and the Game Worker

@@ -2,7 +2,7 @@ import { IRegionWorkerOutput, IRegionGenInput } from './../types';
 import { WorkerPool } from './../../utils/workers';
 import World from "../World";
 import Region from '../Region';
-const RegionWorker = require('worker-loader!./region.worker');
+const RegionWorker = require('./region.worker');
 
 
 interface IRegionGenOptions {

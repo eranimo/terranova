@@ -706,7 +706,7 @@ ctx.onmessage = async (event: MessageEvent) => {
   console.time('step: terrain');
 
   console.time('terrain init');
-  const TerrainWorker = require('worker-loader!./terrain.worker');
+  const TerrainWorker = require('./terrain.worker');
   console.timeEnd('terrain init');
 
   console.time('terrain worker');

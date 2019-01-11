@@ -1,5 +1,5 @@
 import World from "../World";
-const WorldgenWorker = require('worker-loader!./world.worker');
+const WorldgenWorker = require('./world.worker');
 import { IWorldMapGenOptions, IWorldWorkerOutput } from '../types';
 
 
