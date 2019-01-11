@@ -13,7 +13,7 @@ import {
 import styled from 'styled-components';
 import { Link } from 'react-router-dom';
 import classnames from 'classnames';
-import { gameStore, worldStore, gameFactory } from '../../simulation';
+import { gameStore, worldStore, gameFactory } from "../../simulation/stores";
 import { Select } from '@blueprintjs/select';
 import { ISaveStoreEntry } from '../../simulation/SaveStore';
 

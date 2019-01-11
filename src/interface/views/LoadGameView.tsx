@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
-import { WorldGenerator, gameStore } from '../../simulation';
+import { WorldGenerator } from '../../simulation';
+import { gameStore } from "../../simulation/stores";
 import { Link } from 'react-router-dom';
 import { RouteComponentProps } from 'react-router'
 

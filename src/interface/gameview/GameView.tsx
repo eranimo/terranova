@@ -1,6 +1,4 @@
 import React, { Component } from 'react';
-import { gameStore } from '../../simulation';
-import Game from "../../simulation/Game";
 import { RouteComponentProps } from 'react-router'
 import {
   Spinner

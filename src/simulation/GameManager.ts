@@ -3,7 +3,7 @@ import { IGameDate } from './GameLoop';
 import { EGameEvent, IGameWorkerEventData } from './gameTypes';
 import { IGameParams } from './Game';
 import World from './World';
-import { worldStore, gameStore } from './index';
+import { worldStore, gameStore } from "./stores";
 
 
 const GameWorker = require('./game.worker');

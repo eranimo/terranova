@@ -1,18 +1,11 @@
 import React, { Component } from 'react';
-import { WorldGenerator, worldStore } from '../../simulation';
 import { Link } from 'react-router-dom';
 import { RouteComponentProps } from 'react-router'
 
 import {
   Classes,
   Card,
-  Button,
-  Icon,
-  Spinner,
-  Alert,
-  Tooltip,
   Menu,
-  MenuItem,
 } from '@blueprintjs/core';
 import styled from 'styled-components';
 import { ISaveStoreEntry } from '../../simulation/SaveStore';

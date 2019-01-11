@@ -1,3 +1,4 @@
+import { WorldRegion } from './WorldRegion';
 import ndarray from 'ndarray';
 import ops from 'ndarray-ops';
 import { IWorldWorkerOutput } from './types';
@@ -14,6 +15,7 @@ import {
   EDirection8,
   tileDirectionWeights,
 } from './worldTypes';
+import { ObservableSet } from './ObservableSet';
 
 
 interface IRange {
@@ -45,6 +47,8 @@ export default class World {
   params: IWorldWorkerOutput;
   stats: IWorldStats;
   generatedTime: number;
+  regions: ObservableSet<WorldRegion>;
+
 
   constructor(params: IWorldWorkerOutput) {
     this.params = params;
@@ -66,6 +70,7 @@ export default class World {
     const biomes = ndarray(params.biomes, [this.size.width, this.size.height]);
     const terrainRoughness = ndarray(params.terrainRoughness, [this.size.width, this.size.height]);
     this.generatedTime = +new Date();
+    this.regions = new ObservableSet();
 
     for (let x = 0; x < this.size.width; x++) {
       this.grid[x] = [];

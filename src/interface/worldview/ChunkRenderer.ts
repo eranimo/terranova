@@ -81,6 +81,13 @@ export class ChunkRenderer {
       this.options.cellWidth * this.options.chunkWidth,
       this.options.cellHeight * this.options.chunkHeight,
     );
+
+    // regions
+    (this.world as any).foobar = 'barbaz';
+    console.log('world', world);
+    this.world.regions.subscribe(regions => {
+      console.log('regions:', regions);
+    })
   }
 
   private getChunkAtCell(cell: IWorldCell): IChunkRef {

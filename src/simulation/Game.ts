@@ -1,9 +1,10 @@
 import { Point } from 'pixi.js';
-import { worldStore } from './index';
+import { worldStore } from "./stores";
 import World from "./World";
 import GameLoop from './GameLoop';
 import { IWorldCell } from './worldTypes';
 import { meanBy } from 'lodash';
+import { WorldRegion } from './WorldRegion';
 
 
 export interface IGameData {
@@ -19,56 +20,6 @@ export interface IGameParams {
 const initialGameData: IGameData = {
   entities: [],
 };
-
-class Cell {
-  constructor(
-    public x: number,
-    public y: number,
-    public worldCell: IWorldCell,
-  ) {
-
-  }
-}
-
-class Region {
-  cells: Set<IWorldCell>;
-  averages: Record<string, number>;
-
-  static MEAN_PROPS: Array<keyof IWorldCell> = [
-    'height', 'moisture', 'temperature', 'terrainRoughness'
-  ];
-
-  constructor(cells?: IWorldCell[]) {
-    this.cells = new Set(cells);
-    this.averages = {};
-    this.recalculate();
-  }
-
-  public add(...cells: IWorldCell[]) {
-    for (const cell of cells) {
-      this.cells.add(cell);
-    }
-    this.recalculate();
-  }
-
-  public remove(...cells: IWorldCell[]) {
-    for (const cell of cells) {
-      this.cells.delete(cell);
-    }
-    this.recalculate();
-  }
-
-  private recalculate() {
-    const cells = Array.from(this.cells);
-    for (const prop of Region.MEAN_PROPS) {
-      this.averages[prop] = meanBy(cells, prop);
-    }
-  }
-
-  get size() {
-    return this.cells.size;
-  }
-}
 
 export default class Game extends GameLoop {
   world: World | null;
@@ -93,8 +44,9 @@ export default class Game extends GameLoop {
       this.world.getCell(81, 135),
     ];
     console.log('cells', cells);
-    const region = new Region(cells);
-
-    console.log(region);
+    const region = new WorldRegion(cells);
+    // (this.world as any).foobar = 'barbaz';
+    // this.world.regions.subscribe(regions => console.log('R', regions));
+    this.world.regions.add(region);
   }
 }
