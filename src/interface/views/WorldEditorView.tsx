@@ -1,44 +1,17 @@
+import * as Blueprint from '@blueprintjs/core';
+import { clamp } from '@blueprintjs/core/lib/esm/common/utils';
+import { capitalize, cloneDeep, set } from 'lodash';
+import { parse } from 'query-string';
 import React, { Component } from 'react';
+import { RouteComponentProps } from 'react-router';
+import styled from 'styled-components';
 import { WorldGenerator } from '../../simulation';
 import { worldStore } from "../../simulation/stores";
+import { EWorldShape, IWorldMapGenOptions } from '../../simulation/types';
 import World from "../../simulation/World";
-import { RouteComponentProps } from 'react-router'
-import { IWorldMapGenOptions, EWorldShape } from '../../simulation/types';
-import {
-  NavbarGroup,
-  Button,
-  Alignment,
-  Popover,
-  PopoverInteractionKind,
-  Position,
-  FormGroup,
-  InputGroup,
-  ControlGroup,
-  Spinner,
-  Dialog,
-  Classes,
-  Intent,
-  NumericInput,
-  Navbar,
-  Tabs,
-  Tab,
-  Tooltip,
-  Switch,
-  TabId,
-  Label,
-  NavbarHeading,
-  NavbarDivider,
-  ButtonGroup,
-  Slider,
-  RangeSlider,
-} from '@blueprintjs/core';
-import WorldViewer from '../worldview/WorldViewer';
-import { set, capitalize, cloneDeep } from 'lodash';
-import styled from 'styled-components';
-import { clamp } from '@blueprintjs/core/lib/esm/common/utils';
 import BackButton from '../components/BackButton';
-import { parse } from 'query-string';
 import { AppNotifications } from '../notifications';
+import WorldViewer from '../worldview/WorldViewer';
 
 
 const Row = styled.div`
@@ -84,7 +57,7 @@ class WorldConfigEditor extends Component<{
   resetOptions: () => void,
   generate: () => void,
   closeModal: () => void,
-}, { activeTab: TabId }> {
+}, { activeTab: Blueprint.TabId }> {
   state = {
     activeTab: 't1',
   };
@@ -94,48 +67,48 @@ class WorldConfigEditor extends Component<{
       <Row>
         <Column>
           <FormGroupContainer>
-            <FormGroup
+            <Blueprint.FormGroup
               label="Seed"
               labelFor="control-seed"
             >
-              <ControlGroup fill>
-                <InputGroup
+              <Blueprint.ControlGroup fill>
+                <Blueprint.InputGroup
                   value={this.props.options.seed.toString()}
                   onChange={event => this.props.handleOptionChange('seed', event.target.value)}
                 />
-                <Button
+                <Blueprint.Button
                   style={{ flex: 0 }}
                   icon={'random'}
                   onClick={() => this.props.handleOptionChange('seed', Math.random().toString())}
                 />
-              </ControlGroup>
-            </FormGroup>
+              </Blueprint.ControlGroup>
+            </Blueprint.FormGroup>
           </FormGroupContainer>
           <FormGroupContainer>
-            <FormGroup label="Width">
-              <NumericInput
+            <Blueprint.FormGroup label="Width">
+              <Blueprint.NumericInput
                 min={0}
                 fill
                 value={this.props.options.size.width}
                 onValueChange={value => this.props.handleOptionChange('size.width', value)}
               />
-            </FormGroup>
+            </Blueprint.FormGroup>
           </FormGroupContainer>
           <FormGroupContainer>
-            <FormGroup label="Height">
-              <NumericInput
+            <Blueprint.FormGroup label="Height">
+              <Blueprint.NumericInput
                 min={0}
                 fill
                 value={this.props.options.size.height}
                 onValueChange={value => this.props.handleOptionChange('size.height', value)}
               />
-            </FormGroup>
+            </Blueprint.FormGroup>
           </FormGroupContainer>
         </Column>
         <Column>
           <FormGroupContainer>
-            <FormGroup label="Sea level">
-              <Slider
+            <Blueprint.FormGroup label="Sea level">
+              <Blueprint.Slider
                 min={1}
                 max={255}
                 labelStepSize={50}
@@ -144,11 +117,11 @@ class WorldConfigEditor extends Component<{
                   this.props.handleOptionChange('sealevel', clamp(value, 1, 255));
                 }}
               />
-            </FormGroup>
+            </Blueprint.FormGroup>
           </FormGroupContainer>
           <FormGroupContainer>
-            <FormGroup label="World shape" inline>
-              <div className={Classes.SELECT}>
+            <Blueprint.FormGroup label="World shape" inline>
+              <div className={Blueprint.Classes.SELECT}>
                 <select
                   onChange={event => this.props.handleOptionChange('worldShape', event.target.value)}
                 >
@@ -162,14 +135,14 @@ class WorldConfigEditor extends Component<{
                   ))}
                 </select>
               </div>
-            </FormGroup>
+            </Blueprint.FormGroup>
           </FormGroupContainer>
           <FormGroupContainer>
-            <FormGroup
+            <Blueprint.FormGroup
               label="World shape power"
               helperText="Lower means a smaller world with a more natural shape. Higher means a larger world with a more regular shape."
             >
-              <Slider
+              <Blueprint.Slider
                 min={1}
                 max={5}
                 stepSize={0.1}
@@ -178,7 +151,7 @@ class WorldConfigEditor extends Component<{
                   this.props.handleOptionChange('worldShapePower', clamp(value, 1, 5));
                 }}
               />
-            </FormGroup>
+            </Blueprint.FormGroup>
           </FormGroupContainer>
         </Column>
       </Row>
@@ -190,11 +163,11 @@ class WorldConfigEditor extends Component<{
       <Row>
         <Column>
           <FormGroupContainer>
-            <FormGroup
+            <Blueprint.FormGroup
               label="River threshold"
               helperText="Higher value will generate less rivers"
             >
-              <Slider
+              <Blueprint.Slider
                 min={0}
                 max={1}
                 stepSize={0.01}
@@ -204,14 +177,14 @@ class WorldConfigEditor extends Component<{
                   this.props.handleOptionChange('riverThreshold', clamp(value, 0, 1));
                 }}
               />
-            </FormGroup>
+            </Blueprint.FormGroup>
           </FormGroupContainer>
           <FormGroupContainer>
-            <FormGroup
+            <Blueprint.FormGroup
               label="Depression Filling Percent"
               helperText="% of depressions which are filled, the rest become lakes"
             >
-              <Slider
+              <Blueprint.Slider
                 min={0}
                 max={1}
                 stepSize={0.01}
@@ -221,16 +194,16 @@ class WorldConfigEditor extends Component<{
                   this.props.handleOptionChange('depressionFillPercent', clamp(value, 0, 1));
                 }}
               />
-            </FormGroup>
+            </Blueprint.FormGroup>
           </FormGroupContainer>
         </Column>
         <Column>
           <FormGroupContainer>
-            <FormGroup
+            <Blueprint.FormGroup
               label="Temperature Range"
               helperText="Approximate range of temperatures allowed"
             >
-              <RangeSlider
+              <Blueprint.RangeSlider
                 min={-50}
                 max={50}
                 labelStepSize={10}
@@ -240,19 +213,19 @@ class WorldConfigEditor extends Component<{
                   this.props.handleOptionChange('temperature.max', value[1]);
                 }}
               />
-            </FormGroup>
+            </Blueprint.FormGroup>
           </FormGroupContainer>
           <FormGroupContainer>
-            <FormGroup
+            <Blueprint.FormGroup
               label="Elevation cooling amount"
               helperText="The amount of temperature lost due to elevation at highest peak"
             >
-              <NumericInput
+              <Blueprint.NumericInput
                 value={this.props.options.elevationCoolingAmount}
                 min={0}
                 onValueChange={value => this.props.handleOptionChange('elevationCoolingAmount', Math.max(0, value))}
               />
-            </FormGroup>
+            </Blueprint.FormGroup>
           </FormGroupContainer>
         </Column>
       </Row>
@@ -262,7 +235,7 @@ class WorldConfigEditor extends Component<{
   render() {
     return (
       <form
-        className={Classes.POPOVER_CONTENT_SIZING}
+        className={Blueprint.Classes.POPOVER_CONTENT_SIZING}
         onSubmit={(event) => {
           this.props.generate();
           event.preventDefault();
@@ -271,24 +244,24 @@ class WorldConfigEditor extends Component<{
         style={{ padding: '1rem', margin: 0 }}
       >
         <div>
-          <Tabs
+          <Blueprint.Tabs
             id="world-config-tabs"
             onChange={tabID => this.setState({ activeTab: tabID })}
             selectedTabId={this.state.activeTab}
           >
-            <Tab id="t1" title="Terrain" panel={this.renderTerrainOptions()} />
-            <Tab id="t2" title="Climate" panel={this.renderClimateOptions()} />
-          </Tabs>
+            <Blueprint.Tab id="t1" title="Terrain" panel={this.renderTerrainOptions()} />
+            <Blueprint.Tab id="t2" title="Climate" panel={this.renderClimateOptions()} />
+          </Blueprint.Tabs>
         </div>
         <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 15 }}>
-          <Button
+          <Blueprint.Button
             text="Reset"
             minimal
             onClick={() => this.props.resetOptions()}
           />
-          <Button
+          <Blueprint.Button
             type="submit"
-            intent={Intent.PRIMARY}
+            intent={Blueprint.Intent.PRIMARY}
             text="Generate"
           />
         </div>
@@ -368,18 +341,18 @@ export class WorldEditorView extends Component<RouteComponentProps<{}>, {
 
   renderControls = () => {
     return (
-      <NavbarGroup align={Alignment.LEFT}>
+      <Blueprint.NavbarGroup align={Blueprint.Alignment.LEFT}>
         <BackButton />
-        <NavbarDivider />
-        <NavbarHeading>World Editor</NavbarHeading>
-        <NavbarDivider />
-        <ButtonGroup minimal>
-          <Popover
+        <Blueprint.NavbarDivider />
+        <Blueprint.NavbarHeading>World Editor</Blueprint.NavbarHeading>
+        <Blueprint.NavbarDivider />
+        <Blueprint.ButtonGroup minimal>
+          <Blueprint.Popover
             isOpen={this.state.configDialogOpen}
             onClose={() => this.setState({ configDialogOpen: false })}
-            position={Position.BOTTOM_LEFT}
+            position={Blueprint.Position.BOTTOM_LEFT}
           >
-            <Button
+            <Blueprint.Button
               text='World Config'
               icon={'cog'}
               onClick={() => this.setState({ configDialogOpen: true })}
@@ -399,13 +372,13 @@ export class WorldEditorView extends Component<RouteComponentProps<{}>, {
                 });
               }}
             />
-          </Popover>
-          <Button
+          </Blueprint.Popover>
+          <Blueprint.Button
             text="Generate"
             icon={'refresh'}
             onClick={this.generate.bind(this)}
           />
-          <Button
+          <Blueprint.Button
             text="Randomize"
             icon={'random'}
             onClick={() => {
@@ -417,23 +390,23 @@ export class WorldEditorView extends Component<RouteComponentProps<{}>, {
               }, this.generate)
             }}
           />
-          <Button
+          <Blueprint.Button
             text="Save World"
             icon={'floppy-disk'}
             onClick={() => this.setState({ saveDialogOpen: true })}
           />
-        </ButtonGroup>
-      </NavbarGroup>
+        </Blueprint.ButtonGroup>
+      </Blueprint.NavbarGroup>
     );
   }
 
   render() {
     if (this.state.world === null) {
-      return <Spinner />;
+      return <Blueprint.Spinner />;
     }
     return (
       <div>
-        <Dialog
+        <Blueprint.Dialog
           title="Save World"
           isOpen={this.state.saveDialogOpen}
           onClose={() => this.setState({ saveDialogOpen: false })}
@@ -447,26 +420,26 @@ export class WorldEditorView extends Component<RouteComponentProps<{}>, {
               event.preventDefault();
             }}
           >
-            <div className={Classes.DIALOG_BODY}>
-              <FormGroup
+            <div className={Blueprint.Classes.DIALOG_BODY}>
+              <Blueprint.FormGroup
                 label="World name"
               >
-                <InputGroup
+                <Blueprint.InputGroup
                   value={this.state.saveNameInput}
                   autoFocus
                   onChange={(event) => this.setState({
                     saveNameInput: event.target.value
                   })}
                 />
-              </FormGroup>
+              </Blueprint.FormGroup>
             </div>
-            <div className={Classes.DIALOG_FOOTER}>
-              <div className={Classes.DIALOG_FOOTER_ACTIONS}>
-                <Button
+            <div className={Blueprint.Classes.DIALOG_FOOTER}>
+              <div className={Blueprint.Classes.DIALOG_FOOTER_ACTIONS}>
+                <Blueprint.Button
                   intent={
                     this.state.currentSaveName === this.state.saveNameInput
-                      ? Intent.DANGER
-                      : Intent.PRIMARY
+                      ? Blueprint.Intent.DANGER
+                      : Blueprint.Intent.PRIMARY
                   }
                   text={
                     this.state.currentSaveName === this.state.saveNameInput
@@ -478,7 +451,7 @@ export class WorldEditorView extends Component<RouteComponentProps<{}>, {
               </div>
             </div>
           </form>
-        </Dialog>
+        </Blueprint.Dialog>
         <WorldViewer
           isLoading={this.state.isLoading}
           renderControls={this.renderControls}

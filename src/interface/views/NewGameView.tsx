@@ -1,21 +1,13 @@
-import React, { Component, FormEvent } from 'react';
-import { RouteComponentProps } from 'react-router'
-
-import {
-  Card,
-  Button,
-  InputGroup,
-  FormGroup,
-  Breadcrumb,
-  Classes,
-  MenuItem,
-} from '@blueprintjs/core';
-import styled from 'styled-components';
-import { Link } from 'react-router-dom';
-import classnames from 'classnames';
-import { gameStore, worldStore, gameFactory } from "../../simulation/stores";
+import { Button, Card, Classes, FormGroup, InputGroup, MenuItem } from '@blueprintjs/core';
 import { Select } from '@blueprintjs/select';
+import classnames from 'classnames';
+import React, { Component, FormEvent } from 'react';
+import { RouteComponentProps } from 'react-router';
+import { Link } from 'react-router-dom';
+import styled from 'styled-components';
 import { ISaveStoreEntry } from '../../simulation/SaveStore';
+import { gameFactory, worldStore } from "../../simulation/stores";
+
 
 
 const WorldSelectInput = Select.ofType<ISaveStoreEntry>();
