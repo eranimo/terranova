@@ -4,7 +4,7 @@
   "description": "World map generator",
   "main": "index.js",
   "scripts": {
-    "build": "NODE_ENV=production webpack",
+    "build": "rm -rf public/ && NODE_ENV=production webpack",
     "dev": "webpack-dev-server --progress"
   },
   "author": "Kaelan Cooter (me@kaelan.org)",
