@@ -1,2 +1,2 @@
 export { default as WorldMapContainer } from './WorldMapContainer';
-export { WorldView } from './WorldView';
+export { WorldView } from '../views/WorldView';

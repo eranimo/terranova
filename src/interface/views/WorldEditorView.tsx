@@ -12,6 +12,7 @@ import World from "../../simulation/World";
 import BackButton from '../components/BackButton';
 import { AppNotifications } from '../notifications';
 import WorldViewer from '../worldview/WorldViewer';
+import { WorldMap } from '../../common/WorldMap';
 
 
 const Row = styled.div`
@@ -455,7 +456,7 @@ export class WorldEditorView extends Component<RouteComponentProps<{}>, {
         <WorldViewer
           isLoading={this.state.isLoading}
           renderControls={this.renderControls}
-          world={this.state.world}
+          worldMap={new WorldMap(this.state.world)}
         />
       </div>
     )

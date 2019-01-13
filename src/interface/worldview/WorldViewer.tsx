@@ -1,5 +1,5 @@
 import React, { Component, Fragment, ChangeEvent } from 'react';
-import { WorldMap, IViewOptions } from './WorldMap';
+import { WorldRendererContainer, IViewOptions } from './WorldRendererContainer';
 import { mapModes, EMapMode, mapModeDesc } from './mapModes';
 import { IWorldCell } from '../../simulation/worldTypes';
 import { biomeTitles, directionLabels, cellFeatureLabels, temperatureZoneTitles, moistureZoneTitles, terrainTypeLabels } from "../../simulation/labels";
@@ -26,6 +26,7 @@ import WorldStats from '../components/WorldStats';
 import copy from 'clipboard-copy';
 import WorldMapContainer from './WorldMapContainer';
 import { FullSizeBlock } from '../components/layout';
+import { WorldMap } from '../../common/WorldMap';
 
 
 class WorldViewerHeader extends Component <{
@@ -247,26 +248,26 @@ class CellDetail extends Component<{
 
 
 interface IWorldViewerProps {
-  world: World,
+  worldMap: WorldMap,
   isLoading: boolean,
   renderControls?: () => React.ReactNode,
 }
 export default class WorldViewer extends Component<IWorldViewerProps> {
   render() {
-    const { world, renderControls, isLoading } = this.props;
+    const { worldMap, renderControls, isLoading } = this.props;
 
     return (
       <FullSizeBlock>
         <WorldMapContainer
-          world={world}
+          worldMap={worldMap}
           isLoading={isLoading}
           mapModes={mapModes}
         >
           {({ viewOptions, selectedCell, onChangeField, onChangeMapMode, deselect }) => (
             <Fragment>
               <WorldViewerHeader
-                key={world.hash}
-                world={world}
+                key={worldMap.world.hash}
+                world={worldMap.world}
                 viewOptions={viewOptions}
                 onChangeField={onChangeField}
                 onChangeMapMode={onChangeMapMode}

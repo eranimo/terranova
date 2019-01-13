@@ -1,9 +1,12 @@
+import { IWorldRegionView } from './WorldRegion';
 import { Subject, BehaviorSubject } from 'rxjs';
 import { IGameDate } from './GameLoop';
 import { EGameEvent, IGameWorkerEventData } from './gameTypes';
 import { IGameParams } from './Game';
 import World from './World';
 import { worldStore, gameStore } from "./stores";
+import Array2D from '../utils/Array2D';
+import { WorldMap } from '../common/WorldMap';
 
 
 const GameWorker = require('./game.worker');
@@ -16,6 +19,7 @@ const GameWorker = require('./game.worker');
 export default class GameManager {
   worker: Worker;
   world: World;
+  worldMap: WorldMap;
   saveName: string;
   params: IGameParams;
   date$: Subject<IGameDate>;
@@ -54,12 +58,21 @@ export default class GameManager {
       params: this.params
     });
 
+    // listen for state change events
     this.onEvent(EGameEvent.STATE_CHANGE, (change) => {
       this.state[change.key].next(change.value);
     });
 
+    // loading state
     this.loading$ = new BehaviorSubject(true);
     this.onEvent(EGameEvent.LOADED, () => this.loading$.next(true));
+
+    // world map
+    this.worldMap = new WorldMap(this.world)
+    this.onEvent(EGameEvent.NEW_REGION, (region: IWorldRegionView) => {
+      console.log('new region', region);
+      this.worldMap.addRegion(region);
+    });
   }
 
   sendEvent(eventName: EGameEvent, params?: any) {

@@ -1,9 +1,10 @@
+import { WorldMap } from './../../common/WorldMap';
 import * as PIXI from 'pixi.js';
 import World from "../../simulation/World";
 import Viewport from 'pixi-viewport';
 import { ChunkRenderer } from './ChunkRenderer';
 import WorldUI, { UIEvent } from './WorldUI';
-import { IWorldMapProps, IViewOptions } from './WorldMap';
+import { IWorldMapProps, IViewOptions } from './WorldRendererContainer';
 import { debounce, pick } from 'lodash';
 import { EMapMode, MapModeMap } from './mapModes';
 
@@ -63,23 +64,23 @@ export default class WorldRenderer {
   legends: Partial<Record<EMapMode, PIXI.Sprite>>;
 
   constructor({
-    world,
+    worldMap,
     element,
     options = defaultRendererOptions,
     mapModes,
     eventCallbacks
   }: {
-    world: World,
+    worldMap: WorldMap,
     element: HTMLElement,
     options?: IWorldRendererOptions,
     mapModes: MapModeMap,
     eventCallbacks: Record<string, UIEvent>,
   }) {
-    this.world = world;
+    this.world = worldMap.world;
     this.element = element;
     this.options = options;
-    this.worldWidth = world.size.width * options.cellWidth;
-    this.worldHeight = world.size.height * options.cellHeight;
+    this.worldWidth = this.world.size.width * options.cellWidth;
+    this.worldHeight = this.world.size.height * options.cellHeight;
 
     // setup PIXI
     this.app = new PIXI.Application({
@@ -107,7 +108,7 @@ export default class WorldRenderer {
     this.viewport.zoomPercent(1/3);
 
     // create chunk renderer
-    this.chunkRenderer = new ChunkRenderer(world, this.viewport, this.options, mapModes);
+    this.chunkRenderer = new ChunkRenderer(worldMap, this.viewport, this.options, mapModes);
     this.viewport.addChild(this.chunkRenderer.chunkContainer);
 
     // create UI

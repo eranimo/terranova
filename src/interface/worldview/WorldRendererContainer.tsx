@@ -4,6 +4,7 @@ import { IWorldCell } from '../../simulation/worldTypes';
 import World from "../../simulation/World";
 import { EMapMode, MapModeMap } from './mapModes';
 import WorldRenderer from './WorldRenderer';
+import { WorldMap } from '../../common/WorldMap';
 
 
 export interface IViewOptions {
@@ -15,14 +16,14 @@ export interface IViewOptions {
 }
 
 export interface IWorldMapProps {
-  world: World,
+  worldMap: WorldMap,
   viewOptions: IViewOptions;
   mapModes: MapModeMap;
   selectedCell: IWorldCell | null;
   onCellClick: (cell: IWorldCell) => void;
 }
 
-export class WorldMap extends React.Component<IWorldMapProps> {
+export class WorldRendererContainer extends React.Component<IWorldMapProps> {
   root: React.RefObject<HTMLDivElement>;
   arrowTexture: PIXI.Texture;
   renderer: WorldRenderer;
@@ -34,7 +35,7 @@ export class WorldMap extends React.Component<IWorldMapProps> {
 
   componentDidMount() {
     this.renderer = new WorldRenderer({
-      world: this.props.world,
+      worldMap: this.props.worldMap,
       element: this.root.current,
       mapModes: this.props.mapModes,
       eventCallbacks: {
@@ -50,15 +51,15 @@ export class WorldMap extends React.Component<IWorldMapProps> {
     this.updateView(this.props);
   }
 
-  shouldComponentUpdate(nextProps) {
+  shouldComponentUpdate(nextProps: IWorldMapProps) {
     if (nextProps.selectedCell !== this.props.selectedCell) {
       console.log('select', nextProps.selectedCell);
       this.selectCell(nextProps.selectedCell);
     }
-    if (nextProps.world != this.props.world) {
-      console.log('update WorldViewer', this.props.world);
+    if (nextProps.worldMap != this.props.worldMap) {
+      console.log('update WorldViewer', this.props.worldMap);
       this.renderer = new WorldRenderer({
-        world: nextProps.world,
+        worldMap: nextProps.worldMap,
         element: this.root.current,
         mapModes: this.props.mapModes,
         eventCallbacks: {

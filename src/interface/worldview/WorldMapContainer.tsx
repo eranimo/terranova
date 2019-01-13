@@ -1,5 +1,5 @@
 import React, { Component, Fragment } from 'react';
-import { WorldMap, IViewOptions } from './WorldMap';
+import { WorldRendererContainer, IViewOptions } from './WorldRendererContainer';
 import { EMapMode, MapModeMap } from './mapModes';
 import { IWorldCell } from '../../simulation/worldTypes';
 import World from "../../simulation/World";
@@ -10,6 +10,7 @@ import {
   Hotkey,
 } from '@blueprintjs/core';
 import styled from 'styled-components';
+import { WorldMap } from '../../common/WorldMap';
 
 
 const LoadingWorld = styled.div`
@@ -40,7 +41,7 @@ export interface IWorldMapContainerChildProps {
 }
 
 interface IWorldMapContainerProps {
-  world: World;
+  worldMap: WorldMap;
   isLoading: boolean;
   mapModes: MapModeMap;
   children: ({
@@ -100,7 +101,7 @@ export default class WorldMapContainer extends Component<IWorldMapContainerProps
     });
   }
   onCellClick = (cell: IWorldCell) => {
-    const index = this.props.world.getTileIndex(cell.x, cell.y);
+    const index = this.props.worldMap.world.getTileIndex(cell.x, cell.y);
     console.log('tile index:', index);
     if (this.state.selectedCell == cell) {
       // deselect
@@ -116,7 +117,7 @@ export default class WorldMapContainer extends Component<IWorldMapContainerProps
   }
 
   shouldComponentUpdate(nextProps) {
-    if (this.props.world != nextProps.world) {
+    if (this.props.worldMap != nextProps.worldMap) {
       this.setState({ selectedCell: null });
     }
     return true;
@@ -160,9 +161,9 @@ export default class WorldMapContainer extends Component<IWorldMapContainerProps
   }
 
   render() {
-    const { world, isLoading, children, mapModes } = this.props;
+    const { worldMap, isLoading, children, mapModes } = this.props;
 
-    if (world !== null) {
+    if (worldMap !== null) {
       return (
         <Fragment>
           {isLoading && (
@@ -177,9 +178,9 @@ export default class WorldMapContainer extends Component<IWorldMapContainerProps
             onChangeMapMode: this.onChangeMapMode,
             deselect: this.deselect,
           })}
-          <WorldMap
-            key={world.hash}
-            world={world}
+          <WorldRendererContainer
+            key={worldMap.world.hash}
+            worldMap={worldMap}
             viewOptions={this.state.viewOptions}
             selectedCell={this.state.selectedCell}
             onCellClick={this.onCellClick}

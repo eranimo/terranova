@@ -219,7 +219,7 @@ export default class GameViewer extends Component<IGameViewerProps> {
     return (
       <FullSizeBlock>
         <WorldMapContainer
-          world={game.world}
+          worldMap={game.worldMap}
           isLoading={isLoading}
           mapModes={gameMapModes}
           style={{ top: 0 }}

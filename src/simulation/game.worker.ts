@@ -19,6 +19,14 @@ const handlers: Partial<Record<EGameEvent, EventHandler>> = {
       payload: date,
     }));
 
+    game.newRegion$.subscribe(region => {
+      console.log('game.worker: NEW REGION', region)
+      ctx.postMessage({
+        type: EGameEvent.NEW_REGION,
+        payload: region.export(),
+      });
+    });
+
     for (const [key, subject] of Object.entries(game.state)) {
       ctx.postMessage({
         type: EGameEvent.STATE_CHANGE,

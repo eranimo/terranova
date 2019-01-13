@@ -6,17 +6,18 @@ import { RouteComponentProps } from 'react-router'
 import {
   Spinner, NavbarGroup, Alignment, NavbarHeading, NavbarDivider
 } from '@blueprintjs/core';
-import WorldViewer from './WorldViewer';
+import WorldViewer from '../worldview/WorldViewer';
 import BackButton from '../components/BackButton';
+import { WorldMap } from '../../common/WorldMap';
 
 
 export class WorldView extends Component<RouteComponentProps<{
   saveName: string
-}>, { world?: World }> {
+}>, { worldMap?: WorldMap }> {
   worldgen: WorldGenerator;
 
   state = {
-    world: null,
+    worldMap: null,
   }
 
   constructor(props) {
@@ -30,11 +31,12 @@ export class WorldView extends Component<RouteComponentProps<{
     const { saveName } = this.props.match.params;
     const world: World = await worldStore.load(saveName);
     console.log('World loaded', world);
-    this.setState({ world });
+    const worldMap = new WorldMap(world);
+    this.setState({ worldMap });
   }
 
   render() {
-    if (this.state.world === null) {
+    if (this.state.worldMap === null) {
       return <Spinner/>;
     }
     return (
@@ -46,8 +48,8 @@ export class WorldView extends Component<RouteComponentProps<{
             <NavbarHeading>World Viewer</NavbarHeading>
           </NavbarGroup>
         ]}
-        world={this.state.world}
-        isLoading={this.state.world === null}
+        worldMap={this.state.worldMap}
+        isLoading={this.state.worldMap === null}
       />
     );
   }

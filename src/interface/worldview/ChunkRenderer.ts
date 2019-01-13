@@ -1,5 +1,6 @@
+import { WorldMap } from './../../common/WorldMap';
 import { EDirection, ECellFeature, ECellType } from '../../simulation/worldTypes';
-import { Sprite, Container, Point } from 'pixi.js';
+import { Sprite, Container, Point, Graphics } from 'pixi.js';
 import { IWorldCell } from '../../simulation/worldTypes';
 import World from "../../simulation/World";
 import { IWorldRendererOptions } from './WorldRenderer';
@@ -8,6 +9,8 @@ import { isFunction } from 'lodash';
 import Array2D from '../../utils/Array2D';
 import { makeArrow } from './textures';
 import Viewport from 'pixi-viewport';
+import { Subject, concat } from 'rxjs';
+import { IViewOptions } from './WorldRendererContainer';
 
 
 const directionAngles = {
@@ -24,6 +27,7 @@ export interface IChunkData {
   mapModes: Record<EMapMode, Sprite>;
   grid: Sprite;
   flowArrows: Container;
+  regions: Container;
   coastlineBorder: Sprite;
 }
 
@@ -47,23 +51,27 @@ export class ChunkRenderer {
   private visibleChunks: IChunkData[];
   private chunkWorldWidth: number;
   private chunkWorldHeight: number;
+  private viewOptions: IViewOptions;
 
   public world: World;
+  public worldMap: WorldMap;
   public mapModes: Partial<Record<EMapMode, IMapMode>>;
   public chunkContainer: Container;
 
   constructor(
-    world: World,
+    worldMap: WorldMap,
     viewport: Viewport,
     options: IWorldRendererOptions,
     mapModes: MapModeMap,
   ) {
-    this.world = world;
+    this.world = worldMap.world;
+    this.worldMap = worldMap;
     this.viewport = viewport;
     this.options = options;
+    this.viewOptions = null;
 
-    this.chunkColumns = world.size.width / this.options.chunkWidth;
-    this.chunkRows = world.size.height / this.options.chunkHeight;
+    this.chunkColumns = this.world.size.width / this.options.chunkWidth;
+    this.chunkRows = this.world.size.height / this.options.chunkHeight;
     this.renderedChunks = new Array2D<IChunkData>(this.chunkColumns, this.chunkRows);
     this.chunkWorldWidth = this.options.chunkWidth * this.options.cellWidth
     this.chunkWorldHeight = this.options.chunkHeight * this.options.cellHeight
@@ -74,20 +82,38 @@ export class ChunkRenderer {
     }
 
     this.chunkContainer = new Container();
-    this.chunkContainer.width = world.size.width * this.options.cellWidth;
-    this.chunkContainer.height = world.size.height * this.options.cellHeight;
+    this.chunkContainer.width = this.world.size.width * this.options.cellWidth;
+    this.chunkContainer.height = this.world.size.height * this.options.cellHeight;
 
     this.overpaint = new PIXI.Point(
       this.options.cellWidth * this.options.chunkWidth,
       this.options.cellHeight * this.options.chunkHeight,
     );
 
-    // regions
-    (this.world as any).foobar = 'barbaz';
-    console.log('world', world);
-    this.world.regions.subscribe(regions => {
-      console.log('regions:', regions);
-    })
+    // const chunksToUpdate = new Array2D<boolean>(this.chunkColumns, this.chunkRows, false);
+    for (let x = 0; x < this.chunkColumns; x++) {
+      for (let y = 0; y < this.chunkRows; y++) {
+        // let cells = [];
+        for (const cell of this.getCellsInChunk(x, y)) {
+          const cellUpdates$ = this.worldMap.cellRegionUpdate$.get(cell.x, cell.y);
+          // cells.push(cellUpdates$);
+          cellUpdates$.subscribe(region => {
+            // cell's region updated
+            console.log(`Cell: ${cell.x}, ${cell.y} Region: `, region);
+            const { chunkX, chunkY } = this.getChunkAtCell(cell);
+            // chunksToUpdate.set(chunkX, chunkY, true);
+            // const chunkData = this.renderedChunks.get(chunkX, chunkY);
+            // this.chunkContainer.removeChild(chunkData.container);
+            // this.renderedChunks.unset(chunkX, chunkY);
+            // console.log('r', this.worldMap.cellRegionMap.get(cell.x, cell.y));
+            this.renderChunkRegions(chunkX, chunkY);
+            // this.update();
+          });
+        }
+        // const chunkUpdate = concat(cells);
+        // chunkUpdate.subscribe(value => console.log(value));
+      }
+    }
   }
 
   private getChunkAtCell(cell: IWorldCell): IChunkRef {
@@ -146,6 +172,8 @@ export class ChunkRenderer {
     );
     const chunkCells = this.getCellsInChunk(chunkX, chunkY);
 
+    console.log(`Render Chunk: (${chunkX}, ${chunkY})`);
+
     const chunk = new Container();
     chunk.width = chunkWidth;
     chunk.height = chunkHeight;
@@ -202,6 +230,7 @@ export class ChunkRenderer {
     flowArrows.interactive = false;
     chunk.addChild(flowArrows);
 
+    // coastline borders
     const coastlineBorder: Sprite = drawCellBorders(
       chunkCells,
       chunkPosition,
@@ -216,14 +245,46 @@ export class ChunkRenderer {
     coastlineBorder.interactive = false;
     chunk.addChild(coastlineBorder);
 
+    // regions
+    const chunkRegions = new Container();
+    chunk.addChild(chunkRegions);
+
     this.renderedChunks.set(chunkX, chunkY, {
       container: chunk,
+      regions: chunkRegions,
       position: chunkPosition,
       mapModes: mapModeLayers as Record<EMapMode, Sprite>,
       grid: gridSprite,
       flowArrows,
       coastlineBorder,
     });
+
+    this.renderChunkRegions(chunkX, chunkY);
+  }
+
+  private renderChunkRegions(chunkX: number, chunkY: number) {
+    const chunkCells = this.getCellsInChunk(chunkX, chunkY);
+    const { cellWidth, cellHeight } = this.options;
+    const chunk = this.renderedChunks.get(chunkX, chunkY);
+
+    chunk.regions.removeChildren();
+    for (const cell of chunkCells) {
+      const regionID = this.worldMap.cellRegionMap.get(cell.x, cell.y);
+      if (regionID !== undefined) {
+        const region = this.worldMap.regionMap.get(regionID);
+        const g = new Graphics();
+        g.alpha = 0.5;
+        g.beginFill(region.color);
+        g.drawRect(0, 0, cellWidth, cellHeight);
+        g.endFill();
+        const cellRegionBG = new Sprite(g.generateCanvasTexture());
+        cellRegionBG.position.set(
+          (cell.x * cellWidth) - chunk.position.x,
+          (cell.y * cellHeight) - chunk.position.y,
+        );
+        chunk.regions.addChild(cellRegionBG);
+      }
+    }
   }
 
   private renderVisibleChunks(): void {
@@ -259,15 +320,18 @@ export class ChunkRenderer {
     }
   }
 
-  public update(viewOptions) {
+  public update(viewOptions?: IViewOptions) {
+    if (viewOptions) {
+      this.viewOptions = viewOptions;
+    }
     for (const chunk of this.mapChunks()) {
       if (chunk) {
-        chunk.grid.visible = viewOptions.drawGrid;
-        chunk.flowArrows.visible = viewOptions.showFlowArrows;
-        chunk.coastlineBorder.visible = viewOptions.drawCoastline;
+        chunk.grid.visible = this.viewOptions.drawGrid;
+        chunk.flowArrows.visible = this.viewOptions.showFlowArrows;
+        chunk.coastlineBorder.visible = this.viewOptions.drawCoastline;
 
         for (const [mapMode, sprite] of Object.entries(chunk.mapModes)) {
-          sprite.visible = viewOptions.mapMode === mapMode;
+          sprite.visible = this.viewOptions.mapMode === mapMode;
         }
       }
     }

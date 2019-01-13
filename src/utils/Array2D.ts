@@ -1,3 +1,5 @@
+import { isFunction } from 'lodash';
+import { isUndefined } from 'typescript-collections/dist/lib/util';
 /**
  * 2D array of type T, initialized to undefined
  */
@@ -6,14 +8,24 @@ export default class Array2D<T> {
   width: number;
   height: number;
 
-  constructor(width: number, height: number) {
+  constructor(
+    width: number,
+    height: number,
+    setter?: T | ((x: number, y: number) => T)
+  ) {
     this.width = width;
     this.height = height;
     this.data = [];
     for (let x = 0; x < width; x++) {
       this.data[x] = [];
       for (let y = 0; y < height; y++) {
-        this.data[x][y] = undefined;
+        if (isFunction(setter)) {
+          this.data[x][y] = setter(x, y);
+        } else if (isUndefined(setter)) {
+          this.data[x][y] = undefined;
+        } else {
+          this.data[x][y] = setter;
+        }
       }
     }
   }
@@ -37,6 +49,10 @@ export default class Array2D<T> {
    */
   has(x: number, y: number): boolean {
     return typeof this.get(x, y) !== 'undefined';
+  }
+
+  unset(x: number, y: number) {
+    this.set(x, y, undefined);
   }
 
   fill(

@@ -7,6 +7,8 @@ export enum EGameEvent {
   PAUSE = 'PAUSE',
   FASTER = 'FASTER',
   SLOWER = 'SLOWER',
+
+  NEW_REGION = 'NEW_REGION',
 }
 
 export interface IGameWorkerEventData {
