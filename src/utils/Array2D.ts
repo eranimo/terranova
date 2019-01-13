@@ -64,4 +64,12 @@ export default class Array2D<T> {
       }
     }
   }
+
+  *[Symbol.iterator]() {
+    for (let x = 0; x < this.width; x++) {
+      for (let y = 0; y < this.height; y++) {
+        yield [x, y, this.data[x][y]];
+      }
+    }
+  }
 }

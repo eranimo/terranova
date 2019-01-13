@@ -11,6 +11,7 @@ import { makeArrow } from './textures';
 import Viewport from 'pixi-viewport';
 import { Subject, concat } from 'rxjs';
 import { IViewOptions } from './WorldRendererContainer';
+import { IWorldRegionView } from '../../simulation/WorldRegion';
 
 
 const directionAngles = {
@@ -90,33 +91,34 @@ export class ChunkRenderer {
       this.options.cellHeight * this.options.chunkHeight,
     );
 
-    // const chunksToUpdate = new Array2D<boolean>(this.chunkColumns, this.chunkRows, false);
     for (let x = 0; x < this.chunkColumns; x++) {
       for (let y = 0; y < this.chunkRows; y++) {
-        // let cells = [];
         for (const cell of this.getCellsInChunk(x, y)) {
           const cellUpdates$ = this.worldMap.cellRegionUpdate$.get(cell.x, cell.y);
-          // cells.push(cellUpdates$);
           cellUpdates$.subscribe(region => {
             // cell's region updated
-            console.log(`Cell: ${cell.x}, ${cell.y} Region: `, region);
-            const { chunkX, chunkY } = this.getChunkAtCell(cell);
-            // chunksToUpdate.set(chunkX, chunkY, true);
-            // const chunkData = this.renderedChunks.get(chunkX, chunkY);
-            // this.chunkContainer.removeChild(chunkData.container);
-            // this.renderedChunks.unset(chunkX, chunkY);
-            // console.log('r', this.worldMap.cellRegionMap.get(cell.x, cell.y));
-            this.renderChunkRegions(chunkX, chunkY);
-            // this.update();
+            // console.log(`Cell: ${cell.x}, ${cell.y} Region: `, region);
+            this.drawRegion(region);
           });
         }
-        // const chunkUpdate = concat(cells);
-        // chunkUpdate.subscribe(value => console.log(value));
       }
     }
   }
 
-  private getChunkAtCell(cell: IWorldCell): IChunkRef {
+  private drawRegion(regionID: string) {
+    const region = this.worldMap.regionMap.get(regionID);
+    let chunksInRegion = {};
+    for (const cell of region.cells) {
+      const { chunkX, chunkY } = this.getChunkAtCell(cell);
+      chunksInRegion[`${chunkX},${chunkY}`] = true;
+    }
+    for (const chunk of Object.keys(chunksInRegion)) {
+      const [chunkX, chunkY] = chunk.split(',');
+      this.renderChunkRegions(parseInt(chunkX, 10), parseInt(chunkY, 10));
+    }
+  }
+
+  private getChunkAtCell(cell: { x: number, y: number }): IChunkRef {
     return {
       chunkX: Math.floor(cell.x / this.options.chunkWidth),
       chunkY: Math.floor(cell.y / this.options.chunkHeight),
@@ -172,7 +174,7 @@ export class ChunkRenderer {
     );
     const chunkCells = this.getCellsInChunk(chunkX, chunkY);
 
-    console.log(`Render Chunk: (${chunkX}, ${chunkY})`);
+    // console.log(`Render Chunk: (${chunkX}, ${chunkY})`);
 
     const chunk = new Container();
     chunk.width = chunkWidth;
@@ -268,10 +270,12 @@ export class ChunkRenderer {
     const chunk = this.renderedChunks.get(chunkX, chunkY);
 
     chunk.regions.removeChildren();
+    const chunkRegions = new Set<IWorldRegionView>();
     for (const cell of chunkCells) {
       const regionID = this.worldMap.cellRegionMap.get(cell.x, cell.y);
       if (regionID !== undefined) {
         const region = this.worldMap.regionMap.get(regionID);
+        chunkRegions.add(region);
         const g = new Graphics();
         g.alpha = 0.5;
         g.beginFill(region.color);
@@ -284,6 +288,27 @@ export class ChunkRenderer {
         );
         chunk.regions.addChild(cellRegionBG);
       }
+    }
+
+    for (const region of chunkRegions) {
+      const border = drawCellBorders(
+        chunkCells,
+        chunk.position,
+        this.world,
+        cellWidth,
+        cellHeight,
+        this.chunkWorldWidth,
+        this.chunkWorldHeight,
+        (a: IWorldCell, b: IWorldCell) => {
+          const regionA = this.worldMap.cellRegionMap.get(a.x, a.y);
+          const regionB = this.worldMap.cellRegionMap.get(b.x, b.y);
+          return regionA === region.name && regionB !== region.name;
+        },
+        region.color,
+      );
+      border.cacheAsBitmap = true;
+      border.interactive = false;
+      chunk.regions.addChild(border);
     }
   }
 
@@ -363,6 +388,64 @@ function drawGridLines(
   return new PIXI.Sprite(g.generateCanvasTexture());
 }
 
+function drawCellBordersInner(
+  chunkCells: IWorldCell[],
+  chunkPosition: Point,
+  world: World,
+  cellWidth: number,
+  cellHeight: number,
+  chunkWidth : number,
+  chunkHeight: number,
+  shouldDraw: (a: IWorldCell, b: IWorldCell) => boolean,
+  color: number = 0x000000,
+
+): PIXI.Sprite {
+  const g = new PIXI.Graphics(true);
+
+  g.beginFill(color, 0);
+  g.drawRect(0, 0, 1, 1);
+  g.endFill();
+
+  g.beginFill(color, 1);
+  g.lineColor = color;
+  g.lineWidth = 1;
+  // g.lineAlignment = 1;
+
+  // g.hitArea = new PIXI.Rectangle(0, 0, chunkWidth, chunkHeight);
+
+  for (const cell of chunkCells) {
+    const cx = Math.round((cell.x * cellWidth) - chunkPosition.x);
+    const cy = Math.round((cell.y * cellHeight) - chunkPosition.y);
+    const cellUp = world.getCell(cell.x, cell.y - 1);
+    const cellDown = world.getCell(cell.x, cell.y + 1);
+    const cellLeft = world.getCell(cell.x - 1, cell.y);
+    const cellRight = world.getCell(cell.x + 1, cell.y);
+
+    if (cellUp !== null && shouldDraw(cell, cellUp)) {
+      g.moveTo(cx, cy + 1);
+      g.lineTo(cx + cellWidth, cy + 1);
+    }
+    if (cellDown !== null && shouldDraw(cell, cellDown)) {
+      g.moveTo(cx, cy + cellHeight - 1);
+      g.lineTo(cx + cellWidth, cy + cellHeight - 1);
+    }
+    if (cellLeft !== null && shouldDraw(cell, cellLeft)) {
+      g.moveTo(cx + 1, cy);
+      g.lineTo(cx + 1, cy + cellHeight);
+    }
+    if (cellRight !== null && shouldDraw(cell, cellRight)) {
+      g.moveTo(cx + cellWidth - 1, cy);
+      g.lineTo(cx + cellWidth - 1, cy + cellHeight);
+    }
+  }
+  g.endFill();
+
+  const t = g.generateCanvasTexture();
+  const s = new PIXI.Sprite(t);
+  return s;
+}
+
+
 function drawCellBorders(
   chunkCells: IWorldCell[],
   chunkPosition: Point,
@@ -372,16 +455,18 @@ function drawCellBorders(
   chunkWidth : number,
   chunkHeight: number,
   shouldDraw: (a: IWorldCell, b: IWorldCell) => boolean,
+  color: number = 0x000000,
+  lineWidth: number = 2,
 ): PIXI.Sprite {
   const g = new PIXI.Graphics(true);
 
-  g.beginFill(0x000000, 0);
+  g.beginFill(color, 0);
   g.drawRect(0, 0, 1, 1);
   g.endFill();
 
-  g.beginFill(0x000000, 1);
-  g.lineColor = 0x000000;
-  g.lineWidth = 1.5;
+  g.beginFill(color, 1);
+  g.lineColor = color;
+  g.lineWidth = lineWidth * 0.75;
   g.lineAlignment = 1;
 
   // g.hitArea = new PIXI.Rectangle(0, 0, chunkWidth, chunkHeight);
@@ -398,7 +483,7 @@ function drawCellBorders(
     const cellUpRight = world.getCell(cell.x + 1, cell.y - 1);
     const cellUpLeft = world.getCell(cell.x - 1, cell.y - 1);
 
-    g.lineWidth = 2;
+    g.lineWidth = lineWidth * 1;
     if (cellUp !== null && shouldDraw(cell, cellUp)) {
       g.moveTo(cx, cy + 1);
       g.lineTo(cx + cellWidth, cy + 1);
@@ -417,42 +502,42 @@ function drawCellBorders(
     }
     g.lineWidth = 0;
     if (cellDownRight !== null && shouldDraw(cell, cellDownRight)) {
-      g.beginFill(0x000000);
+      g.beginFill(color);
       g.drawRect(
-        (cx + cellWidth - 2),
-        (cy + cellHeight - 2),
-        2,
-        2,
+        (cx + cellWidth - lineWidth),
+        (cy + cellHeight - lineWidth),
+        lineWidth,
+        lineWidth,
       );
       g.endFill();
     }
     if (cellDownLeft !== null && shouldDraw(cell, cellDownLeft)) {
-      g.beginFill(0x000000);
+      g.beginFill(color);
       g.drawRect(
         (cx),
-        (cy + cellHeight - 2),
-        2,
-        2,
+        (cy + cellHeight - lineWidth),
+        lineWidth,
+        lineWidth,
       );
       g.endFill();
     }
     if (cellUpLeft !== null && shouldDraw(cell, cellUpLeft)) {
-      g.beginFill(0x000000);
+      g.beginFill(color);
       g.drawRect(
         (cx),
         (cy),
-        2,
-        2,
+        lineWidth,
+        lineWidth,
       );
       g.endFill();
     }
     if (cellUpRight !== null && shouldDraw(cell, cellUpRight)) {
-      g.beginFill(0x000000);
+      g.beginFill(color);
       g.drawRect(
-        (cx + cellWidth - 2),
+        (cx + cellWidth - lineWidth),
         (cy),
-        2,
-        2,
+        lineWidth,
+        lineWidth,
       );
       g.endFill();
     }

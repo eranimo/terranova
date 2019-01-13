@@ -52,16 +52,34 @@ export default class Game extends GameLoop {
       this.world.getCell(80, 135),
       this.world.getCell(80, 134),
       this.world.getCell(81, 135),
+      this.world.getCell(81, 134),
     ];
     console.log('cells', cells);
-    const region = new WorldRegion({
+    const region1 = new WorldRegion({
       cells,
       name: 'Alpha',
       color: 0xFF0000,
     });
+    const region2 = new WorldRegion({
+      cells: [
+        this.world.getCell(81, 135),
+        this.world.getCell(82, 135),
+        this.world.getCell(83, 135),
+        this.world.getCell(83, 136),
+        this.world.getCell(84, 136),
+        this.world.getCell(84, 135),
+      ],
+      name: 'Beta',
+      color: 0x0000FF,
+    })
     // (this.world as any).foobar = 'barbaz';
     // this.world.regions.subscribe(regions => console.log('R', regions));
-    this.world.regions.add(region);
-    this.newRegion$.next(region);
+    this.world.regions.add(region1);
+    this.newRegion$.next(region1);
+
+    setTimeout(() => {
+      this.world.regions.add(region2);
+      this.newRegion$.next(region2);
+    }, 4000);
   }
 }
