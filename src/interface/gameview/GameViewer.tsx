@@ -202,6 +202,14 @@ export class GameControls extends Component<IWorldMapContainerChildProps> {
               intent={viewOptions.drawCoastline ? Intent.PRIMARY : null}
             />
           </Tooltip>
+          <Tooltip content="Toggle regions" hoverOpenDelay={1000} position={Position.TOP}>
+            <Button
+              small
+              icon="vertical-distribution"
+              onClick={onChangeField('showRegions')}
+              intent={viewOptions.showRegions ? Intent.PRIMARY : null}
+            />
+          </Tooltip>
         </ButtonGroup>
       </GameControlsContainer>
     )

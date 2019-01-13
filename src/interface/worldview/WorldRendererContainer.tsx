@@ -13,6 +13,7 @@ export interface IViewOptions {
   drawCoastline: boolean;
   drawGrid: boolean;
   showCursor: boolean;
+  showRegions: boolean;
 }
 
 export interface IWorldMapProps {

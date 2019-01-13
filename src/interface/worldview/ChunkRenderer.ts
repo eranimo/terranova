@@ -354,6 +354,7 @@ export class ChunkRenderer {
         chunk.grid.visible = this.viewOptions.drawGrid;
         chunk.flowArrows.visible = this.viewOptions.showFlowArrows;
         chunk.coastlineBorder.visible = this.viewOptions.drawCoastline;
+        chunk.regions.visible = this.viewOptions.showRegions;
 
         for (const [mapMode, sprite] of Object.entries(chunk.mapModes)) {
           sprite.visible = this.viewOptions.mapMode === mapMode;
@@ -387,64 +388,6 @@ function drawGridLines(
   }
   return new PIXI.Sprite(g.generateCanvasTexture());
 }
-
-function drawCellBordersInner(
-  chunkCells: IWorldCell[],
-  chunkPosition: Point,
-  world: World,
-  cellWidth: number,
-  cellHeight: number,
-  chunkWidth : number,
-  chunkHeight: number,
-  shouldDraw: (a: IWorldCell, b: IWorldCell) => boolean,
-  color: number = 0x000000,
-
-): PIXI.Sprite {
-  const g = new PIXI.Graphics(true);
-
-  g.beginFill(color, 0);
-  g.drawRect(0, 0, 1, 1);
-  g.endFill();
-
-  g.beginFill(color, 1);
-  g.lineColor = color;
-  g.lineWidth = 1;
-  // g.lineAlignment = 1;
-
-  // g.hitArea = new PIXI.Rectangle(0, 0, chunkWidth, chunkHeight);
-
-  for (const cell of chunkCells) {
-    const cx = Math.round((cell.x * cellWidth) - chunkPosition.x);
-    const cy = Math.round((cell.y * cellHeight) - chunkPosition.y);
-    const cellUp = world.getCell(cell.x, cell.y - 1);
-    const cellDown = world.getCell(cell.x, cell.y + 1);
-    const cellLeft = world.getCell(cell.x - 1, cell.y);
-    const cellRight = world.getCell(cell.x + 1, cell.y);
-
-    if (cellUp !== null && shouldDraw(cell, cellUp)) {
-      g.moveTo(cx, cy + 1);
-      g.lineTo(cx + cellWidth, cy + 1);
-    }
-    if (cellDown !== null && shouldDraw(cell, cellDown)) {
-      g.moveTo(cx, cy + cellHeight - 1);
-      g.lineTo(cx + cellWidth, cy + cellHeight - 1);
-    }
-    if (cellLeft !== null && shouldDraw(cell, cellLeft)) {
-      g.moveTo(cx + 1, cy);
-      g.lineTo(cx + 1, cy + cellHeight);
-    }
-    if (cellRight !== null && shouldDraw(cell, cellRight)) {
-      g.moveTo(cx + cellWidth - 1, cy);
-      g.lineTo(cx + cellWidth - 1, cy + cellHeight);
-    }
-  }
-  g.endFill();
-
-  const t = g.generateCanvasTexture();
-  const s = new PIXI.Sprite(t);
-  return s;
-}
-
 
 function drawCellBorders(
   chunkCells: IWorldCell[],

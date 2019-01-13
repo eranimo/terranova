@@ -81,5 +81,10 @@ export default class Game extends GameLoop {
       this.world.regions.add(region2);
       this.newRegion$.next(region2);
     }, 4000);
+
+    setTimeout(() => {
+      region2.cells$.add(this.world.getCell(85, 136));
+      this.newRegion$.next(region2);
+    }, 6000);
   }
 }

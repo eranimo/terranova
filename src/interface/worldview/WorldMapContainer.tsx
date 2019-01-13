@@ -30,6 +30,7 @@ const initialViewOptions: IViewOptions = {
   drawGrid: false,
   mapMode: EMapMode.CLIMATE,
   showCursor: true,
+  showRegions: true,
 };
 
 export interface IWorldMapContainerChildProps {
