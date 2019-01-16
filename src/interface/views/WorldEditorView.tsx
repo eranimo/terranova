@@ -2,7 +2,7 @@ import * as Blueprint from '@blueprintjs/core';
 import { clamp } from '@blueprintjs/core/lib/esm/common/utils';
 import { capitalize, cloneDeep, set } from 'lodash';
 import { parse } from 'query-string';
-import React, { Component } from 'react';
+import React, { Component, Fragment } from 'react';
 import { RouteComponentProps } from 'react-router';
 import styled from 'styled-components';
 import { WorldGenerator } from '../../simulation';
@@ -273,7 +273,7 @@ class WorldConfigEditor extends Component<{
 
 export class WorldEditorView extends Component<RouteComponentProps<{}>, {
   options: IWorldMapGenOptions,
-  world?: World,
+  worldMap?: WorldMap,
   isLoading: boolean,
   currentSaveName: string | null,
   saveNameInput: string,
@@ -284,7 +284,7 @@ export class WorldEditorView extends Component<RouteComponentProps<{}>, {
 
   state = {
     options: cloneDeep(initialOptions),
-    world: null,
+    worldMap: null,
     isLoading: true,
     currentSaveName: null,
     saveNameInput: '',
@@ -315,7 +315,8 @@ export class WorldEditorView extends Component<RouteComponentProps<{}>, {
       world = await this.worldgen.generate(this.state.options);
     }
     console.log('start', world);
-    this.setState({ world, isLoading: false });
+    const worldMap = new WorldMap(world);
+    this.setState({ worldMap, isLoading: false });
   }
 
   async generate() {
@@ -323,7 +324,8 @@ export class WorldEditorView extends Component<RouteComponentProps<{}>, {
     const world = await this.worldgen.generate(this.state.options);
     console.log('generate', world);
     localStorage.removeItem('viewportState');
-    this.setState({ world, isLoading: false });
+    const worldMap = new WorldMap(world);
+    this.setState({ worldMap, isLoading: false });
   }
 
   saveWorld = async () => {
@@ -332,7 +334,7 @@ export class WorldEditorView extends Component<RouteComponentProps<{}>, {
       message: `World "${this.state.saveNameInput}" saved`,
       intent: 'primary',
     });
-    await worldStore.save(this.state.world, this.state.saveNameInput);
+    await worldStore.save(this.state.worldMap.world, this.state.saveNameInput);
     this.setState({
       currentSaveName: this.state.saveNameInput,
       saveNameInput: '',
@@ -402,11 +404,11 @@ export class WorldEditorView extends Component<RouteComponentProps<{}>, {
   }
 
   render() {
-    if (this.state.world === null) {
+    if (this.state.worldMap === null) {
       return <Blueprint.Spinner />;
     }
     return (
-      <div>
+      <Fragment>
         <Blueprint.Dialog
           title="Save World"
           isOpen={this.state.saveDialogOpen}
@@ -456,9 +458,9 @@ export class WorldEditorView extends Component<RouteComponentProps<{}>, {
         <WorldViewer
           isLoading={this.state.isLoading}
           renderControls={this.renderControls}
-          worldMap={new WorldMap(this.state.world)}
+          worldMap={this.state.worldMap}
         />
-      </div>
+      </Fragment>
     )
   }
 }
