@@ -58,7 +58,7 @@ export class WorldRendererContainer extends React.Component<IWorldMapProps> {
       this.selectCell(nextProps.selectedCell);
     }
     if (nextProps.worldMap != this.props.worldMap) {
-      console.log('update WorldViewer', this.props.worldMap);
+      console.log('update WorldRendererContainer', this.props.worldMap);
       this.renderer = new WorldRenderer({
         worldMap: nextProps.worldMap,
         element: this.root.current,
