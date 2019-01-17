@@ -9,6 +9,7 @@ export class WorldMap {
   regionMap: Map<string, IWorldRegionView>;
   cellRegionMap: Array2D<string>;
   cellRegionUpdate$: Array2D<ReplaySubject<string>>;
+  regionUpdate$: ReplaySubject<IWorldRegionView>;
 
   constructor(world: World) {
     this.world = world;
@@ -19,10 +20,12 @@ export class WorldMap {
       this.world.size.height,
       (x, y) => new ReplaySubject<string>(),
     );
+    this.regionUpdate$ = new ReplaySubject<IWorldRegionView>();
   }
 
   addRegion(region: IWorldRegionView) {
     this.regionMap.set(region.name, region);
+    this.regionUpdate$.next(region);
 
     for (const cell of region.cells) {
       this.cellRegionMap.set(cell.x, cell.y, region.name);

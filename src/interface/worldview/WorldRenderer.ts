@@ -5,8 +5,9 @@ import Viewport from 'pixi-viewport';
 import { ChunkRenderer } from './ChunkRenderer';
 import WorldUI, { UIEvent } from './WorldUI';
 import { IWorldMapProps, IViewOptions } from './WorldRendererContainer';
-import { debounce, pick } from 'lodash';
+import { debounce, pick, meanBy } from 'lodash';
 import { EMapMode, MapModeMap } from './mapModes';
+import { IWorldRegionView } from '../../simulation/WorldRegion';
 
 
 export interface IWorldRendererOptions {
@@ -19,8 +20,8 @@ export interface IWorldRendererOptions {
 const defaultRendererOptions: IWorldRendererOptions = {
   cellWidth: 10,
   cellHeight: 10,
-  chunkWidth: 10,
-  chunkHeight: 10,
+  chunkWidth: 25,
+  chunkHeight: 25,
 };
 
 interface IViewportState {
@@ -51,6 +52,7 @@ interface IWorldRendererState {
 export default class WorldRenderer {
   app: PIXI.Application;
   world: World;
+  worldMap: WorldMap;
   viewport: Viewport;
   element: HTMLElement;
   options: IWorldRendererOptions;
@@ -62,6 +64,8 @@ export default class WorldRenderer {
   state: IWorldRendererState;
   textures: Record<string, PIXI.Texture>;
   legends: Partial<Record<EMapMode, PIXI.Sprite>>;
+  labelContainer: PIXI.Container;
+  labels: Record<string, PIXI.Text>;
 
   constructor({
     worldMap,
@@ -77,6 +81,7 @@ export default class WorldRenderer {
     eventCallbacks: Record<string, UIEvent>,
   }) {
     this.world = worldMap.world;
+    this.worldMap = worldMap;
     this.element = element;
     this.options = options;
     this.worldWidth = this.world.size.width * options.cellWidth;
@@ -129,6 +134,12 @@ export default class WorldRenderer {
       }
     }
 
+    // region labels
+    this.labelContainer = new PIXI.Container();
+    this.viewport.addChild(this.labelContainer);
+    this.labels = {};
+    worldMap.regionUpdate$.subscribe(this.drawLabel.bind(this));
+
     // load viewport state from localStorage
     const loadedState: IViewportState = JSON.parse(localStorage.getItem('viewportState'));
     if (loadedState) {
@@ -149,6 +160,31 @@ export default class WorldRenderer {
     console.time('initial chunk render time');
     this.chunkRenderer.render();
     console.timeEnd('initial chunk render time');
+  }
+
+  private drawLabel(region: IWorldRegionView) {
+    const labelX = meanBy(region.cells, i => i.x * this.options.cellWidth);
+    const labelY = meanBy(region.cells, i => i.y * this.options.cellHeight);
+
+    let label: PIXI.Text;
+    if (region.name in this.labels) {
+      label = this.labels[region.name];
+    } else {
+      label = new PIXI.Text(region.name, {
+        fontSize: 10,
+        dropShadow: true,
+        fontFamily: 'Helvetica',
+        dropShadowDistance: 0,
+        dropShadowColor: 'white',
+        dropShadowBlur: 5,
+      });
+      this.labels[region.name] = label;
+      this.labelContainer.addChild(label);
+    }
+    console.log(label);
+
+    label.position.set(labelX, labelY);
+    label.anchor.set(0.5, 0.5);
   }
 
   resize() {
