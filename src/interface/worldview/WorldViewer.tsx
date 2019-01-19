@@ -27,17 +27,18 @@ import copy from 'clipboard-copy';
 import WorldMapContainer from './WorldMapContainer';
 import { FullSizeBlock } from '../components/layout';
 import { WorldMap } from '../../common/WorldMap';
+import { Minimap } from './minimap';
 
 
 class WorldViewerHeader extends Component <{
-  world: World,
+  worldMap: WorldMap,
   viewOptions: IViewOptions,
   onChangeMapMode: (event: any) => any,
   onChangeField: (field: string) => any,
   renderControls?: () => React.ReactNode,
 }> {
   render() {
-    const { renderControls, viewOptions, onChangeMapMode, onChangeField, world } = this.props;
+    const { renderControls, viewOptions, onChangeMapMode, onChangeField, worldMap } = this.props;
     return (
       <Navbar>
         {renderControls ? renderControls() : null}
@@ -48,10 +49,24 @@ class WorldViewerHeader extends Component <{
               interactionKind={PopoverInteractionKind.CLICK}
             >
               <Button
+                text="Minimap"
+                icon="map"
+                rightIcon={'caret-down'}
+                disabled={worldMap === null}
+              />
+              <div className='tn-popover'>
+                <Minimap worldMap={worldMap} mapMode={viewOptions.mapMode} />
+              </div>
+            </Popover>
+            <Popover
+              position={Position.BOTTOM}
+              interactionKind={PopoverInteractionKind.CLICK}
+            >
+              <Button
                 text="Export"
                 icon="export"
                 rightIcon={'caret-down'}
-                disabled={world === null}
+                disabled={worldMap === null}
               />
               <div className='tn-popover'>
                 <FormGroup
@@ -59,11 +74,11 @@ class WorldViewerHeader extends Component <{
                   helperText={<span>The above string can be used to<br />replicate this world</span>}
                 >
                   <ControlGroup>
-                    <InputGroup value={world.exportString} />
+                    <InputGroup value={worldMap.world.exportString} />
                     <Button
                       icon="clipboard"
                       style={{ width: 50 }}
-                      onClick={() => copy(world.exportString)}
+                      onClick={() => copy(worldMap.world.exportString)}
                     />
                   </ControlGroup>
                 </FormGroup>
@@ -77,9 +92,9 @@ class WorldViewerHeader extends Component <{
                 text='World Stats'
                 icon={'panel-stats'}
                 rightIcon={'caret-down'}
-                disabled={world === null}
+                disabled={worldMap === null}
               />
-              {world ? <WorldStats world={world} /> : null}
+              {worldMap ? <WorldStats world={worldMap.world} /> : null}
             </Popover>
             <Popover
               position={Position.BOTTOM}
@@ -267,7 +282,7 @@ export default class WorldViewer extends Component<IWorldViewerProps> {
             <Fragment>
               <WorldViewerHeader
                 key={worldMap.world.hash}
-                world={worldMap.world}
+                worldMap={worldMap}
                 viewOptions={viewOptions}
                 onChangeField={onChangeField}
                 onChangeMapMode={onChangeMapMode}
