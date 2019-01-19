@@ -91,6 +91,7 @@ export default class World {
           temperatureZone: temperatureZones.get(x, y),
           terrainRoughness: terrainRoughness.get(x, y),
           biome: biomes.get(x, y),
+          {},
         };
         this.cells.add(cell);
         this.grid[x][y] = cell;
