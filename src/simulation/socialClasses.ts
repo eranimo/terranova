@@ -47,22 +47,22 @@ export abstract class PopulationClass {
   }
 }
 
-export class Forager extends PopulationClass {
-    constructor(malePopulation: number, femalePopulation: number){
-        super(
-            malePopulation,
-            femalePopulation,
-            malePopulation,
-            femalePopulation,
-            // 1,
-            // 1,
-            1,
-            1,
-            // 1,
-            15
-        );
-    }
-    labor(world: World, xCoord: number, yCoord: number): WorldDelta {
-        this.malePopulation += this.male
-    }
-}
+// export class  extends PopulationClass {
+//     constructor(malePopulation: number, femalePopulation: number){
+//         super(
+//             malePopulation,
+//             femalePopulation,
+//             malePopulation,
+//             femalePopulation,
+//             // 1,
+//             // 1,
+//             1,
+//             1,
+//             // 1,
+//             15
+//         );
+//     }
+    // labor(world: World, xCoord: number, yCoord: number): WorldDelta {
+    //     this.malePopulation += this.male
+    // }
+// }

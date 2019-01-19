@@ -92,6 +92,7 @@ export default class World {
           terrainRoughness: terrainRoughness.get(x, y),
           biome: biomes.get(x, y),
           {},
+          {}
         };
         this.cells.add(cell);
         this.grid[x][y] = cell;
