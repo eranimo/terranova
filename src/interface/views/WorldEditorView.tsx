@@ -1,18 +1,18 @@
 import * as Blueprint from '@blueprintjs/core';
-import { clamp } from '@blueprintjs/core/lib/esm/common/utils';
-import { capitalize, cloneDeep, set } from 'lodash';
-import { parse } from 'query-string';
-import React, { Component, Fragment } from 'react';
-import { RouteComponentProps } from 'react-router';
-import styled from 'styled-components';
-import { WorldGenerator } from '../../simulation';
-import { worldStore } from "../../simulation/stores";
-import { EWorldShape, IWorldMapGenOptions } from '../../simulation/types';
-import World from "../../simulation/World";
 import BackButton from '../components/BackButton';
-import { AppNotifications } from '../notifications';
+import React, { Component, Fragment } from 'react';
+import styled from 'styled-components';
+import World from '../../simulation/World';
 import WorldViewer from '../worldview/WorldViewer';
+import { AppNotifications } from '../notifications';
+import { capitalize, cloneDeep, set } from 'lodash';
+import { clamp } from '@blueprintjs/core/lib/esm/common/utils';
+import { EWorldShape, IWorldMapGenOptions } from '../../simulation/types';
+import { parse } from 'query-string';
+import { RouteComponentProps } from 'react-router';
+import { WorldGenerator } from '../../simulation';
 import { WorldMap } from '../../common/WorldMap';
+import { worldStore } from '../../simulation/stores';
 
 
 const Row = styled.div`

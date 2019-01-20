@@ -1,11 +1,11 @@
-import { Point } from 'pixi.js';
-import { worldStore } from "./stores";
-import World from "./World";
-import GameLoop from './GameLoop';
-import { IWorldCell } from './worldTypes';
 import { meanBy } from 'lodash';
+import { Point } from 'pixi.js';
+import { ReplaySubject, Subject } from 'rxjs';
+import GameLoop from './GameLoop';
+import World from './World';
+import { IWorldCell } from './worldTypes';
 import { WorldRegion } from './WorldRegion';
-import { Subject, ReplaySubject } from 'rxjs';
+import { worldStore } from './stores';
 
 
 export interface IGameData {
