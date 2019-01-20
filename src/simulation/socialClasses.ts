@@ -10,40 +10,73 @@ import {
   EDirection8,
   tileDirectionWeights,
 } from './worldTypes';
-
+import {
+  Game
+} from './game';
+import {
+  IGameCellDelta
+} from './'
 // Monthly growth rate
-const growthFactor:number = .00003;
+const growthFactor: number = .00083;
+const maleRatio = .535;
+const femaleRatio = .465;
 // const housingProducedFactor:number = 1;
 // const housingRequiredFactor:number = 1;
-
 // Monthly survivalRate
-const adultSurvivalRate:number = .999997;
-const childSurvivalRate:number = .998;
-
+// const adultSurvivalRate:number = .999997;
+// const childSurvivalRate:number = .998;
 
 export abstract class PopulationClass {
+  malePopulation: number;
+  femalePopulation: number;
+  maleChildren: number;
+  femaleChildren: number;
+  protected carryingCapcityMultiplier: number;
+  protected growthMultiplier: number;
+  protected ageOfMajority: number;
+  protected adultSurvivalRate: number;
+  protected childSurvivalRate: number;
+  protected emancipationDivisor: number;
+  protected malePopulationGrowthFactor: number;
+  protected femalePopulationGrowthFactor: number;
   constructor (
-    malePopulation: number,
-    femalePopulation: number,
-    maleChildren: number,
-    femaleChildren: number,
+    malePopulationP: number,
+    femalePopulationP: number,
+    maleChildrenP: number,
+    femaleChildrenP: number,
     // housingRequiredMultiplier: number,
     // housingMaintenanceMultiplier: number,
-    carryingCapcityMultiplier: number,
-    growthMultiplier: number,
+    carryingCapcityMultiplierP: number,
+    growthMultiplierP: number,
     // farmMaintenanceModifier: number,
-    ageOfMajority: number
+    ageOfMajorityP: number,
+    adultSurvivalRateP: number,
+    childSurvivalRateP: number
     ) {
+    this.malePopulation = malePopulationP;
+    this.femalePopulation = femalePopulationP;
+    this.maleChildren = maleChildrenP;
+    this.femaleChildren = femaleChildrenP;
+    this.carryingCapcityMultiplier = carryingCapcityMultiplierP;
+    this.growthMultiplier = growthMultiplierP;
+    this.ageOfMajority = ageOfMajorityP;
+    this.adultSurvivalRate = adultSurvivalRateP;
+    this.childSurvivalRate = childSurvivalRateP;
+    this.emancipationDivisor = 12 * this.ageOfMajority;
+    this.malePopulationGrowthFactor = maleRatio * this.growthMultiplier * this.growthFactor;
+    this.femalePopulationGrowthFactor = maleRatio * this.growthMultiplier * this.growthFactor;
   }
-  abstract labor(world: World): WorldDelta;
+  abstract labor(Game: Game): IGameCellDeltas[];
   agePopulation(): void {
-    this.malePopulation *= adultSurvivalRate;
-    this.femalePopulation *= adultSurvivalRate;
-    this.maleChildren *= childSurvivalRate;
-    this.femaleChildren *= childSurvivalRate;
-    const divisor:number = 12 * this.ageOfMajority;
-    this.malePopulation += this.maleChildren / divisor;
-    this.femalePopulation += this.femaleChildren / divisor;
+    this.malePopulation *= this.adultSurvivalRate;
+    this.femalePopulation *= this.adultSurvivalRate;
+    this.maleChildren *= this.childSurvivalRate;
+    this.femaleChildren *= this.childSurvivalRate;
+    this.malePopulation += this.maleChildren / this.emancipationDivisor;
+    this.femalePopulation += this.femaleChildren / this.emancipationDivisor;
+    const totalPopulation = (this.malePopulation + this.femalePopulation);
+    this.maleChildren += this.totalPopulation * this.malePopulationGrowthFactor;
+    this.femaleChildren += this.totalPopulation * this.femalePopulationGrowthFactor;
   }
 }
 

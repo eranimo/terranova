@@ -1,7 +1,5 @@
 import {  } from './colors';
 import World from './World';
-import {PopulationClass,
-        Forager} from './socialClasses.ts'
 
 
 export enum ECellType {
@@ -145,8 +143,6 @@ export interface IWorldCell {
   temperatureZone: ETemperatureZone;
   biome: EBiome;
   terrainRoughness: number;
-  buildings: { [key:string]:number; };
-  population: { [key:string]:PopulationClass; };
 }
 
 export interface IDrainageBasin {
