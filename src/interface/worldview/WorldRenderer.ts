@@ -210,7 +210,8 @@ export default class WorldRenderer {
   }
 
   updateViewportState = debounce(() => {
-    localStorage.setItem('viewportState', JSON.stringify({
+    const key = `viewportState-${this.world.exportString}`;
+    localStorage.setItem(key, JSON.stringify({
       corner: pick(this.viewport.corner, ['x', 'y']),
       scale: pick(this.viewport.scale, ['x', 'y']),
     }));
