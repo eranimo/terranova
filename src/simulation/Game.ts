@@ -86,5 +86,12 @@ export default class Game extends GameLoop {
       region2.cells$.add(this.world.getCell(85, 136));
       this.newRegion$.next(region2);
     }, 6000);
+
+    // this.addTimer({
+    //   ticksLength: 30,
+    //   isRepeated: true,
+    //   onTick: (ticksElapsed: number) => console.log('ticks', ticksElapsed),
+    //   onFinished: () => console.log('timer done!'),
+    // });
   }
 }
