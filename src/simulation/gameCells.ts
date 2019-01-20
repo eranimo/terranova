@@ -11,11 +11,13 @@ import {
   tileDirectionWeights,
 } from './worldTypes';
 import {
-  PopulationClass
+  PopulationClass,
+  PopulationClassDelta
 } from './socialClasses'
 export interface IGameCellDelta {
   buildingDeltas: { [key:string]: number; },
-  populationDeltas: { [key:string]: PopulationClass; }
+  populationDeltas: { [key:string]: PopulationClassDelta; },
+  housing: number
 }
 export interface IGameCell {
   worldCell: IWorldCell,
