@@ -28,13 +28,13 @@ const popClassAttributes: Record<EPopClass, IClassAttributes> = {
 class Pop {
   class: EPopClass;
   population: number;
-  growthRate: number; // per day
-
+  growthRate: number; // per Month
+  labor: (population: number, gameCell: GameCell) => Map<string, IGameCellDelta>;
   popGrowth$: Subject<number>;
 
   constructor(popClass: EPopClass, population: number) {
     this.class = popClass;
-    this.growthRate = (1 / 100);
+    this.growthRate = (1 / 1300);
     this.population = population;
     this.popGrowth$ = new Subject();
   }
@@ -44,16 +44,25 @@ class Pop {
     this.popGrowth$.next(this.population);
   }
 
-  update() {
+  update(gameCell: GameCell) {
     this.updatePopulation();
+    this.labor(this.population, gameCell);
   }
 }
-
+export interface PopulationClassDelta {
+  populationChange: number
+}
+export interface IGameCellDelta {
+  buildingDeltas: { [key:string]: number; },
+  populationDeltas: { [key:string]: PopulationClassDelta; },
+  housing: number
+}
 export default class GameCell {
   pops: ObservableSet<Pop>;
   popsByClass: Map<EPopClass, ObservableSet<Pop>>;
   newPop$: Subject<Pop>;
-
+  buildings: Map<string, number>;
+  housing: number;
   constructor(
     public worldCell: IWorldCell,
   ) {
@@ -73,7 +82,7 @@ export default class GameCell {
   // ran every tick
   update() {
     for (const pop of this.pops) {
-      pop.update();
+      pop.update(this);
     }
   }
 }
