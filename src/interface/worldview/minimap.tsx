@@ -4,6 +4,7 @@ import { EMapMode, mapModes } from "./mapModes";
 import { getHexColor } from "../../utils/color";
 import Viewport from 'pixi-viewport';
 import { throttle } from "@blueprintjs/core/lib/esm/common/utils";
+import { IWorldRendererOptions } from "./WorldRenderer";
 
 
 interface IMinimapProps {
@@ -29,10 +30,14 @@ export class Minimap extends Component<IMinimapProps> {
     return ((window as any).WORLD_RENDER_VIEWPORT as Viewport);
   }
 
+  get options(): IWorldRendererOptions {
+    return (window as any).WORLD_RENDER_OPTIONS;
+  }
+
   move = (event) => {
     if (this.viewport) {
-      const x = event.nativeEvent.offsetX * 10;
-      const y = event.nativeEvent.offsetY * 10;
+      const x = event.nativeEvent.offsetX * this.options.cellWidth;
+      const y = event.nativeEvent.offsetY * this.options.cellHeight;
       this.viewport.moveCenter(x, y);
       this.draw();
     }
@@ -60,10 +65,10 @@ export class Minimap extends Component<IMinimapProps> {
     if (this.viewport) {
       ctx.strokeStyle = 'white';
       ctx.strokeRect(
-        this.viewport.left / 10,
-        this.viewport.top / 10,
-        this.viewport.worldScreenWidth / 10,
-        this.viewport.worldScreenHeight / 10,
+        this.viewport.left / this.options.cellWidth,
+        this.viewport.top / this.options.cellHeight,
+        this.viewport.worldScreenWidth / this.options.cellWidth,
+        this.viewport.worldScreenHeight / this.options.cellHeight,
       );
     }
   }

@@ -109,6 +109,7 @@ export default class WorldRenderer {
       divWheel: element,
     });
     (window as any).WORLD_RENDER_VIEWPORT = this.viewport;
+    (window as any).WORLD_RENDER_OPTIONS = options;
     this.app.stage.addChild(this.viewport);
     this.viewport.moveCenter(this.worldWidth / 2, this.worldHeight / 2);
     this.viewport.zoomPercent(1/3);
