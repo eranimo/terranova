@@ -108,6 +108,8 @@ export default class WorldRenderer {
       worldHeight: this.worldHeight,
       divWheel: element,
     });
+    (window as any).WORLD_RENDER_VIEWPORT = this.viewport;
+    (window as any).WORLD_RENDER_OPTIONS = options;
     this.app.stage.addChild(this.viewport);
     this.viewport.moveCenter(this.worldWidth / 2, this.worldHeight / 2);
     this.viewport.zoomPercent(1/3);
@@ -208,7 +210,8 @@ export default class WorldRenderer {
   }
 
   updateViewportState = debounce(() => {
-    localStorage.setItem('viewportState', JSON.stringify({
+    const key = `viewportState-${this.world.exportString}`;
+    localStorage.setItem(key, JSON.stringify({
       corner: pick(this.viewport.corner, ['x', 'y']),
       scale: pick(this.viewport.scale, ['x', 'y']),
     }));

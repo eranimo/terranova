@@ -19,6 +19,7 @@ export enum EMonth {
 
 const MONTHS_IN_YEAR = 12;
 const DAYS_IN_MONTH = 30;
+const TICKS_PER_DAY = 1;
 
 function dateFormat(dayCount: number): IGameDate {
   const years = dayCount / (MONTHS_IN_YEAR * DAYS_IN_MONTH);
@@ -46,10 +47,10 @@ interface IGameState {
 }
 
 export enum EGameSpeed {
-  SLOW = 0.5,
-  NORMAL = 2,
-  FAST = 10,
-  VERY_FAST = 20,
+  SLOW = 0.25,
+  NORMAL = 0.5,
+  FAST = 1,
+  VERY_FAST = 2,
 }
 
 const speeds = [
@@ -66,6 +67,44 @@ export const gameSpeedTitles = {
   [EGameSpeed.VERY_FAST]: 'Very Fast',
 }
 
+interface ITimerOptions {
+  ticksLength: number;
+  isRepeated?: boolean;
+  onTick?: (ticksElapsed: number) => void;
+  onFinished?: () => void;
+}
+
+class Timer {
+  options: ITimerOptions;
+  ticksLeft: number;
+  isActive: boolean;
+
+  constructor(options: ITimerOptions) {
+    this.options = options;
+    this.isActive = false;
+    this.ticksLeft = this.options.ticksLength;
+  }
+
+  update() {
+    this.ticksLeft--;
+    if (this.ticksLeft === 0) {
+      if (this.options.onFinished) {
+        this.options.onFinished();
+      }
+      if (this.options.isRepeated) {
+        this.ticksLeft = this.options.ticksLength;
+      } else {
+        this.isActive = false;
+      }
+    } else {
+      if (this.options.onTick) {
+        this.options.onTick(this.options.ticksLength - this.ticksLeft);
+      }
+      this.isActive = true;
+    }
+  }
+}
+
 // https://isaacsukin.com/news/2015/01/detailed-explanation-javascript-game-loops-and-timing#starting-stopping
 export default class GameLoop {
   state: IGameState;
@@ -78,6 +117,7 @@ export default class GameLoop {
   delta: number;
   timestep: number;
   date$: Subject<IGameDate>;
+  timers: Set<Timer>;
 
   MAX_SPEED = speeds.length;
 
@@ -104,6 +144,7 @@ export default class GameLoop {
       month: 0,
       year: 1,
     });
+    this.timers = new Set();
 
     // update date when dayCount changes
     this.state.dayCount.subscribe(dayCount => this.date$.next(dateFormat(dayCount)));
@@ -163,7 +204,7 @@ export default class GameLoop {
     while (this.delta >= this.timestep) {
       this.state.ticks.next(this.state.ticks.value + 1);
       this.state.dayCount.next(
-        Math.floor(this.state.ticks.value / 60)
+        Math.floor(this.state.ticks.value / TICKS_PER_DAY)
       );
       this.update(this.timestep);
       this.delta -= this.timestep;
@@ -183,10 +224,20 @@ export default class GameLoop {
     this.delta = 0;
   }
 
+  public async addTimer(options: ITimerOptions) {
+    this.timers.add(new Timer(options));
+  }
+
   update(delta: number) {
     // simulate a really slow game
     // let i = 0;
     // for (let x = 0; x < 1e6; x++) i = i ** i;
+    for (const timer of this.timers) {
+      timer.update();
+      if (!timer.isActive) {
+        this.timers.delete(timer);
+      }
+    }
   }
 
   draw(delta: number) {

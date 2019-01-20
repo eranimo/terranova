@@ -1,3 +1,4 @@
+import { WorldMap } from './../../common/WorldMap';
 import { EMoistureZone } from './../../simulation/worldTypes';
 import { EBiome, ETerrainType } from '../../simulation/worldTypes';
 import { terrainTypeLabels, cellFeatureLabels, temperatureZoneTitles, moistureZoneTitles } from "../../simulation/labels";
@@ -5,7 +6,6 @@ import { Sprite, Graphics, Point, Container, Text, TextStyle } from 'pixi.js';
 import { IWorldCell, ECellFeature, ECellType, ETemperatureZone } from '../../simulation/worldTypes';
 import { climateColors } from '../../simulation/colors';
 import { IWorldRendererOptions } from './WorldRenderer';
-import { ChunkRenderer } from './ChunkRenderer';
 import colormap from 'colormap';
 import { mapEnum } from '../../utils/enums';
 
@@ -78,7 +78,7 @@ export const moistureZoneColors: Record<string, number> = {
 
 export interface IMapMode {
   title: string;
-  chunkRenderer: ChunkRenderer;
+  worldMap: WorldMap;
   showLegend: boolean;
 
   renderChunk(
@@ -87,6 +87,7 @@ export interface IMapMode {
     chunkPosition: Point,
   ): Sprite;
   renderLegend?(): Container;
+  getCellColor(cell: IWorldCell): number;
 }
 
 // map mode with cell groups and rendering as a colored rectangle
@@ -100,7 +101,7 @@ interface IGroupDef {
 class GroupedCellsMapMode implements IMapMode {
   title: string;
   groups: IGroupDef[];
-  chunkRenderer: ChunkRenderer;
+  worldMap: WorldMap;
   showLegend: boolean;
   color: number;
 
@@ -111,10 +112,10 @@ class GroupedCellsMapMode implements IMapMode {
       showLegend?: boolean,
       color?: number,
     },
-    chunkRenderer: ChunkRenderer
+    worldMap: WorldMap
   ) {
     this.title = options.title;
-    this.chunkRenderer = chunkRenderer;
+    this.worldMap = worldMap;
     this.groups = options.groups;
     this.showLegend = options.showLegend || false;
     this.color = options.color || 0x000000;
@@ -170,6 +171,15 @@ class GroupedCellsMapMode implements IMapMode {
     return container;
   }
 
+  getCellColor(cell: IWorldCell) {
+    for (const group of this.groups) {
+      const color = group.paintCell(cell);
+      if (color !== null) {
+        return color;
+      }
+    }
+  }
+
   renderChunk(
     renderOptions: IWorldRendererOptions,
     cells: IWorldCell[],
@@ -215,7 +225,7 @@ class ColormapMapMode implements IMapMode {
     colors: [number, number, number, number][],
     quantiles: { [quantile: number]: number},
   }
-  chunkRenderer: ChunkRenderer;
+  worldMap: WorldMap;
 
   constructor(
     options: {
@@ -224,10 +234,10 @@ class ColormapMapMode implements IMapMode {
       colormap: string,
       showLegend?: boolean,
     },
-    chunkRenderer: ChunkRenderer
+    worldMap: WorldMap
   ) {
     this.title = options.title;
-    this.chunkRenderer = chunkRenderer;
+    this.worldMap = worldMap;
     this.datapoint = options.datapoint;
     this.colormap = options.colormap;
     this.showLegend = options.showLegend !== false;
@@ -241,7 +251,7 @@ class ColormapMapMode implements IMapMode {
     let min = Infinity;
     let max = -Infinity;
     const data = [];
-    for (const cell of chunkRenderer.world.cells) {
+    for (const cell of worldMap.world.cells) {
       item = cell[options.datapoint];
       data.push(item);
       if (item < min) {
@@ -255,6 +265,16 @@ class ColormapMapMode implements IMapMode {
       quantiles[i] = Math.round(min + ((i / 100) * (max - min)));
     }
     this.mapData = { min, max, colors, quantiles };
+  }
+
+  getCellColor(cell: IWorldCell) {
+    const { min, max, colors } = this.mapData;
+    const index = Math.round(((cell[this.datapoint] - min) / (max - min)) * 100);
+    let color: number[] = [0, 0, 0];
+    if (!isNaN(index)) {
+      color = colors[index];
+    }
+    return rgbToNumber(color[0], color[1], color[2]);
   }
 
   renderLegend() {
@@ -369,11 +389,11 @@ class ColormapMapMode implements IMapMode {
   }
 }
 
-export type MapModeDef = (chunkRenderer: ChunkRenderer) => IMapMode
+export type MapModeDef = (worldMap: WorldMap) => IMapMode
 export type MapModeMap = Partial<Record<EMapMode, MapModeDef>>;
 
 export const mapModes: MapModeMap = {
-  [EMapMode.CLIMATE]: (chunkRenderer: ChunkRenderer) => (
+  [EMapMode.CLIMATE]: (worldMap: WorldMap) => (
     new GroupedCellsMapMode({
       title: 'Climate',
       groups: [
@@ -415,9 +435,9 @@ export const mapModes: MapModeMap = {
         }))
       ]
     },
-    chunkRenderer)
+    worldMap)
   ),
-  [EMapMode.FEATURES]: (chunkRenderer: ChunkRenderer) => (
+  [EMapMode.FEATURES]: (worldMap: WorldMap) => (
     new GroupedCellsMapMode({
       title: 'Features',
       showLegend: true,
@@ -430,9 +450,9 @@ export const mapModes: MapModeMap = {
             : null
         )
       })),
-    }, chunkRenderer)
+    }, worldMap)
   ),
-  [EMapMode.TERRAIN]: (chunkRenderer: ChunkRenderer) => (
+  [EMapMode.TERRAIN]: (worldMap: WorldMap) => (
     new GroupedCellsMapMode({
       title: 'Terrain',
       showLegend: true,
@@ -445,9 +465,9 @@ export const mapModes: MapModeMap = {
             : null
         )
       }))
-    }, chunkRenderer)
+    }, worldMap)
   ),
-  [EMapMode.DRAINAGE_BASINS]: (chunkRenderer: ChunkRenderer) => (
+  [EMapMode.DRAINAGE_BASINS]: (worldMap: WorldMap) => (
     new GroupedCellsMapMode({
       title: 'Drainage Basins',
       groups: [
@@ -460,37 +480,37 @@ export const mapModes: MapModeMap = {
           )
         }
       ]
-    }, chunkRenderer)
+    }, worldMap)
   ),
-  [EMapMode.HEIGHT]: (chunkRenderer: ChunkRenderer) => (
+  [EMapMode.HEIGHT]: (worldMap: WorldMap) => (
     new ColormapMapMode({
       title: 'Height',
       datapoint: 'height',
       colormap: 'bathymetry'
-    }, chunkRenderer)
+    }, worldMap)
   ),
-  [EMapMode.TEMPERATURE]: (chunkRenderer: ChunkRenderer) => (
+  [EMapMode.TEMPERATURE]: (worldMap: WorldMap) => (
     new ColormapMapMode({
       title: 'Temperature',
       datapoint: 'temperature',
       colormap: 'jet'
-    }, chunkRenderer)
+    }, worldMap)
   ),
-  [EMapMode.MOISTURE]: (chunkRenderer: ChunkRenderer) => (
+  [EMapMode.MOISTURE]: (worldMap: WorldMap) => (
     new ColormapMapMode({
       title: 'Moisture',
       datapoint: 'moisture',
       colormap: 'viridis'
-    }, chunkRenderer)
+    }, worldMap)
   ),
-  [EMapMode.UPSTREAM_COUNT]: (chunkRenderer: ChunkRenderer) => (
+  [EMapMode.UPSTREAM_COUNT]: (worldMap: WorldMap) => (
     new ColormapMapMode({
       title: 'Upstream Count',
       datapoint: 'upstreamCount',
       colormap: 'velocity-blue'
-    }, chunkRenderer)
+    }, worldMap)
   ),
-  [EMapMode.MOISTURE_ZONES]: (chunkRenderer: ChunkRenderer) => (
+  [EMapMode.MOISTURE_ZONES]: (worldMap: WorldMap) => (
     new GroupedCellsMapMode({
       title: 'Moisture Zones',
       showLegend: true,
@@ -503,9 +523,9 @@ export const mapModes: MapModeMap = {
             : null
         )
       }))
-    }, chunkRenderer)
+    }, worldMap)
   ),
-  [EMapMode.TEMPERATURE_ZONES]: (chunkRenderer: ChunkRenderer) => (
+  [EMapMode.TEMPERATURE_ZONES]: (worldMap: WorldMap) => (
     new GroupedCellsMapMode({
       title: 'Temperature Zones',
       showLegend: true,
@@ -518,13 +538,13 @@ export const mapModes: MapModeMap = {
             : null
         )
       }))
-    }, chunkRenderer)
+    }, worldMap)
   ),
-  [EMapMode.TERRAIN_ROUGHNESS]: (chunkRenderer: ChunkRenderer) => (
+  [EMapMode.TERRAIN_ROUGHNESS]: (worldMap: WorldMap) => (
     new ColormapMapMode({
       title: 'Terrain Roughness',
       datapoint: 'terrainRoughness',
       colormap: 'greens'
-    }, chunkRenderer)
+    }, worldMap)
   ),
 }

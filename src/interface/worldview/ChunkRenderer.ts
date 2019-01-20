@@ -79,7 +79,7 @@ export class ChunkRenderer {
 
     this.mapModes = {};
     for (const [name, factory] of Object.entries(mapModes)) {
-      this.mapModes[name] = factory(this);
+      this.mapModes[name] = factory(worldMap);
     }
 
     this.chunkContainer = new Container();
