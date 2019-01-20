@@ -1,24 +1,28 @@
-import { mapModeDesc, EMapMode, mapModes, MapModeMap, IMapMode } from '../worldview/mapModes';
-import { ChunkRenderer } from '../worldview/ChunkRenderer';
+import { EMapMode, mapModes, MapModeMap, IMapMode } from '../worldview/mapModes';
 import { IWorldRendererOptions } from '../worldview/WorldRenderer';
 import { IWorldCell } from '../../simulation/worldTypes';
 import { Point, Sprite } from 'pixi.js';
+import { WorldMap } from '../../common/WorldMap';
 
 
 class RegionMapMode implements IMapMode {
   title: string;
-  chunkRenderer: ChunkRenderer;
+  worldMap: WorldMap;
   showLegend: boolean;
 
   constructor(
     options: {
       title: string,
     },
-    chunkRenderer: ChunkRenderer
+    worldMap: WorldMap
   ) {
     this.title = options.title;
-    this.chunkRenderer = chunkRenderer;
+    this.worldMap = worldMap;
     this.showLegend = false;
+  }
+
+  getCellColor() {
+    return 0;
   }
 
   renderChunk(
@@ -33,9 +37,9 @@ class RegionMapMode implements IMapMode {
 
 export const gameMapModes: MapModeMap = {
   ...mapModes,
-  [EMapMode.POLITICAL]: (chunkRenderer: ChunkRenderer) => (
+  [EMapMode.POLITICAL]: (worldMap: WorldMap) => (
     new RegionMapMode({
       title: 'Political Map',
-    }, chunkRenderer)
+    }, worldMap)
   )
 }
