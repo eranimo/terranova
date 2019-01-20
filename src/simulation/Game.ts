@@ -45,7 +45,6 @@ export default class Game extends GameLoop {
     this.newRegion$ = new ReplaySubject();
 
     // create regions
-    this.world.regions.subscribe()
     const cells = [
       this.world.getCell(79, 135),
       this.world.getCell(79, 134),
