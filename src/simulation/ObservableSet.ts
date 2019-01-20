@@ -30,4 +30,10 @@ export class ObservableSet<T> extends BehaviorSubject<T[]> {
   get size() {
     return this.data.size;
   }
+
+  *[Symbol.iterator]() {
+    for (const item of this.data) {
+      yield item;
+    }
+  }
 }

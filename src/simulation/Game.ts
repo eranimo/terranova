@@ -71,8 +71,6 @@ export default class Game extends GameLoop {
       name: 'Beta',
       color: 0x0000FF,
     })
-    // (this.world as any).foobar = 'barbaz';
-    // this.world.regions.subscribe(regions => console.log('R', regions));
     this.world.regions.add(region1);
     this.newRegion$.next(region1);
 
