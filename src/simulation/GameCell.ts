@@ -2,6 +2,7 @@ import { IWorldCell } from "./worldTypes";
 import { ObservableSet } from "./ObservableSet";
 import { Subject } from "rxjs";
 import { EBiome } from './worldTypes'
+import { enumMembers } from "../utils/enums";
 
 const carryingCapacities: Record<EBiome, number> = {
   [EBiome.NONE]: 0,
@@ -19,10 +20,10 @@ const carryingCapacities: Record<EBiome, number> = {
   [EBiome.TROPICAL_RAINFOREST]: 50000
 }
 
-enum EPopClass {
-  FORAGER = 'forager',
-  FARMER = 'farmer',
-  NOBLE = 'noble',
+export enum EPopClass {
+  FORAGER,
+  FARMER,
+  NOBLE,
 }
 
 const populationPriorities = [EPopClass.NOBLE, EPopClass.FARMER, EPopClass.FORAGER];
@@ -32,7 +33,7 @@ interface IClassAttributes {
   labor: (population: number, gameCell: GameCell) => IGameCellDelta
 }
 
-const popClassAttributes: Record<EPopClass, IClassAttributes> = {
+export const popClassAttributes: Record<EPopClass, IClassAttributes> = {
   [EPopClass.FORAGER]: {
     title: 'Forager',
     labor: (population: number, gameCell: GameCell) : IGameCellDelta => {
@@ -85,7 +86,7 @@ const popClassAttributes: Record<EPopClass, IClassAttributes> = {
 
 const newPopsMap = () : Map<EPopClass, number> => {
   let maxPops = new Map<EPopClass, number>()
-  for (const populationType in Object.keys(EPopClass)) {
+  for (const populationType of enumMembers(EPopClass)) {
     maxPops.set(
       populationType as EPopClass,
       0
@@ -95,20 +96,20 @@ const newPopsMap = () : Map<EPopClass, number> => {
 }
 
 enum EBuildingType {
-  FARM = 'Farm',
+  FARM,
 }
 
 interface IBuildingAttributes {
   title: string
 }
 
-const buildingAttributes: Record<EBuildingType, IBuildingAttributes> = {
+export const buildingAttributes: Record<EBuildingType, IBuildingAttributes> = {
   [EBuildingType.FARM]: {
     title: 'Farm',
   },
 }
 
-class Pop {
+export class Pop {
   readonly class: EPopClass;
   population: number;
   readonly growthRate: number; // per Month
@@ -135,15 +136,18 @@ class Pop {
     return this.population;
   }
 }
+
 export interface PopulationClassDelta {
   populationChange: number
 }
+
 export interface IGameCellDelta {
   maxBuildings: Map<EBuildingType, number>,
   maxHousing: number,
   foodProduced: number,
   maxPeople: Map<EPopClass, number>
 }
+
 export default class GameCell {
   pops: ObservableSet<Pop>;
   popsByClass: Map<EPopClass, ObservableSet<Pop>>;
@@ -152,16 +156,19 @@ export default class GameCell {
   housing: number;
   food: number;
   readonly carryingCapacity: number;
+
   constructor(
     readonly worldCell: IWorldCell,
   ) {
     this.newPop$ = new Subject();
     this.pops = new ObservableSet();
-    for (const popClass in Object.keys(EPopClass)) {
-      this.popsByClass.set(popClass as EPopClass, new ObservableSet())
+    this.popsByClass = new Map();
+    this.buildingByType = new Map();
+    for (const item of enumMembers(EPopClass)) {
+      this.popsByClass.set(item as EPopClass, new ObservableSet())
     }
-    for (const buildingType in Object.keys(EBuildingType)) {
-      this.buildingByType.set(buildingType as EBuildingType, 0);
+    for (const item of enumMembers(EBuildingType)) {
+      this.buildingByType.set(item as EBuildingType, 0);
     }
     this.housing = 0;
     this.food = 0;
@@ -182,7 +189,8 @@ export default class GameCell {
     }
     const delta = deltas.reduce((previous: IGameCellDelta, next: IGameCellDelta) : IGameCellDelta => {
       let buildingDeltas = new Map<EBuildingType, number>();
-      for (const buildingType in Object.keys(EBuildingType)) {
+
+      for (const buildingType of enumMembers(EBuildingType)) {
         buildingDeltas.set(
           buildingType as EBuildingType,
           (
@@ -192,7 +200,8 @@ export default class GameCell {
         );
       }
       let maxPops = new Map<EPopClass, number>();
-      for (const populationType in Object.keys(EPopClass)) {
+
+      for (const populationType of enumMembers(EPopClass)) {
         maxPops.set(
           populationType as EPopClass,
           (
@@ -201,6 +210,7 @@ export default class GameCell {
           )
         );
       }
+
       return {
         maxBuildings: buildingDeltas,
         maxHousing: (previous.maxHousing + next.maxHousing),
@@ -208,12 +218,14 @@ export default class GameCell {
         maxPeople: maxPops
       };
     });
+
     for (const buildingType of delta.maxBuildings.keys()) {
       const currBuildings = this.buildingByType.get(buildingType);
       let buildingDelta = Math.floor((delta.maxBuildings.get(buildingType) - currBuildings) / 12);
       this.buildingByType.set(buildingType, currBuildings + buildingDelta);
     }
     let food: number = delta.foodProduced;
+
     for (const popType of populationPriorities) {
       let popLimit = delta.maxPeople.get(popType);
       let popsToRemove = new Array<Pop>();

@@ -6,6 +6,8 @@ import World from './World';
 import { IWorldCell } from './worldTypes';
 import { WorldRegion } from './WorldRegion';
 import { worldStore } from './stores';
+import GameCell, { Pop, EPopClass } from './GameCell';
+import Array2D from '../utils/Array2D';
 
 
 export interface IGameData {
@@ -27,6 +29,8 @@ export default class Game extends GameLoop {
   gameData: IGameData;
   params: IGameParams;
   newRegion$: ReplaySubject<WorldRegion>;
+  gameCells: Set<GameCell>;
+  gameCellMap: Array2D<GameCell>;
 
   constructor(params: IGameParams) {
     super();
@@ -90,5 +94,27 @@ export default class Game extends GameLoop {
     //   onTick: (ticksElapsed: number) => console.log('ticks', ticksElapsed),
     //   onFinished: () => console.log('timer done!'),
     // });
+
+    this.gameCells = new Set();
+    this.gameCellMap = new Array2D(this.world.size.width, this.world.size.height);
+
+    const gc1 = this.populateCell(81, 135);
+    gc1.addPop(new Pop(EPopClass.FORAGER, 1000));
+  }
+
+  populateCell(x: number, y: number): GameCell {
+    const gameCell = new GameCell(this.world.getCell(x, y));
+    this.gameCells.add(gameCell);
+    this.gameCellMap.set(x, y, gameCell);
+
+    return gameCell;
+  }
+
+  update(elapsedTime: number) {
+    super.update(elapsedTime);
+
+    for (const gameCell of this.gameCells) {
+      gameCell.update();
+    }
   }
 }
