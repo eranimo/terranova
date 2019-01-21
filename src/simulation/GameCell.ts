@@ -20,6 +20,8 @@ const carryingCapacities: Record<EBiome, number> = {
   [EBiome.TROPICAL_RAINFOREST]: 50000
 }
 
+const maintenanceFactor: number = 10;
+
 export enum EPopClass {
   FORAGER,
   FARMER,
@@ -31,6 +33,7 @@ const populationPriorities = [EPopClass.NOBLE, EPopClass.FARMER, EPopClass.FORAG
 interface IClassAttributes {
   title: string,
   labor: (population: number, gameCell: GameCell) => IGameCellDelta
+  housingReq: number
 }
 
 export const popClassAttributes: Record<EPopClass, IClassAttributes> = {
@@ -47,7 +50,8 @@ export const popClassAttributes: Record<EPopClass, IClassAttributes> = {
         foodProduced: food,
         maxPeople: maxPops
       };
-    }
+    },
+    housingReq: 1
   },
   [EPopClass.FARMER]: {
     title: 'Farmer',
@@ -64,11 +68,12 @@ export const popClassAttributes: Record<EPopClass, IClassAttributes> = {
       maxPops.set(EPopClass.NOBLE, Math.floor(population / 100));
       return {
         maxBuildings: maxFarms,
-        maxHousing: Math.floor(population) * 1.1,
+        maxHousing: Math.floor(population) * 1.3,
         foodProduced: food,
         maxPeople: maxPops
       };
-    }
+    },
+    housingReq: 1.1
   },
   [EPopClass.NOBLE]: {
     title: 'Noble',
@@ -80,7 +85,8 @@ export const popClassAttributes: Record<EPopClass, IClassAttributes> = {
         foodProduced: 0,
         maxPeople: maxPops
       };
-    }
+    },
+    housingReq: 2
   },
 }
 
@@ -221,11 +227,12 @@ export default class GameCell {
 
     for (const buildingType of delta.maxBuildings.keys()) {
       const currBuildings = this.buildingByType.get(buildingType);
-      let buildingDelta = Math.floor((delta.maxBuildings.get(buildingType) - currBuildings) / 12);
+      let buildingDelta = Math.floor((delta.maxBuildings.get(buildingType) - currBuildings) / maintenanceFactor);
       this.buildingByType.set(buildingType, currBuildings + buildingDelta);
     }
+    this.housing += Math.floor((delta.maxHousing - this.housing) / maintenanceFactor);
     let food: number = delta.foodProduced;
-
+    let housingLimit: number = this.housing;
     for (const popType of populationPriorities) {
       let popLimit = delta.maxPeople.get(popType);
       let popsToRemove = new Array<Pop>();
