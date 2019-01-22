@@ -156,7 +156,7 @@ export default class GameLoop {
   }
 
   public start() {
-    console.log('PLAY');
+    // console.log('PLAY');
     if (this.state.started.value) return;
     this.state.started.next(true);
     this.frameID = requestAnimationFrame(timestamp => {
@@ -169,7 +169,7 @@ export default class GameLoop {
   }
 
   public stop() {
-    console.log('PAUSE');
+    // console.log('PAUSE');
     this.state.running.next(false);
     this.state.started.next(false);
     cancelAnimationFrame(this.frameID);
@@ -196,7 +196,7 @@ export default class GameLoop {
       this.lastFrameTimeMs = timestamp;
       this.update(0);
       this.draw(0);
-      console.log('update loop', this.delta);
+      // console.log('update loop', this.delta);
       this.frameID = requestAnimationFrame(this.mainLoop.bind(this));
       return;
     }
@@ -208,7 +208,7 @@ export default class GameLoop {
 
 
     this.delta += timestamp - this.lastFrameTimeMs;
-    console.log('update loop', this.delta);
+    // console.log('update loop', this.delta);
     this.lastFrameTimeMs = timestamp;
 
     if (timestamp > this.lastFPSUpdate + 1000) {
