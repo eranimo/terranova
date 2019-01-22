@@ -98,8 +98,15 @@ export default class Game extends GameLoop {
     this.gameCells = new Set();
     this.gameCellMap = new Array2D(this.world.size.width, this.world.size.height);
 
-    const gc1 = this.populateCell(81, 135);
-    gc1.addPop(new Pop(EPopClass.FORAGER, 1000));
+    // perf test
+    // for (let x = 0; x < 10; x++) {
+    //   for (let y = 0; y < 10; y++) {
+    //     const gc1 = this.populateCell(x, y);
+    //     gc1.addPop(new Pop(EPopClass.FORAGER, 1000));
+    //     gc1.addPop(new Pop(EPopClass.FARMER, 10000));
+    //     gc1.addPop(new Pop(EPopClass.NOBLE, 50));
+    //   }
+    // }
   }
 
   populateCell(x: number, y: number): GameCell {
