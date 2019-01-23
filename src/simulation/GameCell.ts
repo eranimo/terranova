@@ -121,7 +121,7 @@ export class Pop {
   readonly growthRate: number; // per Month
   popGrowth$: Subject<number>;
 
-  constructor(popClass: EPopClass, population: number) {
+  constructor(popClass: EPopClass, population: number, public coordinates: string) {
     this.class = popClass;
     this.growthRate = (1 / 1300);
     this.population = population;
@@ -181,7 +181,8 @@ export default class GameCell {
     this.carryingCapacity = carryingCapacities[worldCell.biome];
   }
 
-  addPop(pop: Pop) {
+  addPop(popClass: EPopClass, population: number) {
+    let pop = new Pop(popClass, population, `${this.worldCell.x}, ${this.worldCell.y}`)
     this.pops.add(pop);
     this.popsByClass.get(pop.class).add(pop);
     this.newPop$.next(pop);
@@ -246,6 +247,7 @@ export default class GameCell {
       }
       for(const pop of popsToRemove) {
         this.pops.remove(pop);
+        this.popsByClass.get(pop.class).remove(pop);
       }
     }
   }

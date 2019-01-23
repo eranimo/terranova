@@ -31,12 +31,14 @@ export default class Game extends GameLoop {
   newRegion$: ReplaySubject<WorldRegion>;
   gameCells: Set<GameCell>;
   gameCellMap: Array2D<GameCell>;
+  newPop$: ReplaySubject<Pop>;
 
   constructor(params: IGameParams) {
     super();
     this.gameData = params.gameData || Object.assign({}, initialGameData);
     this.params = params;
     this.world = null;
+    this.newPop$ = new ReplaySubject();
   }
 
   async init() {
@@ -99,11 +101,20 @@ export default class Game extends GameLoop {
     this.gameCellMap = new Array2D(this.world.size.width, this.world.size.height);
 
     const gc1 = this.populateCell(81, 135);
-    gc1.addPop(new Pop(EPopClass.FORAGER, 1000));
+    gc1.addPop(EPopClass.FORAGER, 1000);
+
+    setTimeout(() => {
+      region2.cells$.add(this.world.getCell(85, 136));
+      this.newRegion$.next(region2);
+    }, 6000);
   }
 
   populateCell(x: number, y: number): GameCell {
     const gameCell = new GameCell(this.world.getCell(x, y));
+    gameCell.newPop$.subscribe((pop) => {
+      this.newPop$.next(pop);
+      console.log(pop);
+    });
     this.gameCells.add(gameCell);
     this.gameCellMap.set(x, y, gameCell);
 
@@ -113,8 +124,10 @@ export default class Game extends GameLoop {
   update(elapsedTime: number) {
     super.update(elapsedTime);
 
-    for (const gameCell of this.gameCells) {
-      gameCell.update();
+    if (this.state.dayCount.getValue() % 30 == 0) {
+      for (const gameCell of this.gameCells) {
+        gameCell.update();
+      }
     }
   }
 }

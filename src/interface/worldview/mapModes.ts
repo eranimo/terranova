@@ -27,6 +27,7 @@ export enum EMapMode {
   TEMPERATURE_ZONES = "temperature_zones",
   TERRAIN_ROUGHNESS = "terrain_roughness",
   POLITICAL = "political",
+  POPULATION = "population",
 }
 
 // UI uses this
@@ -43,6 +44,7 @@ export const mapModeDesc = {
   [EMapMode.TEMPERATURE_ZONES]: "Temperature zones",
   [EMapMode.TERRAIN_ROUGHNESS]: "Terrain Roughness",
   [EMapMode.POLITICAL]: "Political",
+  [EMapMode.POPULATION]: "Population",
 }
 
 const featureColors = {

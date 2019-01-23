@@ -7,6 +7,7 @@ import World from './World';
 import { worldStore, gameStore } from "./stores";
 import Array2D from '../utils/Array2D';
 import { WorldMap } from '../common/WorldMap';
+import Pop from './GameCell'
 
 
 const GameWorker = require('./game.worker');
@@ -73,6 +74,9 @@ export default class GameManager {
       console.log('new region', region);
       this.worldMap.addRegion(region);
     });
+    this.onEvent(EGameEvent.NEW_POP, (pop: Pop) => {
+      this.worldMap.addPop(pop)
+    })
   }
 
   sendEvent(eventName: EGameEvent, params?: any) {

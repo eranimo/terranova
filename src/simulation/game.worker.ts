@@ -26,6 +26,14 @@ const handlers: Partial<Record<EGameEvent, EventHandler>> = {
         payload: region.export(),
       });
     });
+    game.newPop$.subscribe(pop => {
+      console.log('game.worker: NEW REGION', pop)
+      ctx.postMessage({
+        type: EGameEvent.NEW_POP,
+        payload: pop,
+      });
+
+    });
 
     for (const [key, subject] of Object.entries(game.state)) {
       ctx.postMessage({
