@@ -121,7 +121,7 @@ export class Pop {
   readonly growthRate: number; // per Month
   popGrowth$: Subject<number>;
 
-  constructor(popClass: EPopClass, population: number, public coordinates: string) {
+  constructor(popClass: EPopClass, population: number) {
     this.class = popClass;
     this.growthRate = (1 / 1300);
     this.population = population;
@@ -141,6 +141,12 @@ export class Pop {
     this.updatePopulation(maxPop);
     return this.population;
   }
+}
+
+export interface IPopCoordinates {
+  population: Pop,
+  xCoord: number,
+  yCoord: number
 }
 
 export interface PopulationClassDelta {
@@ -182,7 +188,7 @@ export default class GameCell {
   }
 
   addPop(popClass: EPopClass, population: number) {
-    let pop = new Pop(popClass, population, `${this.worldCell.x}, ${this.worldCell.y}`)
+    let pop = new Pop(popClass, population)
     this.pops.add(pop);
     this.popsByClass.get(pop.class).add(pop);
     this.newPop$.next(pop);

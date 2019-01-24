@@ -6,7 +6,7 @@ import World from './World';
 import { IWorldCell } from './worldTypes';
 import { WorldRegion } from './WorldRegion';
 import { worldStore } from './stores';
-import GameCell, { Pop, EPopClass } from './GameCell';
+import GameCell, { Pop, EPopClass, IPopCoordinates } from './GameCell';
 import Array2D from '../utils/Array2D';
 
 
@@ -31,7 +31,7 @@ export default class Game extends GameLoop {
   newRegion$: ReplaySubject<WorldRegion>;
   gameCells: Set<GameCell>;
   gameCellMap: Array2D<GameCell>;
-  newPop$: ReplaySubject<Pop>;
+  newPop$: ReplaySubject<IPopCoordinates>;
 
   constructor(params: IGameParams) {
     super();
@@ -112,7 +112,7 @@ export default class Game extends GameLoop {
   populateCell(x: number, y: number): GameCell {
     const gameCell = new GameCell(this.world.getCell(x, y));
     gameCell.newPop$.subscribe((pop) => {
-      this.newPop$.next(pop);
+      this.newPop$.next({population: pop, xCoord: x, yCoord: y});
       console.log(pop);
     });
     this.gameCells.add(gameCell);
