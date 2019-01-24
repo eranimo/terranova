@@ -29,6 +29,7 @@ export enum EPopClass {
 }
 
 const populationPriorities = [EPopClass.NOBLE, EPopClass.FARMER, EPopClass.FORAGER];
+const promotionPriority = populationPriorities.reverse();
 
 interface IClassAttributes {
   title: string,
@@ -58,13 +59,13 @@ export const popClassAttributes: Record<EPopClass, IClassAttributes> = {
     labor: (population: number, gameCell: GameCell) : IGameCellDelta => {
       const farmerFactor = 1.2;
       const farmerProductionFactor = 1.1;
-      let food = Math.floor(Math.min(Math.floor(population), gameCell.buildingByType[EBuildingType.FARM]) * farmerProductionFactor);
+      let food = Math.min(Math.floor(population), gameCell.buildingByType.get(EBuildingType.FARM)) * farmerProductionFactor;
       const maxFarms = new Map<EBuildingType, number>([[
         EBuildingType.FARM,
         Math.min(population, gameCell.carryingCapacity * farmerFactor) * farmerProductionFactor
       ]]);
       let maxPops = newPopsMap();
-      maxPops.set(EPopClass.FARMER, food);
+      maxPops.set(EPopClass.FARMER, Math.max(food, gameCell.buildingByType.get(EBuildingType.FARM)));
       maxPops.set(EPopClass.NOBLE, Math.floor(population / 100));
       return {
         maxBuildings: maxFarms,
@@ -117,7 +118,7 @@ export const buildingAttributes: Record<EBuildingType, IBuildingAttributes> = {
 
 export class Pop {
   readonly class: EPopClass;
-  population: number;
+  private population: number;
   readonly growthRate: number; // per Month
   popGrowth$: Subject<number>;
 
@@ -128,12 +129,25 @@ export class Pop {
     this.popGrowth$ = new Subject();
   }
 
+  public emigrate(maxToRemove: number, targetPop: Pop): number {
+    let ret = Math.min(maxToRemove, this.population);
+    this.population -= ret;
+    this.popGrowth$.next(this.population);
+    targetPop.immigrate(ret);
+    return ret;
+  }
+
+  private immigrate(addPop: number): void {
+    this.population += addPop;
+    this.popGrowth$.next(this.population);
+  }
+
   private updatePopulation(maxPop: number) {
     this.population = Math.min(this.population * (1 + this.growthRate), maxPop);
     this.popGrowth$.next(this.population);
   }
 
-  public getPopulation(): number {
+  get totalPopulation: number {
     return this.population;
   }
 
@@ -159,6 +173,21 @@ export interface IGameCellDelta {
   foodProduced: number,
   maxPeople: Map<EPopClass, number>
 }
+const promoteFrom: Record<EPopClass, Array<EPopClass>> = {
+  [EPopClass.NOBLE]: [EPopClass.FARMER],
+  [EPopClass.FARMER]: [EPopClass.FORAGER],
+  [EPopClass.FORAGER]: []
+}
+
+const demotionPath: Record<EPopClass, EPopClass | null> = {
+  [EPopClass.NOBLE]: EPopClass.FARMER,
+  [EPopClass.FARMER]: EPopClass.FORAGER,
+  [EPopClass.FORAGER]: null
+}
+
+const requiredBuilding: Record<EBuildingType, EPopClass | null> = {
+  [EBuildingType.FARM]: EPopClass.FARMER
+};
 
 export default class GameCell {
   pops: ObservableSet<Pop>;
@@ -192,13 +221,22 @@ export default class GameCell {
     this.pops.add(pop);
     this.popsByClass.get(pop.class).add(pop);
     this.newPop$.next(pop);
+    return pop;
+  }
+
+  removePops(popsToRemove: Array<Pop>) {
+      for(const pop of popsToRemove) {
+        this.pops.remove(pop);
+        this.popsByClass.get(pop.class).remove(pop);
+      }
   }
 
   // ran every tick
   update() {
     const deltas = new Array<IGameCellDelta>();
     for (const pop of this.pops) {
-      deltas.push(popClassAttributes[pop.class].labor(pop.population, this));
+      deltas.push(popClassAttributes[pop.class].labor(pop.totalPopulation, this));
+      console.log(pop)
     }
     const delta = deltas.reduce((previous: IGameCellDelta, next: IGameCellDelta) : IGameCellDelta => {
       let buildingDeltas = new Map<EBuildingType, number>();
@@ -236,24 +274,66 @@ export default class GameCell {
       const currBuildings = this.buildingByType.get(buildingType);
       let buildingDelta = Math.floor((delta.maxBuildings.get(buildingType) - currBuildings) / maintenanceFactor);
       this.buildingByType.set(buildingType, currBuildings + buildingDelta);
+      const maxPeople = delta.maxPeople;
+      if (maxPeople.get(requiredBuilding[buildingType]) > 0) {
+        maxPeople.set(
+          requiredBuilding[buildingType],
+          Math.min(this.buildingByType.get(buildingType), maxPeople.get(requiredBuilding[buildingType]))
+        )
+      } else {
+        maxPeople.set(
+          requiredBuilding[buildingType],
+          this.buildingByType.get(buildingType)
+        )
+      }
     }
     this.housing += Math.floor((delta.maxHousing - this.housing) / maintenanceFactor);
     let food: number = delta.foodProduced;
     let housingLimit: number = this.housing;
+    const promotions: Map<EPopClass, number> = new Map();
     for (const popType of populationPriorities) {
       let popLimit = delta.maxPeople.get(popType);
       let popsToRemove = new Array<Pop>();
+      let totalInClass = 0;
       for(const pop of this.popsByClass.get(popType)) {
         let newPopulation = pop.update(Math.min(popLimit, food));
-        popLimit -= newPopulation;
-        food -= newPopulation;
-        if (newPopulation == 0) {
+        popLimit = Math.max(popLimit - newPopulation, 0);
+        food = Math.max(food - newPopulation, 0);
+        if (newPopulation <= 0) {
           popsToRemove.push(pop);
         }
       }
-      for(const pop of popsToRemove) {
-        this.pops.remove(pop);
-        this.popsByClass.get(pop.class).remove(pop);
+      this.removePops(popsToRemove);
+      if (popLimit > 0) {
+        promotions.set(popType, Math.floor(popLimit / 10));
+      }
+    }
+    for (const popType of promotionPriority) {
+      if (promotions.get(popType) > 0) {
+        let popsToRemove = new Array<Pop>();
+        let populationToAdd = 0;
+        let maxNewPopulation = promotions.get(popType);
+        let destPop: Pop;
+        if (!(this.popsByClass.get(popType).size > 0)) {
+          destPop = this.addPop(popType, populationToAdd);
+        } else {
+          for (const pop of this.popsByClass.get(popType)) {
+            destPop = pop;
+            break;
+          }
+        }
+        for(const sourceType of promoteFrom[popType]) {
+          for(const sourcePop of this.popsByClass.get(sourceType)) {
+            if (maxNewPopulation > 0) {
+              let popsFromSource = sourcePop.emigrate(maxNewPopulation, destPop);
+              maxNewPopulation -= popsFromSource;
+              if (sourcePop.totalPopulation <= 0) {
+                popsToRemove.push(sourcePop);
+              }
+            }
+          }
+          this.removePops(popsToRemove);
+        }
       }
     }
   }
