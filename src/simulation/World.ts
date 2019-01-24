@@ -16,6 +16,7 @@ import {
   tileDirectionWeights,
 } from './worldTypes';
 import { ObservableSet } from './ObservableSet';
+import Array2D from '../utils/Array2D';
 
 
 interface IRange {
@@ -36,7 +37,7 @@ export function ndarrayRange(array: ndarray): IRange {
 }
 
 export default class World {
-  grid: IWorldCell[][];
+  grid: Array2D<IWorldCell>;
   cells: Set<IWorldCell>;
   size: {
     width: number;
@@ -52,7 +53,6 @@ export default class World {
 
   constructor(params: IWorldWorkerOutput) {
     this.params = params;
-    this.grid = [];
     this.cells = new Set();
     this.size = params.options.size;
     this.sealevel = params.sealevel;
@@ -72,35 +72,32 @@ export default class World {
     this.generatedTime = +new Date();
     this.regions = new ObservableSet();
 
-    for (let x = 0; x < this.size.width; x++) {
-      this.grid[x] = [];
-      for (let y = 0; y < this.size.height; y++) {
-        const cell: IWorldCell = {
-          world: this,
-          x, y,
-          height: heightmap.get(x, y),
-          flowDir: flowDirections.get(x, y) as EDirection,
-          type: cellTypes.get(x, y) as ECellType,
-          riverType: riverMap.get(x, y) as ERiverType,
-          terrainType: terrainMap.get(x, y) as ETerrainType,
-          feature: cellFeatures.get(x, y) as ECellFeature,
-          temperature: temperatures.get(x, y),
-          upstreamCount: upstreamCells.get(x, y),
-          moisture: moistureMap.get(x, y),
-          moistureZone: moistureZones.get(x, y),
-          temperatureZone: temperatureZones.get(x, y),
-          terrainRoughness: terrainRoughness.get(x, y),
-          biome: biomes.get(x, y),
-        };
-        this.cells.add(cell);
-        this.grid[x][y] = cell;
-      }
-    }
+    this.grid = new Array2D<IWorldCell>(this.size.width, this.size.height, (x, y) => {
+      const cell: IWorldCell = {
+        world: this,
+        x, y,
+        height: heightmap.get(x, y),
+        flowDir: flowDirections.get(x, y) as EDirection,
+        type: cellTypes.get(x, y) as ECellType,
+        riverType: riverMap.get(x, y) as ERiverType,
+        terrainType: terrainMap.get(x, y) as ETerrainType,
+        feature: cellFeatures.get(x, y) as ECellFeature,
+        temperature: temperatures.get(x, y),
+        upstreamCount: upstreamCells.get(x, y),
+        moisture: moistureMap.get(x, y),
+        moistureZone: moistureZones.get(x, y),
+        temperatureZone: temperatureZones.get(x, y),
+        terrainRoughness: terrainRoughness.get(x, y),
+        biome: biomes.get(x, y),
+      };
+      this.cells.add(cell);
+      return cell;
+    });
     this.drainageBasins = [];
     for (const [id, { color, cells }] of Object.entries(params.drainageBasins)) {
       const drainageBasin: IDrainageBasin = {
         id: parseInt(id, 10),
-        cells: cells.map(([x, y]) => this.grid[x][y]),
+        cells: cells.map(([x, y]) => this.grid.get(x, y)),
         color,
       }
       this.drainageBasins.push(drainageBasin);
@@ -194,7 +191,7 @@ export default class World {
     if (x < 0 || y < 0 || x >= this.size.width || y >= this.size.height) {
       return null;
     }
-    return this.grid[x][y];
+    return this.grid.get(x, y);
   }
 }
 

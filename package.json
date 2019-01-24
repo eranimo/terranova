@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "build": "rm -rf public/ && NODE_ENV=production webpack",
+    "test": "jest",
     "dev": "webpack-dev-server --progress"
   },
   "author": "Kaelan Cooter (me@kaelan.org)",
@@ -12,11 +13,14 @@
   "devDependencies": {
     "@babel/core": "^7.1.2",
     "@babel/preset-env": "^7.1.0",
+    "@types/jest": "^23.3.13",
     "awesome-typescript-loader": "^5.2.1",
     "css-loader": "^1.0.0",
     "file-loader": "^2.0.0",
     "html-webpack-plugin": "^3.2.0",
+    "jest": "^23.6.0",
     "style-loader": "^0.23.1",
+    "ts-jest": "^23.10.5",
     "typescript": "^3.0.1",
     "webpack": "^4.28.4",
     "webpack-cli": "^3.1.2",

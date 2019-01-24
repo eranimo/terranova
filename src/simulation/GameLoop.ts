@@ -118,6 +118,7 @@ export default class GameLoop {
   timestep: number;
   date$: Subject<IGameDate>;
   timers: Set<Timer>;
+  throttle: boolean;
 
   MAX_SPEED = speeds.length;
 
@@ -145,6 +146,7 @@ export default class GameLoop {
       year: 1,
     });
     this.timers = new Set();
+    this.throttle = true;
 
     // update date when dayCount changes
     this.state.dayCount.subscribe(dayCount => this.date$.next(dateFormat(dayCount)));
@@ -154,6 +156,7 @@ export default class GameLoop {
   }
 
   public start() {
+    // console.log('PLAY');
     if (this.state.started.value) return;
     this.state.started.next(true);
     this.frameID = requestAnimationFrame(timestamp => {
@@ -166,6 +169,7 @@ export default class GameLoop {
   }
 
   public stop() {
+    // console.log('PAUSE');
     this.state.running.next(false);
     this.state.started.next(false);
     cancelAnimationFrame(this.frameID);
@@ -184,13 +188,27 @@ export default class GameLoop {
   }
 
   private mainLoop(timestamp: number) {
+    // just go as fast as possible
+    if (!this.throttle) {
+      this.state.ticks.next(this.state.ticks.value + 1);
+      this.state.dayCount.next(Math.floor(this.state.ticks.value / TICKS_PER_DAY));
+      this.delta = timestamp - this.lastFrameTimeMs;
+      this.lastFrameTimeMs = timestamp;
+      this.update(0);
+      this.draw(0);
+      // console.log('update loop', this.delta);
+      this.frameID = requestAnimationFrame(this.mainLoop.bind(this));
+      return;
+    }
     // throttle frame rate
     if (timestamp < this.lastFrameTimeMs + (1000 / this.maxFPS)) {
       this.frameID = requestAnimationFrame(this.mainLoop.bind(this));
       return;
     }
 
+
     this.delta += timestamp - this.lastFrameTimeMs;
+    // console.log('update loop', this.delta);
     this.lastFrameTimeMs = timestamp;
 
     if (timestamp > this.lastFPSUpdate + 1000) {
