@@ -125,7 +125,7 @@ export default class Game extends GameLoop {
     const popSet = new Set<IPopView>();
     gameCell.newPop$.subscribe((pop) => {
       const popView = {
-        population: pop.population,
+        population: pop.totalPopulation,
         socialClass: pop.class,
       };
       pop.popGrowth$.subscribe((population) => {

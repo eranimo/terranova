@@ -28,6 +28,12 @@ export enum EPopClass {
   NOBLE,
 }
 
+export const growthRates: Record<EPopClass, number> =  {
+  [EPopClass.NOBLE]: 1/1000,
+  [EPopClass.FARMER]: 1/1300,
+  [EPopClass.FORAGER]: 0
+}
+
 const populationPriorities = [EPopClass.NOBLE, EPopClass.FARMER, EPopClass.FORAGER];
 const promotionPriority = populationPriorities.reverse();
 
@@ -59,13 +65,13 @@ export const popClassAttributes: Record<EPopClass, IClassAttributes> = {
     labor: (population: number, gameCell: GameCell) : IGameCellDelta => {
       const farmerFactor = 1.2;
       const farmerProductionFactor = 1.1;
-      let food = Math.min(Math.floor(population), gameCell.buildingByType.get(EBuildingType.FARM)) * farmerProductionFactor;
+      let food = Math.min(Math.floor(population), gameCell.buildingByType[EBuildingType.FARM]) * farmerProductionFactor;
       const maxFarms = new Map<EBuildingType, number>([[
         EBuildingType.FARM,
         Math.min(population, gameCell.carryingCapacity * farmerFactor) * farmerProductionFactor
       ]]);
       let maxPops = newPopsMap();
-      maxPops.set(EPopClass.FARMER, Math.max(food, gameCell.buildingByType.get(EBuildingType.FARM)));
+      maxPops.set(EPopClass.FARMER, Math.max(food, gameCell.buildingByType[EBuildingType.FARM]));
       maxPops.set(EPopClass.NOBLE, Math.floor(population / 100));
       return {
         maxBuildings: maxFarms,
@@ -80,6 +86,7 @@ export const popClassAttributes: Record<EPopClass, IClassAttributes> = {
     title: 'Noble',
     labor: (population: number, gameCell: GameCell) : IGameCellDelta => {
       let maxPops = newPopsMap();
+      maxPops.set(EPopClass.NOBLE, Math.floor(population * .75));
       return {
         maxBuildings: new Map<EBuildingType, number>(),
         maxHousing: 0,
@@ -124,7 +131,7 @@ export class Pop {
 
   constructor(popClass: EPopClass, population: number) {
     this.class = popClass;
-    this.growthRate = (1 / 1300);
+    this.growthRate = growthRates[popClass];
     this.population = population;
     this.popGrowth$ = new Subject();
   }
@@ -249,7 +256,6 @@ export default class GameCell {
     const deltas = new Array<IGameCellDelta>();
     for (const pop of this.pops) {
       deltas.push(popClassAttributes[pop.class].labor(pop.totalPopulation, this));
-      console.log(pop)
     }
     const delta = deltas.reduce((previous: IGameCellDelta, next: IGameCellDelta) : IGameCellDelta => {
       let buildingDeltas = new Map<EBuildingType, number>();
@@ -283,16 +289,17 @@ export default class GameCell {
       };
     });
 
+    console.log(delta.maxPeople);
     for (const buildingType of delta.maxBuildings.keys()) {
       const currBuildings = this.buildingByType[buildingType];
       let buildingDelta = Math.floor((delta.maxBuildings.get(buildingType) - currBuildings) / maintenanceFactor);
       this.buildingByType[buildingType] = currBuildings + buildingDelta;
       const maxPeople = delta.maxPeople;
-      if (maxPeople.get(requiredBuilding[buildingType])) {
+      if (maxPeople.has(requiredBuilding[buildingType])) {\
         maxPeople.set(
           requiredBuilding[buildingType],
-          Math.min(this.buildingByType[buildingType], maxPeople.get(requiredBuilding[buildingType]))
-        )
+          Math.max(this.buildingByType[buildingType], maxPeople.get(requiredBuilding[buildingType]))
+        );
       }
     }
     this.housing += Math.floor((delta.maxHousing - this.housing) / maintenanceFactor);
@@ -313,7 +320,7 @@ export default class GameCell {
       }
       this.removePops(popsToRemove);
       if (popLimit > 0) {
-        promotions.set(popType, Math.floor(popLimit / 10));
+        promotions.set(popType, Math.floor(popLimit * Math.random()));
       }
     }
     for (const popType of promotionPriority) {
@@ -322,7 +329,7 @@ export default class GameCell {
         let populationToAdd = 0;
         let maxNewPopulation = promotions.get(popType);
         let destPop: Pop;
-        if (!(this.popsByClass.get(popType).size > 0)) {
+        if (this.popsByClass.get(popType).size < 1) {
           destPop = this.addPop(popType, populationToAdd);
         } else {
           for (const pop of this.popsByClass.get(popType)) {
