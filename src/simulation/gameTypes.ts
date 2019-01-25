@@ -9,7 +9,7 @@ export enum EGameEvent {
   SLOWER = 'SLOWER',
 
   NEW_REGION = 'NEW_REGION',
-  NEW_POP = 'NEW_POP',
+  NEW_GAME_CELL = 'NEW_GAME_CELL',
 }
 
 export interface IGameWorkerEventData {
