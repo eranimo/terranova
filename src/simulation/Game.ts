@@ -6,7 +6,7 @@ import World from './World';
 import { IWorldCell } from './worldTypes';
 import { WorldRegion } from './WorldRegion';
 import { worldStore } from './stores';
-import GameCell, { Pop, EPopClass, IPopCoordinates } from './GameCell';
+import GameCell, { Pop, EPopClass, IPopCoordinates, IGameCellView, IPopView } from './GameCell';
 import Array2D from '../utils/Array2D';
 
 
@@ -30,6 +30,7 @@ export default class Game extends GameLoop {
   params: IGameParams;
   newRegion$: ReplaySubject<WorldRegion>;
   gameCells: Set<GameCell>;
+  gameCell$: ReplaySubject<IGameCellView>;
   gameCellMap: Array2D<GameCell>;
   newPop$: ReplaySubject<IPopCoordinates>;
 
@@ -39,6 +40,7 @@ export default class Game extends GameLoop {
     this.params = params;
     this.world = null;
     this.newPop$ = new ReplaySubject();
+    this.gameCell$ = new ReplaySubject();
   }
 
   async init() {
@@ -120,11 +122,24 @@ export default class Game extends GameLoop {
 
   populateCell(x: number, y: number): GameCell {
     const gameCell = new GameCell(this.world.getCell(x, y));
+    const popSet = new Set<IPopView>();
     gameCell.newPop$.subscribe((pop) => {
-      this.newPop$.next({population: pop, xCoord: x, yCoord: y});
-      console.log(pop);
+      const popView = {
+        population: pop.population,
+        socialClass: pop.class,
+      };
+      pop.popGrowth$.subscribe((population) => {
+        popView.population = population;
+      });
+      popSet.add(popView);
     });
     this.gameCells.add(gameCell);
+    this.gameCell$.next({
+      pops: popSet,
+      buildingByType: gameCell.buildingByType,
+      xCoord: x,
+      yCoord: y
+    });
     this.gameCellMap.set(x, y, gameCell);
 
     return gameCell;

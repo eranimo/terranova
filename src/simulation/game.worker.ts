@@ -26,11 +26,11 @@ const handlers: Partial<Record<EGameEvent, EventHandler>> = {
         payload: region.export(),
       });
     });
-    game.newPop$.subscribe(pop => {
-      console.log('game.worker: NEW REGION', pop)
+    game.newPop$.subscribe(gameCell => {
+      console.log('game.worker: NEW GAME CELL', gameCell)
       ctx.postMessage({
-        type: EGameEvent.NEW_POP,
-        payload: pop,
+        type: EGameEvent.NEW_GAME_CELL,
+        payload: gameCell,
       });
 
     });

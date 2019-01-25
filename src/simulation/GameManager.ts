@@ -7,7 +7,7 @@ import World from './World';
 import { worldStore, gameStore } from "./stores";
 import Array2D from '../utils/Array2D';
 import { WorldMap } from '../common/WorldMap';
-import { IPopCoordinates } from './GameCell'
+import { IGameCellView } from './GameCell'
 
 
 const GameWorker = require('./game.worker');
@@ -74,8 +74,8 @@ export default class GameManager {
       console.log('new region', region);
       this.worldMap.addRegion(region);
     });
-    this.onEvent(EGameEvent.NEW_POP, (pop: IPopCoordinates) => {
-      this.worldMap.addPop(pop)
+    this.onEvent(EGameEvent.NEW_GAME_CELL, (gameCell: IGameCellView) => {
+      this.worldMap.addGameCell(gameCell);
     })
   }
 

@@ -157,8 +157,15 @@ export class Pop {
   }
 }
 
+export interface IPopView {
+  population: number,
+  socialClass: EPopClass
+}
+
 export interface IPopCoordinates {
-  population: Pop,
+  population: number,
+  socialClass: EPopClass,
+  popGrowth$: Subject<number>,
   xCoord: number,
   yCoord: number
 }
@@ -189,11 +196,18 @@ const requiredBuilding: Record<EBuildingType, EPopClass | null> = {
   [EBuildingType.FARM]: EPopClass.FARMER
 };
 
+export interface IGameCellView {
+  pops: Set<IPopView>,
+  buildingByType: Record<EBuildingType, number>,
+  xCoord: number,
+  yCoord: number
+}
+
 export default class GameCell {
   pops: ObservableSet<Pop>;
   popsByClass: Map<EPopClass, ObservableSet<Pop>>;
   newPop$: Subject<Pop>;
-  buildingByType: Map<EBuildingType, number>;
+  buildingByType: Record<EBuildingType, number>;
   housing: number;
   food: number;
   readonly carryingCapacity: number;
@@ -204,12 +218,11 @@ export default class GameCell {
     this.newPop$ = new Subject();
     this.pops = new ObservableSet();
     this.popsByClass = new Map();
-    this.buildingByType = new Map();
+    this.buildingByType = {
+      [EBuildingType.FARM]: 0
+    };
     for (const item of enumMembers(EPopClass)) {
       this.popsByClass.set(item as EPopClass, new ObservableSet())
-    }
-    for (const item of enumMembers(EBuildingType)) {
-      this.buildingByType.set(item as EBuildingType, 0);
     }
     this.housing = 0;
     this.food = 0;
@@ -271,19 +284,14 @@ export default class GameCell {
     });
 
     for (const buildingType of delta.maxBuildings.keys()) {
-      const currBuildings = this.buildingByType.get(buildingType);
+      const currBuildings = this.buildingByType[buildingType];
       let buildingDelta = Math.floor((delta.maxBuildings.get(buildingType) - currBuildings) / maintenanceFactor);
-      this.buildingByType.set(buildingType, currBuildings + buildingDelta);
+      this.buildingByType[buildingType] = currBuildings + buildingDelta;
       const maxPeople = delta.maxPeople;
-      if (maxPeople.get(requiredBuilding[buildingType]) > 0) {
+      if (maxPeople.get(requiredBuilding[buildingType])) {
         maxPeople.set(
           requiredBuilding[buildingType],
-          Math.min(this.buildingByType.get(buildingType), maxPeople.get(requiredBuilding[buildingType]))
-        )
-      } else {
-        maxPeople.set(
-          requiredBuilding[buildingType],
-          this.buildingByType.get(buildingType)
+          Math.min(this.buildingByType[buildingType], maxPeople.get(requiredBuilding[buildingType]))
         )
       }
     }
