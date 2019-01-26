@@ -4,7 +4,7 @@ import { Subject } from "rxjs";
 import { EBiome } from './worldTypes'
 import { enumMembers } from "../utils/enums";
 
-const carryingCapacities: Record<EBiome, number> = {
+export const carryingCapacities: Record<EBiome, number> = {
   [EBiome.NONE]: 0,
   [EBiome.GLACIAL]: 10,
   [EBiome.TUNDRA]: 50,
@@ -86,7 +86,7 @@ export const popClassAttributes: Record<EPopClass, IClassAttributes> = {
     title: 'Noble',
     labor: (population: number, gameCell: GameCell) : IGameCellDelta => {
       let maxPops = newPopsMap();
-      maxPops.set(EPopClass.NOBLE, Math.floor(population * .75));
+      // maxPops.set(EPopClass.NOBLE, Math.floor(population * .75));
       return {
         maxBuildings: new Map<EBuildingType, number>(),
         maxHousing: 0,
@@ -210,13 +210,21 @@ export interface IGameCellView {
   yCoord: number
 }
 
+export interface IGameMigration {
+  socialClass: EPopClass,
+  populationPressure: number,
+  totalPopulation: number,
+  x: number,
+  y: number
+}
+
 export default class GameCell {
   pops: ObservableSet<Pop>;
   popsByClass: Map<EPopClass, ObservableSet<Pop>>;
   newPop$: Subject<Pop>;
   buildingByType: Record<EBuildingType, number>;
   housing: number;
-  food: number;
+  // food: number;
   readonly carryingCapacity: number;
 
   constructor(
@@ -231,8 +239,8 @@ export default class GameCell {
     for (const item of enumMembers(EPopClass)) {
       this.popsByClass.set(item as EPopClass, new ObservableSet())
     }
-    this.housing = 0;
-    this.food = 0;
+    this.housing = Math.floor(carryingCapacities[this.worldCell.biome]/10);
+    // this.food = 0;
     this.carryingCapacity = carryingCapacities[worldCell.biome];
   }
 
@@ -251,105 +259,133 @@ export default class GameCell {
       }
   }
 
-  // ran every tick
-  update() {
-    const deltas = new Array<IGameCellDelta>();
+  getNextPop(socialClass: EPopClass): Pop {
+    for (const pop of this.popsByClass.get(socialClass)) {
+      if(pop.totalPopulation > 0)
+      {
+        return pop; 
+      }
+    }
+    return this.addPop(socialClass, 0);
+  }
+
+  getSocialPopulation(socialClass: EPopClass): number {
+    let ret = 0;
+    for (const pop of this.popsByClass.get(socialClass)) {
+      ret += pop.totalPopulation;
+    }
+    return ret;
+  }
+
+  getTotalPopulation(): number {
+    let ret = 0;
     for (const pop of this.pops) {
-      deltas.push(popClassAttributes[pop.class].labor(pop.totalPopulation, this));
+      ret += pop.totalPopulation;
     }
-    const delta = deltas.reduce((previous: IGameCellDelta, next: IGameCellDelta) : IGameCellDelta => {
-      let buildingDeltas = new Map<EBuildingType, number>();
+    return ret;
+  }
 
-      for (const buildingType of enumMembers(EBuildingType)) {
-        buildingDeltas.set(
-          buildingType as EBuildingType,
-          (
-            (previous.maxBuildings.get(buildingType as EBuildingType) || 0) +
-            (next.maxBuildings.get(buildingType as EBuildingType) || 0)
-          )
-        );
+  update(): [IGameMigration, IGameMigration] {
+    const deltas = new Array<IGameCellDelta>();
+    const migrationPossibilites: Map<EPopClass, number> = newPopsMap();
+    if (this.pops.size > 0) {
+      // console.log(this.worldCell.x, this.worldCell.y);
+      for (const pop of this.pops) {
+        // console.log(pop);
+        deltas.push(popClassAttributes[pop.class].labor(pop.totalPopulation, this));
       }
-      let maxPops = new Map<EPopClass, number>();
-
-      for (const populationType of enumMembers(EPopClass)) {
-        maxPops.set(
-          populationType as EPopClass,
-          (
-            previous.maxPeople.get(populationType as EPopClass) +
-            next.maxPeople.get(populationType as EPopClass)
-          )
-        );
-      }
-
-      return {
-        maxBuildings: buildingDeltas,
-        maxHousing: (previous.maxHousing + next.maxHousing),
-        foodProduced: (previous.foodProduced + next.foodProduced),
-        maxPeople: maxPops
-      };
-    });
-
-    console.log(delta.maxPeople);
-    for (const buildingType of delta.maxBuildings.keys()) {
-      const currBuildings = this.buildingByType[buildingType];
-      let buildingDelta = Math.floor((delta.maxBuildings.get(buildingType) - currBuildings) / maintenanceFactor);
-      this.buildingByType[buildingType] = currBuildings + buildingDelta;
-      const maxPeople = delta.maxPeople;
-      if (maxPeople.has(requiredBuilding[buildingType])) {\
-        maxPeople.set(
-          requiredBuilding[buildingType],
-          Math.max(this.buildingByType[buildingType], maxPeople.get(requiredBuilding[buildingType]))
-        );
-      }
-    }
-    this.housing += Math.floor((delta.maxHousing - this.housing) / maintenanceFactor);
-    let food: number = delta.foodProduced;
-    let housingLimit: number = this.housing;
-    const promotions: Map<EPopClass, number> = new Map();
-    for (const popType of populationPriorities) {
-      let popLimit = delta.maxPeople.get(popType);
-      let popsToRemove = new Array<Pop>();
-      let totalInClass = 0;
-      for(const pop of this.popsByClass.get(popType)) {
-        let newPopulation = pop.update(Math.min(popLimit, food));
-        popLimit = Math.max(popLimit - newPopulation, 0);
-        food = Math.max(food - newPopulation, 0);
-        if (newPopulation <= 0) {
-          popsToRemove.push(pop);
+      const delta = deltas.reduce((previous: IGameCellDelta, next: IGameCellDelta) : IGameCellDelta => {
+        let buildingDeltas = new Map<EBuildingType, number>();
+  
+        for (const buildingType of enumMembers(EBuildingType)) {
+          buildingDeltas.set(
+            buildingType as EBuildingType,
+            (
+              (previous.maxBuildings.get(buildingType as EBuildingType) || 0) +
+              (next.maxBuildings.get(buildingType as EBuildingType) || 0)
+            )
+          );
+        }
+        let maxPops = new Map<EPopClass, number>();
+  
+        for (const populationType of enumMembers(EPopClass)) {
+          maxPops.set(
+            populationType as EPopClass,
+            (
+              previous.maxPeople.get(populationType as EPopClass) +
+              next.maxPeople.get(populationType as EPopClass)
+            )
+          );
+        }
+  
+        return {
+          maxBuildings: buildingDeltas,
+          maxHousing: (previous.maxHousing + next.maxHousing),
+          foodProduced: (previous.foodProduced + next.foodProduced),
+          maxPeople: maxPops
+        };
+      });
+  
+      for (const buildingType of delta.maxBuildings.keys()) {
+        const currBuildings = this.buildingByType[buildingType];
+        let buildingDelta = Math.floor((delta.maxBuildings.get(buildingType) - currBuildings) / maintenanceFactor);
+        this.buildingByType[buildingType] = currBuildings + buildingDelta;
+        const maxPeople = delta.maxPeople;
+        if (maxPeople.has(requiredBuilding[buildingType])) {\
+          maxPeople.set(
+            requiredBuilding[buildingType],
+            Math.max(this.buildingByType[buildingType], maxPeople.get(requiredBuilding[buildingType]))
+          );
         }
       }
-      this.removePops(popsToRemove);
-      if (popLimit > 0) {
-        promotions.set(popType, Math.floor(popLimit * Math.random()));
-      }
-    }
-    for (const popType of promotionPriority) {
-      if (promotions.get(popType) > 0) {
+      this.housing += Math.floor((delta.maxHousing - this.housing) / maintenanceFactor);
+      let food: number = delta.foodProduced;
+      let housingLimit: number = this.housing;
+      const promotions: Map<EPopClass, number> = new Map();
+      for (const popType of populationPriorities) {
+        let popLimit = delta.maxPeople.get(popType);
         let popsToRemove = new Array<Pop>();
-        let populationToAdd = 0;
-        let maxNewPopulation = promotions.get(popType);
-        let destPop: Pop;
-        if (this.popsByClass.get(popType).size < 1) {
-          destPop = this.addPop(popType, populationToAdd);
-        } else {
-          for (const pop of this.popsByClass.get(popType)) {
-            destPop = pop;
-            break;
+        let totalInClass = 0;
+        for(const pop of this.popsByClass.get(popType)) {
+          let newPopulation = pop.update(Math.min(popLimit, food));
+          popLimit = Math.max(popLimit - newPopulation, 0);
+          food = Math.max(food - newPopulation, 0);
+          if (newPopulation <= 0) {
+            popsToRemove.push(pop);
           }
         }
-        for(const sourceType of promoteFrom[popType]) {
-          for(const sourcePop of this.popsByClass.get(sourceType)) {
-            if (maxNewPopulation > 0) {
-              let popsFromSource = sourcePop.emigrate(maxNewPopulation, destPop);
-              maxNewPopulation -= popsFromSource;
-              if (sourcePop.totalPopulation <= 0) {
-                popsToRemove.push(sourcePop);
+        this.removePops(popsToRemove);
+        if (popLimit > 0) {
+          promotions.set(popType, Math.floor(popLimit * Math.random()));
+        }
+      }
+      for (const popType of promotionPriority) {
+        if (promotions.get(popType) > 0) {
+          let popsToRemove = new Array<Pop>();
+          let populationToAdd = 0;
+          let maxNewPopulation = promotions.get(popType);
+          let destPop: Pop = this.getNextPop(popType);
+          for(const sourceType of promoteFrom[popType]) {
+            for(const sourcePop of this.popsByClass.get(sourceType)) {
+              if (maxNewPopulation > 0) {
+                let popsFromSource = sourcePop.emigrate(maxNewPopulation, destPop);
+                maxNewPopulation -= popsFromSource;
+                if (sourcePop.totalPopulation <= 0) {
+                  popsToRemove.push(sourcePop);
+                }
               }
             }
+            this.removePops(popsToRemove);
           }
-          this.removePops(popsToRemove);
+          migrationPossibilites.set(popType, maxNewPopulation);
         }
       }
     }
+    const migrationOptions: Array<IGameMigration> = new Array();
+    for (const entry of migrationPossibilites.entries()) {
+      migrationOptions.push({socialClass: entry[0], populationPressure: entry[1], totalPopulation: this.getSocialPopulation(entry[0]), x: this.worldCell.x, y: this.worldCell.y });
+    }
+    migrationOptions.sort((a, b) => a.populationPressure - b.populationPressure);
+    return [migrationOptions[0], migrationOptions[migrationOptions.length - 1]];
   }
 }
