@@ -78,26 +78,10 @@ export default class GameManager {
       .subscribe((region: IWorldRegionView) => {
         this.worldMap.addRegion(region);
       });
-    this.onEvent(EGameEvent.NEW_GAME_CELL, (gameCell: IGameCellView) => {
-      this.worldMap.addGameCell(gameCell);
-    })
-  }
-
-  sendEvent(eventName: EGameEvent, params?: any) {
-    const eventData: IGameWorkerEventData = {
-      type: eventName,
-      id: +new Date(),
-      payload: params,
-    };
-    this.worker.postMessage(eventData)
-  }
-
-  onEvent(type: EGameEvent, callback: (payload) => void) {
-    this.worker.addEventListener('message', (event: MessageEvent) => {
-      const data = event.data as IGameWorkerEventData;
-      if (data.type === type) {
-        callback(data.payload);
-      }
+    this.worker.on(EGameEvent.NEW_GAME_CELL).
+      subscribe((gameCell: IGameCellView) => {
+        console.log("Got it");
+        this.worldMap.addGameCell(gameCell);
     });
   }
 

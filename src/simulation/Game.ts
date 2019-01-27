@@ -32,14 +32,12 @@ export default class Game extends GameLoop {
   gameCells: Set<GameCell>;
   gameCell$: ReplaySubject<IGameCellView>;
   gameCellMap: Array2D<GameCell>;
-  newPop$: ReplaySubject<IPopCoordinates>;
 
   constructor(params: IGameParams) {
     super();
     this.gameData = params.gameData || Object.assign({}, initialGameData);
     this.params = params;
     this.world = null;
-    this.newPop$ = new ReplaySubject();
     this.gameCell$ = new ReplaySubject();
   }
 
@@ -118,11 +116,12 @@ export default class Game extends GameLoop {
     //     gc1.addPop(new Pop(EPopClass.NOBLE, 50));
     //   }
     // }
+    const numTicks = Math.floor(360/timeFactor)
     this.addTimer({
-      ticksLength: 360/timeFactor,
+      ticksLength: numTicks,
       isRepeated: true,
-      onTick: (ticksElapsed: number) => this.updatePops(),
-      onFinished: () => console.log('timer done!'),
+      onTick: null,
+      onFinished: () =>  this.updatePops(),
     });
   }
 

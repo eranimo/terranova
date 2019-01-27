@@ -22,13 +22,10 @@ const worker = new ReactiveWorker(ctx, false)
       console.log('game.worker: NEW REGION', region)
       worker.send(EGameEvent.NEW_REGION, region.export());
     });
-    game.newPop$.subscribe(gameCell => {
-      console.log('game.worker: NEW GAME CELL', gameCell)
-      ctx.postMessage({
-        type: EGameEvent.NEW_GAME_CELL,
-        payload: gameCell,
-      });
 
+    game.newRegion$.subscribe(gameCell => {
+      console.log('game.worker: NEW GAME CELL', gameCell)
+      worker.send(EGameEvent.NEW_GAME_CELL, gameCell);
     });
 
     for (const [key, subject] of Object.entries(game.state)) {
