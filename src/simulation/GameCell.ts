@@ -31,8 +31,8 @@ export enum EPopClass {
 }
 
 export const growthRates: Record<EPopClass, number> =  {
-  [EPopClass.NOBLE]: 1/1000,
-  [EPopClass.FARMER]: 1/1300,
+  [EPopClass.NOBLE]: Math.pow(1/70, 1/timeFactor),
+  [EPopClass.FARMER]: Math.pow(1/100, 1/timeFactor),
   [EPopClass.FORAGER]: 0
 }
 
