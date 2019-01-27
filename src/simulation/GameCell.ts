@@ -125,7 +125,7 @@ export class Pop {
 
   constructor(popClass: EPopClass, population: number) {
     this.class = popClass;
-    this.growthRate = (1 / 1300);
+    this.growthRate = Math.pow((1 / 100), 1/timeFactor);
     this.population = population;
     this.popGrowth$ = new Subject();
   }
