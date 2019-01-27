@@ -6,7 +6,7 @@ import World from './World';
 import { IWorldCell } from './worldTypes';
 import { WorldRegion } from './WorldRegion';
 import { worldStore } from './stores';
-import GameCell, { Pop, EPopClass, IPopCoordinates, IGameCellView, IPopView } from './GameCell';
+import GameCell, { Pop, EPopClass, IPopCoordinates, IGameCellView, IPopView, timeFactor } from './GameCell';
 import Array2D from '../utils/Array2D';
 
 
@@ -118,6 +118,12 @@ export default class Game extends GameLoop {
     //     gc1.addPop(new Pop(EPopClass.NOBLE, 50));
     //   }
     // }
+    this.addTimer({
+      ticksLength: 360/timeFactor,
+      isRepeated: true,
+      onTick: (ticksElapsed: number) => this.updatePops(),
+      onFinished: () => console.log('timer done!'),
+    });
   }
 
   populateCell(x: number, y: number): GameCell {
@@ -147,11 +153,11 @@ export default class Game extends GameLoop {
 
   update(elapsedTime: number) {
     super.update(elapsedTime);
+  }
 
-    if (this.state.dayCount.getValue() % 30 == 0) {
-      for (const gameCell of this.gameCells) {
-        gameCell.update();
-      }
+  updatePops() {
+    for (const gameCell of this.gameCells) {
+      gameCell.update();
     }
   }
 }
