@@ -8,33 +8,74 @@ export const carryingCapacities: Record<EBiome, number> = {
   [EBiome.NONE]: 0,
   [EBiome.GLACIAL]: 10,
   [EBiome.TUNDRA]: 50,
-  [EBiome.BOREAL_FOREST]: 10000,
-  [EBiome.SHRUBLAND]: 500,
-  [EBiome.WOODLAND]: 5000,
-  [EBiome.GRASSLAND]: 1000,
-  [EBiome.SAVANNA]: 500,
-  [EBiome.DESERT]: 100,
-  [EBiome.TEMPERATE_FOREST]: 10000,
-  [EBiome.TEMPERATE_RAINFOREST]: 10000,
-  [EBiome.TROPICAL_FOREST]: 50000,
-  [EBiome.TROPICAL_RAINFOREST]: 50000
+  [EBiome.BOREAL_FOREST]: 1000,
+  [EBiome.SHRUBLAND]: 50,
+  [EBiome.WOODLAND]: 500,
+  [EBiome.GRASSLAND]: 100,
+  [EBiome.SAVANNA]: 100,
+  [EBiome.DESERT]: 10,
+  [EBiome.TEMPERATE_FOREST]: 1000,
+  [EBiome.TEMPERATE_RAINFOREST]: 1000,
+  [EBiome.TROPICAL_FOREST]: 5000,
+  [EBiome.TROPICAL_RAINFOREST]: 5000
 }
 
-const maintenanceFactor: number = 10;
+export const farmEfficiencies: Record<EBiome, number> = {
+  [EBiome.NONE]: 0,
+  [EBiome.GLACIAL]: 0,
+  [EBiome.TUNDRA]: 0,
+  [EBiome.BOREAL_FOREST]: .5,
+  [EBiome.SHRUBLAND]: .25,
+  [EBiome.WOODLAND]: .5,
+  [EBiome.GRASSLAND]: .25,
+  [EBiome.SAVANNA]: .5,
+  [EBiome.DESERT]: 0,
+  [EBiome.TEMPERATE_FOREST]: 1,
+  [EBiome.TEMPERATE_RAINFOREST]: 1.5,
+  [EBiome.TROPICAL_FOREST]: 2,
+  [EBiome.TROPICAL_RAINFOREST]: 3
+}
+
+export const developmentRates: Record<EBiome, number> = {
+  [EBiome.NONE]: 0,
+  [EBiome.GLACIAL]: 0,
+  [EBiome.TUNDRA]: 0,
+  [EBiome.BOREAL_FOREST]: .75,
+  [EBiome.SHRUBLAND]: 1,
+  [EBiome.WOODLAND]: 1,
+  [EBiome.GRASSLAND]: 1,
+  [EBiome.SAVANNA]: 1,
+  [EBiome.DESERT]: 0,
+  [EBiome.TEMPERATE_FOREST]: .75,
+  [EBiome.TEMPERATE_RAINFOREST]: .75,
+  [EBiome.TROPICAL_FOREST]: .5,
+  [EBiome.TROPICAL_RAINFOREST]: .25
+}
+
+const maintenanceFactor: number = 1;
 
 export enum EPopClass {
   FORAGER,
   FARMER,
+  ARTISAN,
   NOBLE,
 }
 
-export const growthRates: Record<EPopClass, number> =  {
-  [EPopClass.NOBLE]: 1/1000,
-  [EPopClass.FARMER]: 1/1300,
-  [EPopClass.FORAGER]: 0
+export const promotionRate: Record<EPopClass, number> ={
+  [EPopClass.NOBLE]: 1,
+  [EPopClass.ARTISAN]: 1,
+  [EPopClass.FARMER]: .1,
+  [EPopClass.FORAGER]: .1
 }
 
-const populationPriorities = [EPopClass.NOBLE, EPopClass.FARMER, EPopClass.FORAGER];
+export const growthRates: Record<EPopClass, number> =  {
+  [EPopClass.NOBLE]: 1/70,
+  [EPopClass.ARTISAN]: -1/1000,
+  [EPopClass.FARMER]: 1/70,
+  [EPopClass.FORAGER]: 1/120
+}
+
+const populationPriorities = [EPopClass.NOBLE, EPopClass.FARMER, EPopClass.ARTISAN, EPopClass.FORAGER];
 const promotionPriority = populationPriorities.reverse();
 
 interface IClassAttributes {
@@ -47,8 +88,13 @@ export const popClassAttributes: Record<EPopClass, IClassAttributes> = {
   [EPopClass.FORAGER]: {
     title: 'Forager',
     labor: (population: number, gameCell: GameCell) : IGameCellDelta => {
+      const biome = gameCell.worldCell.biome;
+      const developmentRate: number = developmentRates[biome];
       let food = Math.floor(Math.min(Math.floor(population) * 1.1, gameCell.carryingCapacity));
-      let maxFarms = new Map<EBuildingType, number>([[EBuildingType.FARM, population * .1]]);
+      let maxFarms = new Map<EBuildingType, number>([[
+        EBuildingType.FARM,
+        population * .1 * developmentRate
+      ]]);
       let maxPops = newPopsMap();
       maxPops.set(EPopClass.FORAGER, food);
       return {
@@ -63,24 +109,56 @@ export const popClassAttributes: Record<EPopClass, IClassAttributes> = {
   [EPopClass.FARMER]: {
     title: 'Farmer',
     labor: (population: number, gameCell: GameCell) : IGameCellDelta => {
-      const farmerFactor = 1.2;
-      const farmerProductionFactor = 1.1;
-      let food = Math.min(Math.floor(population), gameCell.buildingByType[EBuildingType.FARM]) * farmerProductionFactor;
-      const maxFarms = new Map<EBuildingType, number>([[
-        EBuildingType.FARM,
-        Math.min(population, gameCell.carryingCapacity * farmerFactor) * farmerProductionFactor
-      ]]);
+      const biome = gameCell.worldCell.biome;
+      const developmentRate: number = developmentRates[biome];
+      const farmerFactor = 100;
+      const farmerProductionFactor = 5;
+      let food = Math.min(
+          Math.floor(population),
+          gameCell.buildingByType[EBuildingType.FARM]
+        ) * 
+        farmerProductionFactor * farmEfficiencies[biome];
+      const maxBuildings = new Map<EBuildingType, number>([
+        [
+          EBuildingType.FARM,
+          Math.min(population, gameCell.carryingCapacity * farmerFactor) * farmerProductionFactor * developmentRate
+        ],
+        [
+          EBuildingType.WORKSHOP,
+          .01 * developmentRate * food
+        ]
+      ]);
       let maxPops = newPopsMap();
       maxPops.set(EPopClass.FARMER, Math.max(food, gameCell.buildingByType[EBuildingType.FARM]));
-      maxPops.set(EPopClass.NOBLE, Math.floor(population / 100));
       return {
-        maxBuildings: maxFarms,
-        maxHousing: Math.floor(population) * 1.3,
+        maxBuildings: maxBuildings,
+        maxHousing: Math.floor(population) * 1.3 * developmentRate,
         foodProduced: food,
         maxPeople: maxPops
       };
     },
     housingReq: 1.1
+  },
+  [EPopClass.ARTISAN]: {
+    title: 'Artisan',
+    labor: (population: number, gameCell: GameCell) : IGameCellDelta => {
+      const biome = gameCell.worldCell.biome;
+      const developmentRate: number = developmentRates[biome];
+      const workshopRatio = .01;
+      const maxWorkshops = new Map<EBuildingType, number>([[
+        EBuildingType.WORKSHOP,
+        population * workshopRatio * developmentRate
+      ]]);
+      let maxPops = newPopsMap();
+      maxPops.set(EPopClass.NOBLE, Math.floor(population / 100));
+      return {
+        maxBuildings: maxWorkshops,
+        maxHousing: Math.floor(population) * 5 * developmentRate,
+        foodProduced: 0,
+        maxPeople: maxPops
+      };
+    },
+    housingReq: 2
   },
   [EPopClass.NOBLE]: {
     title: 'Noble',
@@ -94,7 +172,7 @@ export const popClassAttributes: Record<EPopClass, IClassAttributes> = {
         maxPeople: maxPops
       };
     },
-    housingReq: 2
+    housingReq: 5
   },
 }
 
@@ -111,6 +189,7 @@ const newPopsMap = () : Map<EPopClass, number> => {
 
 enum EBuildingType {
   FARM,
+  WORKSHOP,
 }
 
 interface IBuildingAttributes {
@@ -120,6 +199,9 @@ interface IBuildingAttributes {
 export const buildingAttributes: Record<EBuildingType, IBuildingAttributes> = {
   [EBuildingType.FARM]: {
     title: 'Farm',
+  },
+  [EBuildingType.WORKSHOP]: {
+    title: 'Workshop',
   },
 }
 
@@ -188,19 +270,22 @@ export interface IGameCellDelta {
   maxPeople: Map<EPopClass, number>
 }
 const promoteFrom: Record<EPopClass, Array<EPopClass>> = {
-  [EPopClass.NOBLE]: [EPopClass.FARMER],
+  [EPopClass.NOBLE]: [EPopClass.ARTISAN],
+  [EPopClass.ARTISAN]: [EPopClass.FARMER],
   [EPopClass.FARMER]: [EPopClass.FORAGER],
   [EPopClass.FORAGER]: []
 }
 
 const demotionPath: Record<EPopClass, EPopClass | null> = {
   [EPopClass.NOBLE]: EPopClass.FARMER,
+  [EPopClass.ARTISAN]: EPopClass.FARMER,
   [EPopClass.FARMER]: EPopClass.FORAGER,
   [EPopClass.FORAGER]: null
 }
 
 const requiredBuilding: Record<EBuildingType, EPopClass | null> = {
-  [EBuildingType.FARM]: EPopClass.FARMER
+  [EBuildingType.FARM]: EPopClass.FARMER,
+  [EBuildingType.WORKSHOP]: EPopClass.ARTISAN
 };
 
 export interface IGameCellView {
@@ -233,8 +318,11 @@ export default class GameCell {
     this.newPop$ = new Subject();
     this.pops = new ObservableSet();
     this.popsByClass = new Map();
+    const biome = this.worldCell.biome;
+    const developmentRate: number = developmentRates[biome];
     this.buildingByType = {
-      [EBuildingType.FARM]: 0
+      [EBuildingType.FARM]: carryingCapacities[this.worldCell.biome] * .1,
+      [EBuildingType.WORKSHOP]: 0
     };
     for (const item of enumMembers(EPopClass)) {
       this.popsByClass.set(item as EPopClass, new ObservableSet())
@@ -328,7 +416,7 @@ export default class GameCell {
   
       for (const buildingType of delta.maxBuildings.keys()) {
         const currBuildings = this.buildingByType[buildingType];
-        let buildingDelta = Math.floor((delta.maxBuildings.get(buildingType) - currBuildings) / maintenanceFactor);
+        let buildingDelta = ((delta.maxBuildings.get(buildingType) - currBuildings) / maintenanceFactor);
         this.buildingByType[buildingType] = currBuildings + buildingDelta;
         const maxPeople = delta.maxPeople;
         if (maxPeople.has(requiredBuilding[buildingType])) {\
@@ -340,6 +428,7 @@ export default class GameCell {
       }
       this.housing += Math.floor((delta.maxHousing - this.housing) / maintenanceFactor);
       let food: number = delta.foodProduced;
+      // console.log(food);
       let housingLimit: number = this.housing;
       const promotions: Map<EPopClass, number> = new Map();
       for (const popType of populationPriorities) {
@@ -356,7 +445,7 @@ export default class GameCell {
         }
         this.removePops(popsToRemove);
         if (popLimit > 0) {
-          promotions.set(popType, Math.floor(popLimit * Math.random()));
+          promotions.set(popType, popLimit * Math.random());
         }
       }
       for (const popType of promotionPriority) {
@@ -368,7 +457,7 @@ export default class GameCell {
           for(const sourceType of promoteFrom[popType]) {
             for(const sourcePop of this.popsByClass.get(sourceType)) {
               if (maxNewPopulation > 0) {
-                let popsFromSource = sourcePop.emigrate(maxNewPopulation, destPop);
+                let popsFromSource = sourcePop.emigrate(Math.floor(maxNewPopulation * promotionRate[sourceType]), destPop);
                 maxNewPopulation -= popsFromSource;
                 if (sourcePop.totalPopulation <= 0) {
                   popsToRemove.push(sourcePop);
@@ -386,6 +475,12 @@ export default class GameCell {
       migrationOptions.push({socialClass: entry[0], populationPressure: entry[1], totalPopulation: this.getSocialPopulation(entry[0]), x: this.worldCell.x, y: this.worldCell.y });
     }
     migrationOptions.sort((a, b) => a.populationPressure - b.populationPressure);
+    // console.log({
+    //   'Foragers': this.getSocialPopulation(EPopClass.FORAGER),
+    //   'Famers': this.getSocialPopulation(EPopClass.FARMER),
+    //   'Artisan': this.getSocialPopulation(EPopClass.ARTISAN),
+    //   'Nobles': this.getSocialPopulation(EPopClass.NOBLE),
+    // });
     return [migrationOptions[0], migrationOptions[migrationOptions.length - 1]];
   }
 }

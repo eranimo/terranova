@@ -156,8 +156,14 @@ export default class Game extends GameLoop {
 
   update(elapsedTime: number) {
     super.update(elapsedTime);
-    if (this.state.dayCount.getValue() % 30 == 0) {
+    if (this.state.dayCount.getValue() % 360 == 0) {
       let totalPop = 0;
+      let popByClass: Record<EPopClass, number> = {
+        [EPopClass.FORAGER]: 0,
+        [EPopClass.FARMER]: 0,
+        [EPopClass.ARTISAN]: 0,
+        [EPopClass.NOBLE]: 0
+      }
       const migrationsMap: Map<EPopClass, Array<IGameMigration>> = new Map();
       for (const popType of enumMembers(EPopClass)) {
         migrationsMap.set(popType, new Array());
@@ -167,8 +173,11 @@ export default class Game extends GameLoop {
           const migrationView = gameCell.update();
           migrationsMap.get(migrationView[0].socialClass).push(migrationView[0]);
           migrationsMap.get(migrationView[1].socialClass).push(migrationView[1]);
-          // console.log(`${gameCell.worldCell.x}, ${gameCell.worldCell.y}, ${gameCell.getTotalPopulation()}`);
-          totalPop += gameCell.getTotalPopulation();
+          for (const popType of enumMembers(EPopClass)) {
+            const cellPop = Math.floor(gameCell.getSocialPopulation(popType));
+            popByClass[popType] += cellPop;
+            totalPop += cellPop;
+          }
         }
       }
       for (const migrationClass of migrationsMap.keys()) {
@@ -178,24 +187,28 @@ export default class Game extends GameLoop {
         {
           continue;
         }
+        migrations.sort((a, b) => a.populationPressure - b.populationPressure);
         while (
           migrations.length > 1 &&
           migrations[migrations.length - 1].populationPressure - migrations[0].populationPressure > migrations[migrations.length - 1].populationPressure / 2
         ) {
-          migrations.sort((a, b) => a.populationPressure - b.populationPressure);
           let migrationSource = migrations[0];
           let gameCellSource: GameCell = this.gameCellMap.get(migrationSource.x, migrationSource.y);
           const migrationDest = migrations[migrations.length - 1];
           const gameCellDest: GameCell = this.gameCellMap.get(migrationDest.x, migrationDest.y);
           const destPop: Pop = this.gameCellMap.get(migrationDest.x, migrationDest.y).getNextPop(migrationClass);
           // console.log(migrationDest, migrationSource);
-          while(gameCellSource.getSocialPopulation(migrationClass) > 0) {
-            console.l
-            migrationSource.populationPressure -= gameCellSource.getNextPop(migrationClass).emigrate(migrationDest.populationPressure, destPop);
+          while(gameCellSource.getSocialPopulation(migrationClass) > 0 && migrationDest.populationPressure > 0) {
+            // console.log(migrationDest.populationPressure);
+            migrationDest.populationPressure -= gameCellSource.getNextPop(migrationClass).emigrate(migrationDest.populationPressure, destPop);
           }
           migrations = migrations.slice(1, migrations.length - 1);
+          if(migrationDest.populationPressure <= 0) {
+            migrations = migrations.slice(0, migrations.length - 2);
+          }
         }
       }
+      console.log(popByClass);
       console.log(totalPop);
     }
   }
