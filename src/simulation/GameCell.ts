@@ -4,6 +4,8 @@ import { Subject } from "rxjs";
 import { EBiome } from './worldTypes'
 import { enumMembers } from "../utils/enums";
 
+export const timeFactor = 1;
+
 export const carryingCapacities: Record<EBiome, number> = {
   [EBiome.NONE]: 0,
   [EBiome.GLACIAL]: 10,
@@ -20,7 +22,7 @@ export const carryingCapacities: Record<EBiome, number> = {
   [EBiome.TROPICAL_RAINFOREST]: 50000
 }
 
-const maintenanceFactor: number = 10;
+const maintenanceFactor: number = timeFactor;
 
 export enum EPopClass {
   FORAGER,
@@ -154,7 +156,7 @@ export class Pop {
     this.popGrowth$.next(this.population);
   }
 
-  get totalPopulation: number {
+  get totalPopulation(): number {
     return this.population;
   }
 

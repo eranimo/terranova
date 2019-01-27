@@ -6,7 +6,7 @@ import World from './World';
 import { IWorldCell, EBiome } from './worldTypes';
 import { WorldRegion } from './WorldRegion';
 import { worldStore } from './stores';
-import GameCell, { Pop, EPopClass, IPopCoordinates, IGameCellView, IPopView, IGameMigration, carryingCapacities } from './GameCell';
+import GameCell, { Pop, EPopClass, IPopCoordinates, IGameCellView, IPopView, IGameMigration, carryingCapacities, timeFactor } from './GameCell';
 import Array2D from '../utils/Array2D';
 import { enumMembers } from "../utils/enums";
 
@@ -33,14 +33,12 @@ export default class Game extends GameLoop {
   gameCells: Set<GameCell>;
   gameCell$: ReplaySubject<IGameCellView>;
   gameCellMap: Array2D<GameCell>;
-  newPop$: ReplaySubject<IPopCoordinates>;
 
   constructor(params: IGameParams) {
     super();
     this.gameData = params.gameData || Object.assign({}, initialGameData);
     this.params = params;
     this.world = null;
-    this.newPop$ = new ReplaySubject();
     this.gameCell$ = new ReplaySubject();
   }
 
@@ -126,6 +124,13 @@ export default class Game extends GameLoop {
     //     gc1.addPop(new Pop(EPopClass.NOBLE, 50));
     //   }
     // }
+    const numTicks = Math.floor(360/timeFactor)
+    this.addTimer({
+      ticksLength: numTicks,
+      isRepeated: true,
+      onTick: null,
+      onFinished: () =>  this.updatePops(),
+    });
   }
 
   populateCell(x: number, y: number): GameCell {
@@ -156,6 +161,9 @@ export default class Game extends GameLoop {
 
   update(elapsedTime: number) {
     super.update(elapsedTime);
+  }
+
+  updatePops() {
     if (this.state.dayCount.getValue() % 30 == 0) {
       let totalPop = 0;
       const migrationsMap: Map<EPopClass, Array<IGameMigration>> = new Map();
@@ -197,6 +205,5 @@ export default class Game extends GameLoop {
         }
       }
       console.log(totalPop);
-    }
   }
 }
