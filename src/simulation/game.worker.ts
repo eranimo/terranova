@@ -9,7 +9,7 @@ const ctx: Worker = self as any;
 let game: Game;
 ////
 
-const worker = new ReactiveWorker(ctx, true)
+const worker = new ReactiveWorker(ctx, false)
   .on(EGameEvent.INIT, async ({ params }) => {
     const timeStart = performance.now();
     console.log('game params', params);
