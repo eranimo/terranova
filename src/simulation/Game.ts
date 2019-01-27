@@ -164,46 +164,45 @@ export default class Game extends GameLoop {
   }
 
   updatePops() {
-    if (this.state.dayCount.getValue() % 30 == 0) {
-      let totalPop = 0;
-      const migrationsMap: Map<EPopClass, Array<IGameMigration>> = new Map();
-      for (const popType of enumMembers(EPopClass)) {
-        migrationsMap.set(popType, new Array());
+    let totalPop = 0;
+    const migrationsMap: Map<EPopClass, Array<IGameMigration>> = new Map();
+    for (const popType of enumMembers(EPopClass)) {
+      migrationsMap.set(popType, new Array());
+    }
+    for (const gameCell of this.gameCells) {
+      if(!(gameCell.worldCell.biome == EBiome.NONE)) {
+        const migrationView = gameCell.update();
+        migrationsMap.get(migrationView[0].socialClass).push(migrationView[0]);
+        migrationsMap.get(migrationView[1].socialClass).push(migrationView[1]);
+        // console.log(`${gameCell.worldCell.x}, ${gameCell.worldCell.y}, ${gameCell.getTotalPopulation()}`);
+        totalPop += gameCell.getTotalPopulation();
       }
-      for (const gameCell of this.gameCells) {
-        if(!(gameCell.worldCell.biome == EBiome.NONE)) {
-          const migrationView = gameCell.update();
-          migrationsMap.get(migrationView[0].socialClass).push(migrationView[0]);
-          migrationsMap.get(migrationView[1].socialClass).push(migrationView[1]);
-          // console.log(`${gameCell.worldCell.x}, ${gameCell.worldCell.y}, ${gameCell.getTotalPopulation()}`);
-          totalPop += gameCell.getTotalPopulation();
-        }
+    }
+    for (const migrationClass of migrationsMap.keys()) {
+      // console.log(migrationClass);
+      let migrations = migrationsMap.get(migrationClass);
+      if(migrations.length < 1)
+      {
+        continue;
       }
-      for (const migrationClass of migrationsMap.keys()) {
-        // console.log(migrationClass);
-        let migrations = migrationsMap.get(migrationClass);
-        if(migrations.length < 1)
-        {
-          continue;
+      while (
+        migrations.length > 1 &&
+        migrations[migrations.length - 1].populationPressure - migrations[0].populationPressure > migrations[migrations.length - 1].populationPressure / 2
+      ) {
+        migrations.sort((a, b) => a.populationPressure - b.populationPressure);
+        let migrationSource = migrations[0];
+        let gameCellSource: GameCell = this.gameCellMap.get(migrationSource.x, migrationSource.y);
+        const migrationDest = migrations[migrations.length - 1];
+        const gameCellDest: GameCell = this.gameCellMap.get(migrationDest.x, migrationDest.y);
+        const destPop: Pop = this.gameCellMap.get(migrationDest.x, migrationDest.y).getNextPop(migrationClass);
+        // console.log(migrationDest, migrationSource);
+        while(gameCellSource.getSocialPopulation(migrationClass) > 0) {
+          console.l
+          migrationSource.populationPressure -= gameCellSource.getNextPop(migrationClass).emigrate(migrationDest.populationPressure, destPop);
         }
-        while (
-          migrations.length > 1 &&
-          migrations[migrations.length - 1].populationPressure - migrations[0].populationPressure > migrations[migrations.length - 1].populationPressure / 2
-        ) {
-          migrations.sort((a, b) => a.populationPressure - b.populationPressure);
-          let migrationSource = migrations[0];
-          let gameCellSource: GameCell = this.gameCellMap.get(migrationSource.x, migrationSource.y);
-          const migrationDest = migrations[migrations.length - 1];
-          const gameCellDest: GameCell = this.gameCellMap.get(migrationDest.x, migrationDest.y);
-          const destPop: Pop = this.gameCellMap.get(migrationDest.x, migrationDest.y).getNextPop(migrationClass);
-          // console.log(migrationDest, migrationSource);
-          while(gameCellSource.getSocialPopulation(migrationClass) > 0) {
-            console.l
-            migrationSource.populationPressure -= gameCellSource.getNextPop(migrationClass).emigrate(migrationDest.populationPressure, destPop);
-          }
-          migrations = migrations.slice(1, migrations.length - 1);
-        }
+        migrations = migrations.slice(1, migrations.length - 1);
       }
-      console.log(totalPop);
+    }
+    console.log(totalPop);
   }
 }
