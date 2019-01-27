@@ -11,18 +11,8 @@ import {
 } from '@blueprintjs/core';
 import styled from 'styled-components';
 import { WorldMap } from '../../common/WorldMap';
+import { FullOverlay } from "../components/layout";
 
-
-const LoadingWorld = styled.div`
-  position: fixed;
-  z-index: 100;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background-color: rgba(39, 52, 61, 0.5);
-`;
 
 const initialViewOptions: IViewOptions = {
   showFlowArrows: false,
@@ -168,9 +158,9 @@ export default class WorldMapContainer extends Component<IWorldMapContainerProps
       return (
         <Fragment>
           {isLoading && (
-            <LoadingWorld>
+            <FullOverlay>
               <Spinner />
-            </LoadingWorld>
+            </FullOverlay>
           )}
           {children({
             viewOptions: this.state.viewOptions,
@@ -192,9 +182,9 @@ export default class WorldMapContainer extends Component<IWorldMapContainerProps
       );
     }
     return (
-      <LoadingWorld>
+      <FullOverlay>
         <Spinner />
-      </LoadingWorld>
+      </FullOverlay>
     );
   }
 }

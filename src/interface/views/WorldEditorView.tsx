@@ -13,6 +13,7 @@ import { RouteComponentProps } from 'react-router';
 import { WorldGenerator } from '../../simulation';
 import { WorldMap } from '../../common/WorldMap';
 import { worldStore } from '../../simulation/stores';
+import { FullOverlay } from '../components/layout';
 
 
 const Row = styled.div`
@@ -405,7 +406,11 @@ export class WorldEditorView extends Component<RouteComponentProps<{}>, {
 
   render() {
     if (this.state.worldMap === null) {
-      return <Blueprint.Spinner />;
+      return (
+        <FullOverlay>
+          <Blueprint.Spinner />
+        </FullOverlay>
+      );
     }
     return (
       <Fragment>
