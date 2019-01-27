@@ -74,7 +74,7 @@ class WorldViewerHeader extends Component <{
                   helperText={<span>The above string can be used to<br />replicate this world</span>}
                 >
                   <ControlGroup>
-                    <InputGroup value={worldMap.world.exportString} />
+                    <InputGroup value={worldMap.world.exportString} readOnly />
                     <Button
                       icon="clipboard"
                       style={{ width: 50 }}
