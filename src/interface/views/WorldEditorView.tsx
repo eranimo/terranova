@@ -126,11 +126,12 @@ class WorldConfigEditor extends Component<{
               <div className={Blueprint.Classes.SELECT}>
                 <select
                   onChange={event => this.props.handleOptionChange('worldShape', event.target.value)}
+                  defaultValue={this.props.options.worldShape}
                 >
                   {Object.entries(EWorldShape).map(([key, value]) => (
                     <option
                       value={value}
-                      selected={this.props.options.worldShape == value}
+                      key={key}
                     >
                       {capitalize(value)}
                     </option>
