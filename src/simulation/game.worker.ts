@@ -23,32 +23,32 @@ const worker = new ReactiveWorker(ctx, false)
     game.date$.subscribe(date => worker.send(EGameEvent.DATE, date));
 
     // emits on every region update (new regions, region changed)
-    // worker.addChannel('regions', () => (
-    //   // game.world.regions.pipe(
-    //   //   map(regions => regions.map(
-    //   //     region => region.cells$.updates$.pipe(
-    //   //       mergeMap(
-    //   //         (cellCount) =>
-    //   //   ),
-    //   //   mergeMap(
-    //   //     regions => regions.map(region => region.cells$.updates$),
-    //   //     (source, result) => source,
-    //   //   ),
-    //   //   map(regions => regions.map(region => region.export()))
-    //   // )
+    worker.addChannel('regions', () => Observable.create());
+      // game.world.regions.pipe(
+      //   map(regions => regions.map(
+      //     region => region.cells$.updates$.pipe(
+      //       mergeMap(
+      //         (cellCount) =>
+      //   ),
+      //   mergeMap(
+      //     regions => regions.map(region => region.cells$.updates$),
+      //     (source, result) => source,
+      //   ),
+      //   map(regions => regions.map(region => region.export()))
+      // )
 
-    //   // worked but memory leak
+      // worked but memory leak
 
-    //   // Observable.create(observer => {
-    //   //   game.world.regions.subscribe(regions => {
-    //   //     for (const region of regions) {
-    //   //       // observer.next(region.export());
-    //   //       region.cells$.subscribe(() => {
-    //   //         observer.next(region.export());
-    //   //       })
-    //   //     }
-    //   //   })
-    //   // })
+      // Observable.create(observer => {
+      //   game.world.regions.subscribe(regions => {
+      //     for (const region of regions) {
+      //       // observer.next(region.export());
+      //       region.cells$.subscribe(() => {
+      //         observer.next(region.export());
+      //       })
+      //     }
+      //   })
+      // })
     // );
 
     game.newRegion$.subscribe(region => {
