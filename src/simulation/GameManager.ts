@@ -1,5 +1,6 @@
 import { IWorldRegionView } from './WorldRegion';
-import { Subject, BehaviorSubject } from 'rxjs';
+import { Subject, BehaviorSubject, fromEvent, Observable } from 'rxjs';
+import { filter, map } from 'rxjs/operators';
 import { IGameDate } from './GameLoop';
 import { EGameEvent, IGameWorkerEventData } from './gameTypes';
 import { IGameParams } from './Game';
@@ -26,6 +27,7 @@ export default class GameManager {
   loading$: BehaviorSubject<boolean>;
   running$: BehaviorSubject<boolean>;
   state: any;
+  workerEvents$: Observable<IGameWorkerEventData>;
 
   constructor(saveName: string) {
     this.saveName = saveName;
@@ -37,9 +39,16 @@ export default class GameManager {
 
     // start game worker
     this.worker = new GameWorker();
+    this.workerEvents$ = fromEvent<MessageEvent>(this.worker, 'message')
+      .pipe(map(event => ({
+        type: event.data.type,
+        id: event.data.id,
+        payload: event.data.payload
+      })));
 
     this.date$ = new Subject();
-    this.onEvent(EGameEvent.DATE, (date: IGameDate) => this.date$.next(date));
+    this.observeEvent(EGameEvent.DATE)
+      .subscribe(({ payload }) => this.date$.next(payload as IGameDate));
 
     this.state = {
       started: new BehaviorSubject(undefined),
@@ -48,31 +57,35 @@ export default class GameManager {
       dayCount: new BehaviorSubject(undefined),
       speed: new BehaviorSubject(undefined),
       speedIndex: new BehaviorSubject(undefined),
-    }
+    };
 
     // load world data
     this.world = await worldStore.load(this.params.worldSaveName);
 
     // send INIT event to worker
-    this.sendEvent(EGameEvent.INIT, {
-      params: this.params
-    });
+    this.sendEvent(EGameEvent.INIT, { params: this.params });
 
     // listen for state change events
-    this.onEvent(EGameEvent.STATE_CHANGE, (change) => {
-      this.state[change.key].next(change.value);
-    });
+    this.observeEvent(EGameEvent.STATE_CHANGE)
+      .subscribe(({ payload }) => {
+        const { key, value } = payload;
+        this.state[key].next(value);
+      });
 
     // loading state
     this.loading$ = new BehaviorSubject(true);
-    this.onEvent(EGameEvent.LOADED, () => this.loading$.next(true));
+    this.observeEvent(EGameEvent.LOADED).subscribe(() => this.loading$.next(true));
 
-    // world map
+    // world map events
     this.worldMap = new WorldMap(this.world)
-    this.onEvent(EGameEvent.NEW_REGION, (region: IWorldRegionView) => {
-      console.log('new region', region);
+    this.observeEvent(EGameEvent.NEW_REGION).subscribe(({ payload }) => {
+      const region: IWorldRegionView = payload;
       this.worldMap.addRegion(region);
     });
+  }
+
+  observeEvent(type: EGameEvent) {
+    return this.workerEvents$.pipe(filter((event) => event.type === type ));
   }
 
   sendEvent(eventName: EGameEvent, params?: any) {
@@ -82,15 +95,6 @@ export default class GameManager {
       payload: params,
     };
     this.worker.postMessage(eventData)
-  }
-
-  onEvent(type: EGameEvent, callback: (payload) => void) {
-    this.worker.addEventListener('message', (event: MessageEvent) => {
-      const data = event.data as IGameWorkerEventData;
-      if (data.type === type) {
-        callback(data.payload);
-      }
-    });
   }
 
   togglePlay() {
