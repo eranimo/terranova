@@ -1,3 +1,9 @@
+import { pick } from 'lodash';
+import { fromEvent, Observable, Subject, isObservable } from "rxjs";
+import { map, filter } from "rxjs/operators";
+import { v4 as uuid } from 'uuid';
+
+
 export class WorkerPool<T extends Worker> {
   workers: T[];
   private lastCalledWorkerIndex: number;
@@ -84,5 +90,201 @@ export function buildWorker(
         error,
       });
     }
+  }
+}
+
+
+export interface IWorkerMessage {
+  type?: string;
+  id?: string;
+  payload?: any;
+  error?: boolean;
+  reason?: string;
+  streaming?: boolean;
+  complete?: boolean;
+}
+
+export class ReactiveWorkerClient {
+  workerEvents$: Observable<IWorkerMessage>;
+  constructor(public worker: Worker, debug: boolean = false) {
+    this.workerEvents$ = fromEvent<MessageEvent>(this.worker, 'message')
+      .pipe(map(event => event.data as IWorkerMessage));
+
+    if (debug) {
+      this.workerEvents$.subscribe(msg => console.log('[worker client: in]', msg));
+    }
+  }
+
+  /**
+   * Observes an event of a given type being sent to
+   * @param type event type
+   */
+  on<T = any>(type: string): Observable<T> {
+    return this.workerEvents$
+      .pipe(filter(x => x.type === type))
+      .pipe(map(msg => msg.payload));
+  }
+
+  /**
+   * Creates an action, which you can send to the worker and optionally observe its result
+   * @param type event type
+   */
+  action(
+    type: string
+  ) {
+    const dispatch = (expectResults, payload) => {
+      let msg: IWorkerMessage = { type, payload };
+
+      if (!expectResults) {
+        return this.worker.postMessage(msg);
+      }
+
+      msg.id = uuid();
+
+      return Observable.create(observer => {
+        this.workerEvents$
+          .pipe(filter(x => x.id === msg.id))
+          .subscribe(msg => {
+            if (msg.error) {
+              // error happened
+              observer.error(msg.reason);
+            } else if (msg.streaming && msg.complete) {
+              // stream ended
+              observer.complete();
+            } else if (msg.streaming && msg.complete) {
+              // stream continuing
+              observer.next(msg.payload);
+            } else {
+              observer.next(msg.payload);
+              observer.complete();
+            }
+          });
+
+        this.worker.postMessage(msg);
+      });
+    }
+
+    return {
+      /**
+       * Sends an event to a worker, ignoring its results
+       * @param payload payload object
+       */
+      send(payload?): void {
+        return dispatch(false, payload)
+      },
+      /**
+       * Sends an event to a worker, observing its results
+       * @param payload payload object
+       */
+      observe(payload?): Observable<IWorkerMessage> {
+        return dispatch(true, payload);
+      }
+    };
+  }
+}
+
+export class ReactiveWorker {
+  incomingMessages$: Subject<IWorkerMessage>;
+
+  constructor(public ctx: Worker, debug: boolean = false) {
+    this.incomingMessages$ = new Subject();
+    fromEvent<MessageEvent>(this.ctx, 'message')
+      .pipe(map(event => event.data))
+      .subscribe((msg: IWorkerMessage) => this.incomingMessages$.next(msg));
+
+
+    if (debug) {
+      this.incomingMessages$.subscribe(msg => console.log('[worker: in]', msg));
+    }
+  }
+
+  private msgOfType(type: string): Observable<IWorkerMessage> {
+    return this.incomingMessages$.pipe(filter((msg => msg.type === type)));
+  }
+
+  private sendResult = (id: string) => (response, streaming = false, streamComplete = false) => {
+    let msg: IWorkerMessage = {
+      id,
+      payload: response,
+    };
+
+    if (streaming) {
+      msg.streaming = true;
+
+      if (streamComplete) {
+        msg.complete = true;
+      }
+    }
+    this.ctx.postMessage(msg);
+  };
+
+  private sendError = (id: string) => (errorMsg: string) => this.ctx.postMessage({
+    id,
+    error: true,
+    reason: errorMsg,
+  });
+
+  private processMessage(
+    func: (payload: any) => any,
+    shouldRespond: boolean
+  ) {
+    return (msg: IWorkerMessage) => {
+      const { payload } = msg;
+
+      let OK = this.sendResult(msg.id);
+      let FAIL = this.sendError(msg.id);
+
+      try {
+        let response = func(payload);
+
+        if (shouldRespond) {
+          if (response instanceof Promise) {
+            response
+              .then(res => OK(res))
+              .catch(err => FAIL(err.message));
+          } else if (isObservable(response)) {
+            response.subscribe(
+              next => OK(next, true),
+              err => FAIL(err.message),
+              () => OK(undefined, true, true),
+            );
+          }
+        }
+      } catch (err) {
+        FAIL(err.message)
+      }
+    };
+  }
+
+  /**
+   * Observes an event and optionally send a response
+   * @param type event type
+   * @param func callback func (can return Promise or Observable)
+   * @param shouldRespond if the client should get a response (return value of func)
+   */
+  public on(
+    type: string,
+    func: (payload: any) => any,
+    shouldRespond: boolean = false
+  ): this {
+    const handler = this.processMessage(func, shouldRespond);
+    this.msgOfType(type).subscribe(handler);
+    return this;
+  }
+
+  /**
+   * Sends an event to the client, no response
+   * @param type event type
+   * @param payload payload object
+   */
+  public send(
+    type: string,
+    payload?: any,
+  ): this {
+    this.ctx.postMessage({
+      type,
+      payload,
+    });
+    return this;
   }
 }

@@ -183,7 +183,6 @@ export default class WorldRenderer {
       this.labels[region.name] = label;
       this.labelContainer.addChild(label);
     }
-    console.log(label);
 
     label.position.set(labelX, labelY);
     label.anchor.set(0.5, 0.5);
