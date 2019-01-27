@@ -50,3 +50,7 @@ table.detail-table tr td:first-child {
 .bp3-navbar {
   box-shadow: 1px 1px 20px 0px rgba(0, 0, 0, 0.5);
 }
+
+label.bp3-checkbox, label.bp3-radio {
+  user-select: none;
+}
