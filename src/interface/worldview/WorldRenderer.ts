@@ -98,6 +98,7 @@ export default class WorldRenderer {
     });
     PIXI.settings.SCALE_MODE = PIXI.SCALE_MODES.NEAREST;
     element.style.cursor = 'default';
+    element.style['user-select'] = 'none';
     element.appendChild(this.app.view);
 
     // create viewport
