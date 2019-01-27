@@ -1,5 +1,5 @@
 import { pick } from 'lodash';
-import { fromEvent, Observable, Subject, isObservable } from "rxjs";
+import { fromEvent, Observable, Subject, isObservable, observable, ReplaySubject } from "rxjs";
 import { map, filter } from "rxjs/operators";
 import { v4 as uuid } from 'uuid';
 
@@ -102,6 +102,8 @@ export interface IWorkerMessage {
   reason?: string;
   streaming?: boolean;
   complete?: boolean;
+  channel?: string;
+  channelEnabled?: boolean;
 }
 
 export class ReactiveWorkerClient {
@@ -123,6 +125,24 @@ export class ReactiveWorkerClient {
     return this.workerEvents$
       .pipe(filter(x => x.type === type))
       .pipe(map(msg => msg.payload));
+  }
+
+  channel(name: string, handler: (payload) => void) {
+    this.worker.postMessage({
+      channel: name,
+      channelEnabled: true,
+    });
+    this.workerEvents$.pipe(
+      filter(x => x.channel === name),
+      map(msg => msg.payload)
+    ).subscribe(handler);
+
+    return () => {
+      this.worker.postMessage({
+        channel: name,
+        channelEnabled: false,
+      });
+    }
   }
 
   /**
@@ -185,6 +205,7 @@ export class ReactiveWorkerClient {
 
 export class ReactiveWorker {
   incomingMessages$: Subject<IWorkerMessage>;
+  channels: Record<string, Channel<unknown>>;
 
   constructor(public ctx: Worker, debug: boolean = false) {
     this.incomingMessages$ = new Subject();
@@ -196,6 +217,43 @@ export class ReactiveWorker {
     if (debug) {
       this.incomingMessages$.subscribe(msg => console.log('[worker: in]', msg));
     }
+
+    // channel logic
+    this.channels = {};
+    this.incomingMessages$.pipe(filter(msg => msg.channel !== undefined))
+      .subscribe(msg => {
+        // console.log('channel msg', msg);
+        if (!(msg.channel in this.channels)) {
+          throw new Error(`Unknown channel ${msg.channel}`);
+        }
+        if (msg.channelEnabled) {
+          this.channels[msg.channel].enabled = msg.channelEnabled;
+        }
+      })
+  }
+
+  addChannel<T = unknown>(
+    name: string,
+    createFunc: () => Observable<T>
+  ) {
+    const observable = createFunc();
+    const channel = new Channel(observable);
+    this.channels[name] = channel;
+    // console.log('new channel', name, channel);
+
+    channel.subject.subscribe(value => {
+      if (channel.enabled) {
+        // console.log('channel new value', name, value);
+        this.ctx.postMessage({
+          channel: name,
+          payload: value,
+        })
+      }
+    })
+  }
+
+  hasChannel(name): boolean {
+    return name in this.channels;
   }
 
   private msgOfType(type: string): Observable<IWorkerMessage> {
@@ -286,5 +344,21 @@ export class ReactiveWorker {
       payload,
     });
     return this;
+  }
+}
+
+
+class Channel<T> {
+  public enabled: boolean;
+  subject: ReplaySubject<T>;
+
+  constructor(
+    public observable: Observable<T>
+  ) {
+    this.enabled = false;
+    this.subject = new ReplaySubject<T>(1);
+    this.observable.subscribe(value => {
+      this.subject.next(value);
+    })
   }
 }
