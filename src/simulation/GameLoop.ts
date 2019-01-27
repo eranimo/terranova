@@ -1,5 +1,6 @@
 import { BehaviorSubject, Subject } from 'rxjs';
 import { clamp } from '@blueprintjs/core/lib/esm/common/utils';
+import { Timer, ITimerOptions } from './Timer';
 
 
 export enum EMonth {
@@ -65,44 +66,6 @@ export const gameSpeedTitles = {
   [EGameSpeed.NORMAL]: 'Normal',
   [EGameSpeed.FAST]: 'Fast',
   [EGameSpeed.VERY_FAST]: 'Very Fast',
-}
-
-interface ITimerOptions {
-  ticksLength: number;
-  isRepeated?: boolean;
-  onTick?: (ticksElapsed: number) => void;
-  onFinished?: () => void;
-}
-
-class Timer {
-  options: ITimerOptions;
-  ticksLeft: number;
-  isActive: boolean;
-
-  constructor(options: ITimerOptions) {
-    this.options = options;
-    this.isActive = false;
-    this.ticksLeft = this.options.ticksLength;
-  }
-
-  update() {
-    this.ticksLeft--;
-    if (this.ticksLeft === 0) {
-      if (this.options.onFinished) {
-        this.options.onFinished();
-      }
-      if (this.options.isRepeated) {
-        this.ticksLeft = this.options.ticksLength;
-      } else {
-        this.isActive = false;
-      }
-    } else {
-      if (this.options.onTick) {
-        this.options.onTick(this.options.ticksLength - this.ticksLeft);
-      }
-      this.isActive = true;
-    }
-  }
 }
 
 // https://isaacsukin.com/news/2015/01/detailed-explanation-javascript-game-loops-and-timing#starting-stopping
