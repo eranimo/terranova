@@ -1,3 +1,4 @@
+import { ReactiveWorkerClient } from './../utils/workers';
 import { IWorldRegionView } from './WorldRegion';
 import { Subject, BehaviorSubject, fromEvent, Observable } from 'rxjs';
 import { filter, map } from 'rxjs/operators';
@@ -18,7 +19,7 @@ const GameWorker = require('./game.worker');
  * - Receives events from the Game Worker
  */
 export default class GameManager {
-  worker: Worker;
+  worker: ReactiveWorkerClient;
   world: World;
   worldMap: WorldMap;
   saveName: string;
@@ -27,7 +28,6 @@ export default class GameManager {
   loading$: BehaviorSubject<boolean>;
   running$: BehaviorSubject<boolean>;
   state: any;
-  workerEvents$: Observable<IGameWorkerEventData>;
 
   constructor(saveName: string) {
     this.saveName = saveName;
@@ -38,17 +38,11 @@ export default class GameManager {
     this.params = await gameStore.load(this.saveName);
 
     // start game worker
-    this.worker = new GameWorker();
-    this.workerEvents$ = fromEvent<MessageEvent>(this.worker, 'message')
-      .pipe(map(event => ({
-        type: event.data.type,
-        id: event.data.id,
-        payload: event.data.payload
-      })));
+    this.worker = new ReactiveWorkerClient(new GameWorker(), true);
 
     this.date$ = new Subject();
-    this.observeEvent(EGameEvent.DATE)
-      .subscribe(({ payload }) => this.date$.next(payload as IGameDate));
+    this.worker.on<IGameDate>(EGameEvent.DATE)
+      .subscribe((date) => this.date$.next(date));
 
     this.state = {
       started: new BehaviorSubject(undefined),
@@ -63,53 +57,41 @@ export default class GameManager {
     this.world = await worldStore.load(this.params.worldSaveName);
 
     // send INIT event to worker
-    this.sendEvent(EGameEvent.INIT, { params: this.params });
+    this.loading$ = new BehaviorSubject(true);
+    this.worker.action(EGameEvent.INIT)
+      .observe({ params: this.params })
+      .subscribe((startupTime) => {
+        console.log(`Startup time: ${startupTime}`);
+        this.loading$.next(true);
+      });
 
     // listen for state change events
-    this.observeEvent(EGameEvent.STATE_CHANGE)
-      .subscribe(({ payload }) => {
-        const { key, value } = payload;
+    this.worker.on(EGameEvent.STATE_CHANGE)
+      .subscribe(({ key, value }) => {
         this.state[key].next(value);
       });
 
-    // loading state
-    this.loading$ = new BehaviorSubject(true);
-    this.observeEvent(EGameEvent.LOADED).subscribe(() => this.loading$.next(true));
-
     // world map events
     this.worldMap = new WorldMap(this.world)
-    this.observeEvent(EGameEvent.NEW_REGION).subscribe(({ payload }) => {
-      const region: IWorldRegionView = payload;
-      this.worldMap.addRegion(region);
-    });
-  }
-
-  observeEvent(type: EGameEvent) {
-    return this.workerEvents$.pipe(filter((event) => event.type === type ));
-  }
-
-  sendEvent(eventName: EGameEvent, params?: any) {
-    const eventData: IGameWorkerEventData = {
-      type: eventName,
-      id: +new Date(),
-      payload: params,
-    };
-    this.worker.postMessage(eventData)
+    this.worker.on<IWorldRegionView>(EGameEvent.NEW_REGION)
+      .subscribe((region: IWorldRegionView) => {
+        this.worldMap.addRegion(region);
+      });
   }
 
   togglePlay() {
     if (this.state.running.value) {
-      this.sendEvent(EGameEvent.PAUSE);
+      this.worker.action(EGameEvent.PAUSE).send();
     } else {
-      this.sendEvent(EGameEvent.PLAY);
+      this.worker.action(EGameEvent.PLAY).send();
     }
   }
 
   faster() {
-    this.sendEvent(EGameEvent.FASTER);
+    this.worker.action(EGameEvent.FASTER).send();
   }
 
   slower() {
-    this.sendEvent(EGameEvent.SLOWER);
+    this.worker.action(EGameEvent.SLOWER).send();
   }
 }

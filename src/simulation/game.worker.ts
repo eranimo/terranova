@@ -1,5 +1,6 @@
 import { EGameEvent, IGameWorkerEventData, EventHandler } from './gameTypes';
 import Game from './Game';
+import { ReactiveWorker } from '../utils/workers';
 
 
 const ctx: Worker = self as any;
@@ -8,51 +9,31 @@ const ctx: Worker = self as any;
 let game: Game;
 ////
 
-const handlers: Partial<Record<EGameEvent, EventHandler>> = {
-  [EGameEvent.INIT]: async ({ params }) => {
-    game = new Game(params);
+const worker = new ReactiveWorker(ctx, true)
+  .on(EGameEvent.INIT, async ({ params }) => {
+    const timeStart = performance.now();
     console.log('game params', params);
+    game = new Game(params);
     await game.init();
 
-    game.date$.subscribe(date => ctx.postMessage({
-      type: EGameEvent.DATE,
-      payload: date,
-    }));
+    game.date$.subscribe(date => worker.send(EGameEvent.DATE, date));
 
     game.newRegion$.subscribe(region => {
       console.log('game.worker: NEW REGION', region)
-      ctx.postMessage({
-        type: EGameEvent.NEW_REGION,
-        payload: region.export(),
-      });
+      worker.send(EGameEvent.NEW_REGION, region.export());
     });
 
     for (const [key, subject] of Object.entries(game.state)) {
-      ctx.postMessage({
-        type: EGameEvent.STATE_CHANGE,
-        payload: { key, value: subject.value },
-      });
-      subject.subscribe(value => ctx.postMessage({
-        type: EGameEvent.STATE_CHANGE,
-        payload: { key, value },
-      }));
+      worker.send(EGameEvent.STATE_CHANGE, { key, value: subject.value });
+      subject.subscribe(value => worker.send(EGameEvent.STATE_CHANGE, { key, value }));
     }
 
     console.log('game init', game);
 
-    ctx.postMessage({
-      type: EGameEvent.LOADED,
-    })
-  },
-  [EGameEvent.PLAY]: async () => game.start(),
-  [EGameEvent.PAUSE]: async () => game.stop(),
-  [EGameEvent.SLOWER]: async () => game.slower(),
-  [EGameEvent.FASTER]: async () => game.faster(),
-}
-
-ctx.onmessage = async (event: MessageEvent) => {
-  const { type, id, payload }: IGameWorkerEventData = event.data;
-  if (type in handlers) {
-    handlers[type](payload);
-  }
-};
+    const timeEnd = performance.now();
+    return timeEnd - timeStart;
+  }, true)
+  .on(EGameEvent.PLAY, () => game.start())
+  .on(EGameEvent.PAUSE, () => game.stop())
+  .on(EGameEvent.SLOWER, () => game.slower())
+  .on(EGameEvent.FASTER, () => game.faster());
