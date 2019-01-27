@@ -63,6 +63,11 @@ export default class GameManager {
       .subscribe((startupTime) => {
         console.log(`Startup time: ${startupTime}`);
         this.loading$.next(true);
+
+        const unsub = this.worker.channel('regions', (region) => {
+          console.log('region channel', region);
+          // unsub();
+        });
       });
 
     // listen for state change events
@@ -73,10 +78,6 @@ export default class GameManager {
 
     // world map events
     this.worldMap = new WorldMap(this.world)
-    this.worker.on<IWorldRegionView>(EGameEvent.NEW_REGION)
-      .subscribe((region: IWorldRegionView) => {
-        this.worldMap.addRegion(region);
-      });
   }
 
   togglePlay() {
