@@ -269,6 +269,10 @@ export class ChunkRenderer {
     const { cellWidth, cellHeight } = this.options;
     const chunk = this.renderedChunks.get(chunkX, chunkY);
 
+    if (!chunk) {
+      // not drawn yet
+      return;
+    }
     chunk.regions.removeChildren();
     const chunkRegions = new Set<IWorldRegionView>();
     for (const cell of chunkCells) {

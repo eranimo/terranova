@@ -1,5 +1,4 @@
-import { pick } from 'lodash';
-import { fromEvent, Observable, Subject, isObservable, observable, ReplaySubject } from "rxjs";
+import { fromEvent, Observable, Subject, isObservable, BehaviorSubject } from "rxjs";
 import { map, filter } from "rxjs/operators";
 import { v4 as uuid } from 'uuid';
 
@@ -226,8 +225,16 @@ export class ReactiveWorker {
         if (!(msg.channel in this.channels)) {
           throw new Error(`Unknown channel ${msg.channel}`);
         }
-        if (msg.channelEnabled) {
+
+        if (typeof msg.channelEnabled !== 'undefined') {
           this.channels[msg.channel].enabled = msg.channelEnabled;
+
+          if (msg.channelEnabled) {
+            this.ctx.postMessage({
+              channel: msg.channel,
+              payload: this.channels[msg.channel].value,
+            });
+          }
         }
       })
   }
@@ -350,14 +357,16 @@ export class ReactiveWorker {
 
 class Channel<T> {
   public enabled: boolean;
-  subject: ReplaySubject<T>;
+  subject: Subject<T>;
+  value: T;
 
   constructor(
     public observable: Observable<T>
   ) {
     this.enabled = false;
-    this.subject = new ReplaySubject<T>(1);
+    this.subject = new Subject<T>();
     this.observable.subscribe(value => {
+      this.value = value;
       this.subject.next(value);
     })
   }

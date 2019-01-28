@@ -56,6 +56,9 @@ export default class GameManager {
     // load world data
     this.world = await worldStore.load(this.params.worldSaveName);
 
+    // world map events
+    this.worldMap = new WorldMap(this.world)
+
     // send INIT event to worker
     this.loading$ = new BehaviorSubject(true);
     this.worker.action(EGameEvent.INIT)
@@ -64,9 +67,11 @@ export default class GameManager {
         console.log(`Startup time: ${startupTime}`);
         this.loading$.next(true);
 
-        const unsub = this.worker.channel('regions', (region) => {
-          console.log('region channel', region);
-          // unsub();
+        this.worker.channel('regions', (regions) => {
+          console.log('region channel (game manager)', regions);
+          for (const region of regions) {
+            this.worldMap.addRegion(region);
+          }
         });
       });
 
@@ -75,9 +80,6 @@ export default class GameManager {
       .subscribe(({ key, value }) => {
         this.state[key].next(value);
       });
-
-    // world map events
-    this.worldMap = new WorldMap(this.world)
   }
 
   togglePlay() {
