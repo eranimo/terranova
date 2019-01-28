@@ -13,6 +13,7 @@ import { RouteComponentProps } from 'react-router';
 import { WorldGenerator } from '../../simulation';
 import { WorldMap } from '../../common/WorldMap';
 import { worldStore } from '../../simulation/stores';
+import { FullOverlay } from '../components/layout';
 
 
 const Row = styled.div`
@@ -125,11 +126,12 @@ class WorldConfigEditor extends Component<{
               <div className={Blueprint.Classes.SELECT}>
                 <select
                   onChange={event => this.props.handleOptionChange('worldShape', event.target.value)}
+                  defaultValue={this.props.options.worldShape}
                 >
                   {Object.entries(EWorldShape).map(([key, value]) => (
                     <option
                       value={value}
-                      selected={this.props.options.worldShape == value}
+                      key={key}
                     >
                       {capitalize(value)}
                     </option>
@@ -405,7 +407,11 @@ export class WorldEditorView extends Component<RouteComponentProps<{}>, {
 
   render() {
     if (this.state.worldMap === null) {
-      return <Blueprint.Spinner />;
+      return (
+        <FullOverlay>
+          <Blueprint.Spinner />
+        </FullOverlay>
+      );
     }
     return (
       <Fragment>
