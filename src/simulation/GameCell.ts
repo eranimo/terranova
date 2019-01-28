@@ -4,6 +4,8 @@ import { Subject } from "rxjs";
 import { EBiome } from './worldTypes'
 import { enumMembers } from "../utils/enums";
 
+export const timeFactor = 1;
+
 export const carryingCapacities: Record<EBiome, number> = {
   [EBiome.NONE]: 0,
   [EBiome.GLACIAL]: 10,
@@ -27,7 +29,7 @@ export const farmEfficiencies: Record<EBiome, number> = {
   [EBiome.BOREAL_FOREST]: .5,
   [EBiome.SHRUBLAND]: .25,
   [EBiome.WOODLAND]: .5,
-  [EBiome.GRASSLAND]: .25,
+  [EBiome.GRASSLAND]: .5,
   [EBiome.SAVANNA]: .5,
   [EBiome.DESERT]: 0,
   [EBiome.TEMPERATE_FOREST]: 1,
@@ -52,42 +54,57 @@ export const developmentRates: Record<EBiome, number> = {
   [EBiome.TROPICAL_RAINFOREST]: .25
 }
 
-const maintenanceFactor: number = 1;
+const maintenanceFactor: number = timeFactor;
 
 export enum EPopClass {
   FORAGER,
   FARMER,
   ARTISAN,
-  NOBLE,
+  PRIEST,
 }
 
 export const promotionRate: Record<EPopClass, number> ={
-  [EPopClass.NOBLE]: 1,
-  [EPopClass.ARTISAN]: 1,
-  [EPopClass.FARMER]: .1,
-  [EPopClass.FORAGER]: .1
+  [EPopClass.PRIEST]: 1,
+  [EPopClass.ARTISAN]: 0,
+  [EPopClass.FARMER]: 1,
+  [EPopClass.FORAGER]: 1//.01
 }
 
 export const growthRates: Record<EPopClass, number> =  {
-  [EPopClass.NOBLE]: 1/70,
-  [EPopClass.ARTISAN]: -1/1000,
-  [EPopClass.FARMER]: 1/70,
-  [EPopClass.FORAGER]: 1/120
+  [EPopClass.PRIEST]: Math.pow(1/70, 1/timeFactor),
+  [EPopClass.ARTISAN]: -Math.pow(1/1000, 1/timeFactor),
+  [EPopClass.FARMER]: Math.pow(1/100, 1/timeFactor),
+  [EPopClass.FORAGER]: Math.pow(1/400, 1/timeFactor)
 }
 
-const populationPriorities = [EPopClass.NOBLE, EPopClass.FARMER, EPopClass.ARTISAN, EPopClass.FORAGER];
+enum EBuildingType {
+  FARM,
+  WORKSHOP,
+  PALACE
+}
+
+enum EGoods{
+  FARM_TOOLS_1
+}
+
+const GoodsEffect: Record<EGoods, number> = {
+  [EGoods.FARM_TOOLS_1]: 1
+}
+
+const populationPriorities = [EPopClass.PRIEST, EPopClass.FARMER, EPopClass.ARTISAN, EPopClass.FORAGER];
 const promotionPriority = populationPriorities.reverse();
 
 interface IClassAttributes {
   title: string,
-  labor: (population: number, gameCell: GameCell) => IGameCellDelta
-  housingReq: number
+  labor: (population: number, gameCell: GameCell, goodsUsed: Array<EGoods>) => IGameCellDelta
+  housingReq: number,
+  goodsUsed: Array<EGoods>
 }
 
 export const popClassAttributes: Record<EPopClass, IClassAttributes> = {
   [EPopClass.FORAGER]: {
     title: 'Forager',
-    labor: (population: number, gameCell: GameCell) : IGameCellDelta => {
+    labor: (population: number, gameCell: GameCell, goodsUsed: Array<EGoods>) : IGameCellDelta => {
       const biome = gameCell.worldCell.biome;
       const developmentRate: number = developmentRates[biome];
       let food = Math.floor(Math.min(Math.floor(population) * 1.1, gameCell.carryingCapacity));
@@ -101,78 +118,94 @@ export const popClassAttributes: Record<EPopClass, IClassAttributes> = {
         maxBuildings: maxFarms,
         maxHousing: Math.floor(population) * 1.1 ,
         foodProduced: food,
-        maxPeople: maxPops
+        maxPeople: maxPops,
+        goodsProduced: new Map()
       };
     },
-    housingReq: 1
+    housingReq: 1,
+    goodsUsed: []
   },
   [EPopClass.FARMER]: {
     title: 'Farmer',
-    labor: (population: number, gameCell: GameCell) : IGameCellDelta => {
+    labor: (population: number, gameCell: GameCell, goodsUsed: Array<EGoods>) : IGameCellDelta => {
+      let goodsMultiplier = 1;
+      for (const goodsType of goodsUsed) {
+        goodsMultiplier += Math.min(gameCell.goodsStockPile[goodsType]/population, 1) * GoodsEffect[goodsType];
+      }
       const biome = gameCell.worldCell.biome;
       const developmentRate: number = developmentRates[biome];
       const farmerFactor = 100;
-      const farmerProductionFactor = 5;
+      const farmerProductionFactor = 4;
       let food = Math.min(
           Math.floor(population),
           gameCell.buildingByType[EBuildingType.FARM]
         ) * 
-        farmerProductionFactor * farmEfficiencies[biome];
+        farmerProductionFactor * farmEfficiencies[biome] * goodsMultiplier;
       const maxBuildings = new Map<EBuildingType, number>([
         [
           EBuildingType.FARM,
-          Math.min(population, gameCell.carryingCapacity * farmerFactor) * farmerProductionFactor * developmentRate
+          Math.min(population * 1.2 , gameCell.carryingCapacity * farmerFactor)
         ],
         [
           EBuildingType.WORKSHOP,
-          .01 * developmentRate * food
+          food * .01
         ]
       ]);
+      // console.log(Math.min(
+      //     Math.floor(population),
+      //     gameCell.buildingByType[EBuildingType.FARM]
+      //   ) * 
+      //   farmerProductionFactor * farmEfficiencies[biome], food);
+      // console.log(goodsMultiplier);
       let maxPops = newPopsMap();
-      maxPops.set(EPopClass.FARMER, Math.max(food, gameCell.buildingByType[EBuildingType.FARM]));
       return {
         maxBuildings: maxBuildings,
         maxHousing: Math.floor(population) * 1.3 * developmentRate,
         foodProduced: food,
-        maxPeople: maxPops
+        maxPeople: maxPops,
+        goodsProduced: new Map()
       };
     },
-    housingReq: 1.1
+    housingReq: 1.1,
+    goodsUsed: [EGoods.FARM_TOOLS_1]
   },
   [EPopClass.ARTISAN]: {
     title: 'Artisan',
-    labor: (population: number, gameCell: GameCell) : IGameCellDelta => {
+    labor: (population: number, gameCell: GameCell, goodsUsed: Array<EGoods>) : IGameCellDelta => {
       const biome = gameCell.worldCell.biome;
       const developmentRate: number = developmentRates[biome];
       const workshopRatio = .01;
       const maxWorkshops = new Map<EBuildingType, number>([[
-        EBuildingType.WORKSHOP,
+        EBuildingType.PALACE,
         population * workshopRatio * developmentRate
       ]]);
       let maxPops = newPopsMap();
-      maxPops.set(EPopClass.NOBLE, Math.floor(population / 100));
       return {
         maxBuildings: maxWorkshops,
         maxHousing: Math.floor(population) * 5 * developmentRate,
         foodProduced: 0,
-        maxPeople: maxPops
+        maxPeople: maxPops,
+        goodsProduced: new Map([[EGoods.FARM_TOOLS_1, population]])
       };
     },
-    housingReq: 2
+    housingReq: 2,
+    goodsUsed: []
   },
-  [EPopClass.NOBLE]: {
-    title: 'Noble',
-    labor: (population: number, gameCell: GameCell) : IGameCellDelta => {
+  [EPopClass.PRIEST]: {
+    title: 'PRIEST',
+    labor: (population: number, gameCell: GameCell, goodsUsed: Array<EGoods>) : IGameCellDelta => {
       let maxPops = newPopsMap();
-      // maxPops.set(EPopClass.NOBLE, Math.floor(population * .75));
+      // maxPops.set(EPopClass.PRIEST, Math.floor(population * .75));
       return {
         maxBuildings: new Map<EBuildingType, number>(),
         maxHousing: 0,
         foodProduced: 0,
-        maxPeople: maxPops
+        maxPeople: maxPops,
+        goodsProduced: new Map()
       };
     },
-    housingReq: 5
+    housingReq: 5,
+    goodsUsed: []
   },
 }
 
@@ -187,11 +220,6 @@ const newPopsMap = () : Map<EPopClass, number> => {
   return maxPops;
 }
 
-enum EBuildingType {
-  FARM,
-  WORKSHOP,
-}
-
 interface IBuildingAttributes {
   title: string
 }
@@ -202,6 +230,9 @@ export const buildingAttributes: Record<EBuildingType, IBuildingAttributes> = {
   },
   [EBuildingType.WORKSHOP]: {
     title: 'Workshop',
+  },
+  [EBuildingType.PALACE]: {
+    title: 'Palace',
   },
 }
 
@@ -236,7 +267,7 @@ export class Pop {
     this.popGrowth$.next(this.population);
   }
 
-  get totalPopulation: number {
+  get totalPopulation(): number {
     return this.population;
   }
 
@@ -267,17 +298,18 @@ export interface IGameCellDelta {
   maxBuildings: Map<EBuildingType, number>,
   maxHousing: number,
   foodProduced: number,
-  maxPeople: Map<EPopClass, number>
+  maxPeople: Map<EPopClass, number>,
+  goodsProduced: Map<EGoods, number>
 }
 const promoteFrom: Record<EPopClass, Array<EPopClass>> = {
-  [EPopClass.NOBLE]: [EPopClass.ARTISAN],
+  [EPopClass.PRIEST]: [EPopClass.ARTISAN],
   [EPopClass.ARTISAN]: [EPopClass.FARMER],
   [EPopClass.FARMER]: [EPopClass.FORAGER],
   [EPopClass.FORAGER]: []
 }
 
 const demotionPath: Record<EPopClass, EPopClass | null> = {
-  [EPopClass.NOBLE]: EPopClass.FARMER,
+  [EPopClass.PRIEST]: EPopClass.ARTISAN,
   [EPopClass.ARTISAN]: EPopClass.FARMER,
   [EPopClass.FARMER]: EPopClass.FORAGER,
   [EPopClass.FORAGER]: null
@@ -285,7 +317,8 @@ const demotionPath: Record<EPopClass, EPopClass | null> = {
 
 const requiredBuilding: Record<EBuildingType, EPopClass | null> = {
   [EBuildingType.FARM]: EPopClass.FARMER,
-  [EBuildingType.WORKSHOP]: EPopClass.ARTISAN
+  [EBuildingType.WORKSHOP]: EPopClass.ARTISAN,
+  [EBuildingType.PALACE]: EPopClass.PRIEST
 };
 
 export interface IGameCellView {
@@ -309,6 +342,7 @@ export default class GameCell {
   newPop$: Subject<Pop>;
   buildingByType: Record<EBuildingType, number>;
   housing: number;
+  goodsStockPile: Record<EGoods, number>;
   // food: number;
   readonly carryingCapacity: number;
 
@@ -322,8 +356,12 @@ export default class GameCell {
     const developmentRate: number = developmentRates[biome];
     this.buildingByType = {
       [EBuildingType.FARM]: carryingCapacities[this.worldCell.biome] * .1,
-      [EBuildingType.WORKSHOP]: 0
+      [EBuildingType.WORKSHOP]: 0,
+      [EBuildingType.PALACE]: 0
     };
+    this.goodsStockPile = {
+      [EGoods.FARM_TOOLS_1]: 0
+    }
     for (const item of enumMembers(EPopClass)) {
       this.popsByClass.set(item as EPopClass, new ObservableSet())
     }
@@ -376,21 +414,24 @@ export default class GameCell {
   update(): [IGameMigration, IGameMigration] {
     const deltas = new Array<IGameCellDelta>();
     const migrationPossibilites: Map<EPopClass, number> = newPopsMap();
-    if (this.pops.size > 0) {
+    if (this.pops.size > 0 && this.getTotalPopulation()) {
       // console.log(this.worldCell.x, this.worldCell.y);
       for (const pop of this.pops) {
         // console.log(pop);
-        deltas.push(popClassAttributes[pop.class].labor(pop.totalPopulation, this));
+        if (pop.totalPopulation) {
+          const popAttributes = popClassAttributes[pop.class];
+          deltas.push(popAttributes.labor(pop.totalPopulation, this, popAttributes.goodsUsed));
+        }
       }
       const delta = deltas.reduce((previous: IGameCellDelta, next: IGameCellDelta) : IGameCellDelta => {
         let buildingDeltas = new Map<EBuildingType, number>();
   
         for (const buildingType of enumMembers(EBuildingType)) {
           buildingDeltas.set(
-            buildingType as EBuildingType,
+            buildingType,
             (
-              (previous.maxBuildings.get(buildingType as EBuildingType) || 0) +
-              (next.maxBuildings.get(buildingType as EBuildingType) || 0)
+              (previous.maxBuildings.get(buildingType) || 0) +
+              (next.maxBuildings.get(buildingType) || 0)
             )
           );
         }
@@ -398,37 +439,53 @@ export default class GameCell {
   
         for (const populationType of enumMembers(EPopClass)) {
           maxPops.set(
-            populationType as EPopClass,
+            populationType,
             (
               previous.maxPeople.get(populationType as EPopClass) +
               next.maxPeople.get(populationType as EPopClass)
             )
           );
         }
-  
+
+        let goodsProduced = new Map<EGoods, number>();
+        for (const goodType of enumMembers(EGoods)) {
+          goodsProduced.set(
+            goodType,
+            (
+              (previous.goodsProduced.get(goodType) || 0) +
+              (next.goodsProduced.get(goodType) || 0)
+            )
+          );
+        }
         return {
           maxBuildings: buildingDeltas,
           maxHousing: (previous.maxHousing + next.maxHousing),
           foodProduced: (previous.foodProduced + next.foodProduced),
-          maxPeople: maxPops
+          maxPeople: maxPops,
+          goodsProduced: goodsProduced
         };
       });
-  
       for (const buildingType of delta.maxBuildings.keys()) {
         const currBuildings = this.buildingByType[buildingType];
-        let buildingDelta = ((delta.maxBuildings.get(buildingType) - currBuildings) / maintenanceFactor);
+        let buildingDelta = ((delta.maxBuildings.get(buildingType) - currBuildings) / maintenanceFactor) * developmentRates[this.worldCell.biome];
         this.buildingByType[buildingType] = currBuildings + buildingDelta;
         const maxPeople = delta.maxPeople;
         if (maxPeople.has(requiredBuilding[buildingType])) {\
           maxPeople.set(
             requiredBuilding[buildingType],
-            Math.max(this.buildingByType[buildingType], maxPeople.get(requiredBuilding[buildingType]))
+            Math.floor(Math.max(this.buildingByType[buildingType], maxPeople.get(requiredBuilding[buildingType])))
           );
         }
+      }
+      for (const good of delta.goodsProduced.entries()) {
+        // console.log(good);
+        this.goodsStockPile[good[0]] = good[1];
       }
       this.housing += Math.floor((delta.maxHousing - this.housing) / maintenanceFactor);
       let food: number = delta.foodProduced;
       // console.log(food);
+      // console.log(this.buildingByType);
+      // console.log(this.goodsStockPile);
       let housingLimit: number = this.housing;
       const promotions: Map<EPopClass, number> = new Map();
       for (const popType of populationPriorities) {
@@ -445,7 +502,7 @@ export default class GameCell {
         }
         this.removePops(popsToRemove);
         if (popLimit > 0) {
-          promotions.set(popType, popLimit * Math.random());
+          promotions.set(popType, popLimit);
         }
       }
       for (const popType of promotionPriority) {
@@ -479,7 +536,7 @@ export default class GameCell {
     //   'Foragers': this.getSocialPopulation(EPopClass.FORAGER),
     //   'Famers': this.getSocialPopulation(EPopClass.FARMER),
     //   'Artisan': this.getSocialPopulation(EPopClass.ARTISAN),
-    //   'Nobles': this.getSocialPopulation(EPopClass.NOBLE),
+    //   'PRIESTs': this.getSocialPopulation(EPopClass.PRIEST),
     // });
     return [migrationOptions[0], migrationOptions[migrationOptions.length - 1]];
   }

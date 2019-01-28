@@ -98,6 +98,7 @@ export default class WorldRenderer {
     });
     PIXI.settings.SCALE_MODE = PIXI.SCALE_MODES.NEAREST;
     element.style.cursor = 'default';
+    element.style['user-select'] = 'none';
     element.appendChild(this.app.view);
 
     // create viewport
@@ -183,7 +184,6 @@ export default class WorldRenderer {
       this.labels[region.name] = label;
       this.labelContainer.addChild(label);
     }
-    console.log(label);
 
     label.position.set(labelX, labelY);
     label.anchor.set(0.5, 0.5);
