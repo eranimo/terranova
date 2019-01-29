@@ -1,9 +1,9 @@
-import { of, Observable, mergeasmergeStatic, race, combineLatest, concat, ReplaySubject, Subject, BehaviorSubject } from 'rxjs';
+import { of, Observable, race, combineLatest, concat, ReplaySubject, Subject, BehaviorSubject, merge } from 'rxjs';
 import { EGameEvent } from './gameTypes';
 import Game from './Game';
 import { ReactiveWorker } from '../utils/workers';
 
-import { map, merge, mergeMap, mergeAll, switchMap, multicast, combineAll, withLatestFrom } from 'rxjs/operators';
+import { map, mapTo, mergeMap, mergeAll, switchMap, multicast, combineAll, withLatestFrom } from 'rxjs/operators';
 import { IWorldRegionView, WorldRegion } from './WorldRegion';
 
 
@@ -26,14 +26,12 @@ const worker = new ReactiveWorker(ctx, false)
     // emits on every region update (new regions, region changed)
     worker.addChannel('regions', () => {
       const updates$ = new BehaviorSubject<WorldRegion[]>(game.world.regions.value);
-      updates$.next(game.world.regions.value);
       game.world.regions.subscribe(updates$);
       game.world.regions.subscribe(regions => {
-        for (const region of regions) {
+        regions.forEach(region =>
           region.cells$.updates$.subscribe(() => {
             updates$.next(game.world.regions.value);
-          });
-        }
+          }))
       });
       return updates$.pipe(
         map(regions => regions.map(region => region.export()))
