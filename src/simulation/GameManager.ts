@@ -51,6 +51,7 @@ export default class GameManager {
       dayCount: new BehaviorSubject(undefined),
       speed: new BehaviorSubject(undefined),
       speedIndex: new BehaviorSubject(undefined),
+      delta: new BehaviorSubject(undefined),
     };
 
     // load world data

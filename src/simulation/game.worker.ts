@@ -1,10 +1,10 @@
-import { of, Observable, mergeasmergeStatic, race, combineLatest, concat, ReplaySubject, Subject, BehaviorSubject } from 'rxjs';
+import { BehaviorSubject } from 'rxjs';
 import { EGameEvent } from './gameTypes';
 import Game from './Game';
 import { ReactiveWorker } from '../utils/workers';
 
-import { map, merge, mergeMap, mergeAll, switchMap, multicast, combineAll, withLatestFrom } from 'rxjs/operators';
-import { IWorldRegionView, WorldRegion } from './WorldRegion';
+import { map,  } from 'rxjs/operators';
+import { WorldRegion } from './WorldRegion';
 
 
 const ctx: Worker = self as any;
