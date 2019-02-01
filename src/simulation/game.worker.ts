@@ -1,9 +1,10 @@
-import { of, Observable } from 'rxjs';
+import { BehaviorSubject } from 'rxjs';
 import { EGameEvent } from './gameTypes';
 import Game from './Game';
 import { ReactiveWorker } from '../utils/workers';
 
-import { map, merge, mergeMap, mergeAll } from 'rxjs/operators';
+import { map,  } from 'rxjs/operators';
+import { WorldRegion } from './WorldRegion';
 
 
 const ctx: Worker = self as any;
@@ -23,37 +24,25 @@ const worker = new ReactiveWorker(ctx, false)
     game.date$.subscribe(date => worker.send(EGameEvent.DATE, date));
 
     // emits on every region update (new regions, region changed)
-    worker.addChannel('regions', () => Observable.create());
-      // game.world.regions.pipe(
-      //   map(regions => regions.map(
-      //     region => region.cells$.updates$.pipe(
-      //       mergeMap(
-      //         (cellCount) =>
-      //   ),
-      //   mergeMap(
-      //     regions => regions.map(region => region.cells$.updates$),
-      //     (source, result) => source,
-      //   ),
-      //   map(regions => regions.map(region => region.export()))
-      // )
-
-      // worked but memory leak
-
-      // Observable.create(observer => {
-      //   game.world.regions.subscribe(regions => {
-      //     for (const region of regions) {
-      //       // observer.next(region.export());
-      //       region.cells$.subscribe(() => {
-      //         observer.next(region.export());
-      //       })
-      //     }
-      //   })
-      // })
-    // );
+    worker.addChannel('regions', () => {
+      const updates$ = new BehaviorSubject<WorldRegion[]>(game.world.regions.value);
+      updates$.next(game.world.regions.value);
+      game.world.regions.subscribe(updates$);
+      game.world.regions.subscribe(regions => {
+        for (const region of regions) {
+          region.cells$.updates$.subscribe(() => {
+            updates$.next(game.world.regions.value);
+          });
+        }
+      });
+      return updates$.pipe(
+        map(regions => regions.map(region => region.export()))
+      );
+    });
 
     game.newRegion$.subscribe(region => {
       // worker.addChannel(`channel-${region.name}`)
-      console.log('game.worker: NEW REGION', region)
+      // console.log('game.worker: NEW REGION', region)
       // worker.send(EGameEvent.NEW_REGION, region.export());
     });
 
