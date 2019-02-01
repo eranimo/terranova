@@ -76,6 +76,7 @@ export default class GameManager {
           }
         });
         this.worker.channel('Populations', (gameCell) => {
+          console.log(gameCell);
           console.log('Pop Info', gameCell.pops.reduce((prev, next) => prev + next.population, 0)
         })
       });

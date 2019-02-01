@@ -219,6 +219,7 @@ export default class GameCell {
   housing: number;
   food: number;
   readonly carryingCapacity: number;
+  gameCellState$: BehaviorSubject<IGameCellView>
 
   constructor(
     readonly worldCell: IWorldCell,
@@ -235,6 +236,7 @@ export default class GameCell {
     this.housing = 0;
     this.food = 0;
     this.carryingCapacity = carryingCapacities[worldCell.biome];
+    this.gameCellState$ = new BehaviorSubject(this.getState());
   }
 
   addPop(popClass: EPopClass, population: number) {
@@ -250,6 +252,23 @@ export default class GameCell {
         this.pops.remove(pop);
         this.popsByClass.get(pop.class).remove(pop);
       }
+  }
+
+  private getState() {
+    const popViews = new Array<IPopView>();
+    for (const pop of this.pops) {
+      popViews.push({population: pop.totalPopulation, socialClass: pop.class})
+    }
+    return {
+      pops: popViews,
+      buildingByType: this.buildingByType,
+      xCoord: this.worldCell.x,
+      yCoord: this.worldCell.y
+    }
+
+  }
+  deliverState() {
+    this.gameCellState$.next(this.getState())
   }
 
   // ran every tick
@@ -352,5 +371,6 @@ export default class GameCell {
         }
       }
     }
+    this.deliverState();
   }
 }
