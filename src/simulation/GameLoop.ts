@@ -45,6 +45,7 @@ interface IGameState {
   dayCount: BehaviorSubject<number>;
   speed: BehaviorSubject<EGameSpeed>;
   speedIndex: BehaviorSubject<number>;
+  delta: BehaviorSubject<number>;
 }
 
 export enum EGameSpeed {
@@ -95,6 +96,7 @@ export default class GameLoop {
       dayCount: new BehaviorSubject<number>(0),
       speed: new BehaviorSubject<EGameSpeed>(EGameSpeed.NORMAL),
       speedIndex: new BehaviorSubject<EGameSpeed>(1),
+      delta: new BehaviorSubject<EGameSpeed>(0),
     };
     this.lastFrameTimeMs = 0;
     this.lastFPSUpdate = 0;
@@ -194,7 +196,7 @@ export default class GameLoop {
         break;
       }
     }
-
+    this.state.delta.next(this.delta);
     this.draw(this.delta / this.timestep);
     this.frameID = requestAnimationFrame(this.mainLoop.bind(this));
   }

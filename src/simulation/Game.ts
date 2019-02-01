@@ -77,18 +77,35 @@ export default class Game extends GameLoop {
       name: 'Beta',
       color: 0x0000FF,
     })
+    console.log('GAME: add region Alpha')
     this.world.regions.add(region1);
     this.newRegion$.next(region1);
 
     setTimeout(() => {
+      console.log('GAME: add region Beta')
       this.world.regions.add(region2);
       this.newRegion$.next(region2);
     }, 4000);
 
     setTimeout(() => {
+      console.log('GAME: update region Beta')
       region2.cells$.add(this.world.getCell(85, 136));
       this.newRegion$.next(region2);
     }, 6000);
+
+    setTimeout(() => {
+      const region = new WorldRegion({
+        cells: [
+          this.world.getCell(181, 135),
+          this.world.getCell(182, 135),
+        ],
+        name: 'Cappa',
+        color: 0x00FFFF,
+      });
+      console.log('GAME: add region Cappa')
+      this.world.regions.add(region);
+      this.newRegion$.next(region);
+    }, 7000);
 
     // this.addTimer({
     //   ticksLength: 30,

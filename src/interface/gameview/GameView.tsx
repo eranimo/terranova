@@ -1,10 +1,11 @@
-import React, { Component } from 'react';
+import React, { Component, Fragment } from 'react';
 import { RouteComponentProps } from 'react-router'
 import {
   Spinner
 } from '@blueprintjs/core';
 import GameViewer from './GameViewer';
 import GameManager from '../../simulation/GameManager';
+import { DevConsole, DevConsoleManager } from './DevConsole';
 
 
 type GameViewProps = RouteComponentProps<{
@@ -17,6 +18,9 @@ type GameViewState = {
 }
 
 export class GameView extends Component<GameViewProps, GameViewState> {
+  consoleManager: DevConsoleManager;
+  gameManager: GameManager;
+
   state = {
     game: null,
     isLoading: true,
@@ -32,6 +36,7 @@ export class GameView extends Component<GameViewProps, GameViewState> {
 
     const gameManager = new GameManager(name);
     await gameManager.init();
+    this.gameManager = gameManager;
 
     console.log('Game loaded', gameManager);
 
@@ -42,6 +47,12 @@ export class GameView extends Component<GameViewProps, GameViewState> {
     (window as any).game = gameManager;
   }
 
+  onConsoleInit = (consoleManager: DevConsoleManager) => {
+    console.log('consoleManager', consoleManager);
+    this.gameManager.state.ticks.subscribe(consoleManager.ticks);
+    this.gameManager.state.delta.subscribe(consoleManager.delta);
+  }
+
   render() {
     if (this.state.isLoading) {
       return <Spinner/>;
@@ -49,10 +60,15 @@ export class GameView extends Component<GameViewProps, GameViewState> {
 
     console.log(this.state.game.world);
     return (
-      <GameViewer
-        game={this.state.game}
-        isLoading={this.state.isLoading}
-      />
+      <Fragment>
+        <DevConsole
+          onInit={this.onConsoleInit}
+        />
+        <GameViewer
+          game={this.state.game}
+          isLoading={this.state.isLoading}
+        />
+      </Fragment>
     );
   }
 }
