@@ -1,11 +1,11 @@
-import { BehaviorSubject } from 'rxjs';
+import { BehaviorSubject, ReplaySubject, merge } from 'rxjs';
 import { EGameEvent } from './gameTypes';
 import Game from './Game';
 import { ReactiveWorker } from '../utils/workers';
-
-import { map,  } from 'rxjs/operators';
+import { IGameCellView, IPopView } from './GameCell'
+import { map, switchMap } from 'rxjs/operators';
 import { WorldRegion } from './WorldRegion';
-
+import GameCell from './GameCell';
 
 const ctx: Worker = self as any;
 
@@ -38,6 +38,38 @@ const worker = new ReactiveWorker(ctx, false)
       return updates$.pipe(
         map(regions => regions.map(region => region.export()))
       );
+    });
+    //Emits a cell when the cell changes
+    worker.addChannel('Populations', () => {
+      const updates$ = new ReplaySubject<GameCell>();
+      game.gameCell$.subscribe(updates$);
+      game.gameCell$.subscribe(gameCell =>
+        gameCell.newPop$.subscribe(pop =>
+          {
+            console.log(pop.class);
+            pop.popGrowth$.subscribe(_ => {
+              updates$.next(gameCell)
+            });
+          }
+        )
+      );
+      return updates$.pipe<IGameCellView>(
+        map(cell => {
+          const popViews = new Array<IPopView>();
+          for (const pop of cell.pops) {
+            popViews.push({population: pop.totalPopulation, socialClass: pop.class})
+          }
+          return ({
+            pops: popViews,
+            buildingByType: cell.buildingByType,
+            xCoord: cell.worldCell.x,
+            yCoord: cell.worldCell.y
+          } as IGameCellView)
+        })
+      );
+      // return updates$.pipe(
+      //   map(regions => regions.map(region => region.export()))
+      // );
     });
 
     game.newRegion$.subscribe(region => {

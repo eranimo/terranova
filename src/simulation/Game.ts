@@ -1,6 +1,6 @@
 import { meanBy } from 'lodash';
 import { Point } from 'pixi.js';
-import { ReplaySubject, Subject } from 'rxjs';
+import { ReplaySubject, Subject, BehaviorSubject } from 'rxjs';
 import GameLoop from './GameLoop';
 import World from './World';
 import { IWorldCell } from './worldTypes';
@@ -8,6 +8,7 @@ import { WorldRegion } from './WorldRegion';
 import { worldStore } from './stores';
 import GameCell, { Pop, EPopClass, IPopCoordinates, IGameCellView, IPopView, timeFactor } from './GameCell';
 import Array2D from '../utils/Array2D';
+  import { ObservableSet } from './ObservableSet'
 
 
 export interface IGameData {
@@ -30,7 +31,7 @@ export default class Game extends GameLoop {
   params: IGameParams;
   newRegion$: ReplaySubject<WorldRegion>;
   gameCells: Set<GameCell>;
-  gameCell$: ReplaySubject<IGameCellView>;
+  gameCell$: ReplaySubject<GameCell>;
   gameCellMap: Array2D<GameCell>;
 
   constructor(params: IGameParams) {
@@ -39,6 +40,7 @@ export default class Game extends GameLoop {
     this.params = params;
     this.world = null;
     this.gameCell$ = new ReplaySubject();
+    this.gameCell$.subscribe(gameCell => this.gameCells.add(gameCell));
   }
 
   async init() {
@@ -144,24 +146,18 @@ export default class Game extends GameLoop {
 
   populateCell(x: number, y: number): GameCell {
     const gameCell = new GameCell(this.world.getCell(x, y));
-    const popSet = new Set<IPopView>();
+    const popSet = new ObservableSet<IPopView>();
+    const newPop$ = new ReplaySubject<IPopView>();
     gameCell.newPop$.subscribe((pop) => {
       const popView = {
         population: pop.totalPopulation,
         socialClass: pop.class,
       };
-      pop.popGrowth$.subscribe((population) => {
-        popView.population = population;
-      });
+      pop.popGrowth$.subscribe(population => popView.population = population)
       popSet.add(popView);
+      newPop$.next(popView);
     });
-    this.gameCells.add(gameCell);
-    this.gameCell$.next({
-      pops: popSet,
-      buildingByType: gameCell.buildingByType,
-      xCoord: x,
-      yCoord: y
-    });
+    this.gameCell$.next(gameCell);
     this.gameCellMap.set(x, y, gameCell);
 
     return gameCell;

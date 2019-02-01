@@ -75,6 +75,9 @@ export default class GameManager {
             this.worldMap.addRegion(region);
           }
         });
+        this.worker.channel('Populations', (gameCell) => {
+          console.log('Pop Info', gameCell.pops.reduce((prev, next) => prev + next.population, 0)
+        })
       });
 
     // listen for state change events
