@@ -1,6 +1,6 @@
 {
   "name": "terranova",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "World map generator",
   "main": "index.js",
   "scripts": {
@@ -10,6 +10,15 @@
   },
   "author": "Kaelan Cooter (me@kaelan.org)",
   "license": "MIT",
+  "private": true,
+  "release-it": {
+    "github": {
+      "release": true
+    },
+    "npm": {
+      "publish": false
+    }
+  },
   "devDependencies": {
     "@babel/core": "^7.1.2",
     "@babel/preset-env": "^7.1.0",
