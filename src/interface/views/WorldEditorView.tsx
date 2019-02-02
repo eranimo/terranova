@@ -171,10 +171,10 @@ class WorldConfigEditor extends Component<{
               helperText="Higher value will generate less rivers"
             >
               <Blueprint.Slider
-                min={0}
+                min={0.75}
                 max={1}
                 stepSize={0.01}
-                labelStepSize={.25}
+                labelStepSize={.05}
                 value={this.props.options.riverThreshold}
                 onChange={value => {
                   this.props.handleOptionChange('riverThreshold', clamp(value, 0, 1));

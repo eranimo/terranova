@@ -45,13 +45,13 @@ export default class GameManager {
       .subscribe((date) => this.date$.next(date));
 
     this.state = {
-      started: new BehaviorSubject(undefined),
-      running: new BehaviorSubject(undefined),
-      ticks: new BehaviorSubject(undefined),
-      dayCount: new BehaviorSubject(undefined),
-      speed: new BehaviorSubject(undefined),
-      speedIndex: new BehaviorSubject(undefined),
-      delta: new BehaviorSubject(undefined),
+      started: new BehaviorSubject<boolean>(undefined),
+      running: new BehaviorSubject<boolean>(undefined),
+      ticks: new BehaviorSubject<number>(undefined),
+      dayCount: new BehaviorSubject<number>(undefined),
+      speed: new BehaviorSubject<number>(undefined),
+      speedIndex: new BehaviorSubject<number>(undefined),
+      delta: new BehaviorSubject<number>(undefined),
     };
 
     // load world data

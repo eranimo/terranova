@@ -13,7 +13,8 @@ import {
   moistureZoneRanges,
   temperatureZoneRanges,
   biomeRanges,
-  ETerrainType
+  ETerrainType,
+  IFeature
 } from '../worldTypes';
 import * as Collections from 'typescript-collections';
 import * as Stats from 'simple-statistics';
@@ -30,6 +31,7 @@ import {
   shuffle,
   loopGridCircle,
 } from './utils';
+import { enumMembers } from '../../utils/enums';
 
 
 const ctx: Worker = self as any;
@@ -39,7 +41,11 @@ const ctx: Worker = self as any;
  * https://arxiv.org/pdf/1511.04463v1.pdf
  */
 
-function removeDepressions(options: IWorldMapGenOptions, heightmap: ndarray, sealevel: number) {
+function removeDepressions(
+  options: IWorldMapGenOptions,
+  heightmap: ndarray,
+  sealevel: number
+) {
   const { seed, size: { width, height }, depressionFillPercent } = options;
   const rng = new (Alea as any)(seed);
 
@@ -99,7 +105,7 @@ function removeDepressions(options: IWorldMapGenOptions, heightmap: ndarray, sea
   }
 
   // turn lakes into hills by inverting them
-  let depressions: number[][][] = [];
+  let depressions: [number, number][][] = [];
   const depressionCellsGrid = ndarray(new Uint8ClampedArray(width * height), [width, height]);
   for (let x = 0; x < width; x++) {
     for (let y = 0; y < height; y++) {
@@ -120,7 +126,7 @@ function removeDepressions(options: IWorldMapGenOptions, heightmap: ndarray, sea
     for (let y = 0; y < height; y++) {
       if (depressionCellsGrid.get(x, y) === 1 && visited.get(x, y) === 0) {
         // new island
-        const lakeCells = BFS(visited, groupFunc, x, y);
+        const lakeCells = BFS(visited, groupFunc, x, y) as [number, number][];
         depressions.push(lakeCells);
       }
     }
@@ -143,7 +149,7 @@ function removeDepressions(options: IWorldMapGenOptions, heightmap: ndarray, sea
 
   // fill in a percent of all depressions
   const filledIndex = depressions.length * depressionFillPercent;
-  const lakes = shuffle(rng, depressions).filter((depression, index) => {
+  const lakeCells = shuffle(rng, depressions).filter((depression, index) => {
     if (index < filledIndex) {
       fillDepression(depression);
       return false;
@@ -151,7 +157,7 @@ function removeDepressions(options: IWorldMapGenOptions, heightmap: ndarray, sea
     return true;
   });
 
-  return { waterheight, cellNeighbors, heightmap, lakes };
+  return { waterheight, cellNeighbors, heightmap, lakeCells };
 }
 
 function determineFlowDirections(
@@ -651,31 +657,72 @@ function findFeatures(
   options: IWorldMapGenOptions,
   cellTypes: ndarray,
   riverMap: ndarray,
-  oceanCellCount: number
-) {
+  oceanCellCount: number,
+  lakeCells: [number, number][][],
+  cellFeatures: ndarray,
+  biomes: ndarray,
+): Record<string, IFeature[] | Record<string, IFeature[]>> {
   const { size: { width, height } } = options;
   const landCellCount = (width * height) - oceanCellCount;
 
   // determine land features
-  const landFeatures = groupDistinct(
+  const landmasses: IFeature[] = groupDistinct(
     (x: number, y: number) => cellTypes.get(x, y) === ECellType.LAND,
     width, height,
-  ).map(feature => ({
-    relativeSize: feature.length / landCellCount,
-    cells: feature,
+  ).map((cells, index) => ({
+    id: index,
+    relativeSize: cells.length / landCellCount,
+    size: cells.length,
+    cells: cells,
   }));
-  console.log('landFeatures', landFeatures);
 
   // determine rivers
-  const rivers = groupDistinct(
+  let riverCount = 0;
+  let lakeCount = 0;
+  for (let x = 0; x < width; x++) {
+    for (let y = 0; y < height; y++) {
+      if (riverMap.get(x, y) === 1) {
+        riverCount++;
+      } else if (cellFeatures.get(x, y) === ECellFeature.LAKE) {
+        lakeCount++;
+      }
+    }
+  }
+  const rivers: IFeature[] = groupDistinct(
     (x: number, y: number) => (
       riverMap.get(x, y) === 1
     ),
     width, height,
-  );
-  console.log('rivers', rivers);
+  ).map((cells, index) => ({
+    relativeSize: cells.length / riverCount,
+    id: index,
+    size: cells.length,
+    cells,
+  }));
 
-  return { rivers, landFeatures }
+  const lakes: IFeature[] = lakeCells.map((cells, index) => ({
+    relativeSize: cells.length / lakeCount,
+    id: index,
+    size: cells.length,
+    cells,
+  }));
+
+  const bioregions = {};
+  for (const biome of enumMembers<EBiome>(EBiome)) {
+    bioregions[biome] = groupDistinct(
+      (x: number, y: number) => (
+        biomes.get(x, y) === biome
+      ),
+      width, height,
+    ).map((cells, index) => ({
+      relativeSize: cells.length / landCellCount,
+      id: index,
+      size: cells.length,
+      cells,
+    }));
+  }
+
+  return { rivers, lakes, landmasses, bioregions };
 }
 
 function runTerrainWorker<T>(
@@ -730,7 +777,7 @@ ctx.onmessage = async (event: MessageEvent) => {
   console.timeEnd('terrain reinit');
 
   console.time('step: remove depressions');
-  const { waterheight, cellNeighbors, lakes } = removeDepressions(options, heightmap, options.sealevel);
+  const { waterheight, cellNeighbors, lakeCells } = removeDepressions(options, heightmap, options.sealevel);
   console.timeEnd('step: remove depressions');
 
   console.timeEnd('step: terrain');
@@ -772,8 +819,7 @@ ctx.onmessage = async (event: MessageEvent) => {
   console.timeEnd('step: generateBiomes');
 
   console.time('step: findFeatures');
-  findFeatures(options, cellTypes, cellFeatures, oceanCellCount);
-  console.log('lakes', lakes);
+  const features = findFeatures(options, cellTypes, riverMap, oceanCellCount, lakeCells, cellFeatures, biomes);
   console.timeEnd('step: findFeatures');
 
   // console.log('upstreamCells', ndarrayStats(upstreamCells));
@@ -787,6 +833,7 @@ ctx.onmessage = async (event: MessageEvent) => {
   fill(heightmapC, (x, y) => heightmap.get(x, y));
 
   const output: IWorldWorkerOutput = {
+    buildVersion: VERSION,
     options,
     sealevel,
     heightmap: heightmapC.data,
@@ -803,6 +850,7 @@ ctx.onmessage = async (event: MessageEvent) => {
     temperatureZones: temperatureZones.data,
     terrainRoughness: terrainRoughness.data,
     biomes: biomes.data,
+    features,
   };
   ctx.postMessage(output, [
     (flowDirections.data as any).buffer,

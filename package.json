@@ -44,6 +44,7 @@
     "classnames": "^2.2.6",
     "clipboard-copy": "^2.0.1",
     "colormap": "^2.3.0",
+    "formik": "^1.4.3",
     "intersects": "^2.2.0",
     "kd-tree-javascript": "^1.0.3",
     "localforage": "^1.7.2",

@@ -9,6 +9,7 @@ export const worldStore = new SaveStore<World>({
   createEntry: (world: World) => ({
     options: world.params.options,
     worldString: world.exportString,
+    buildVersion: world.params.buildVersion,
   }),
   createRecord: (world: World) => world.params,
 });

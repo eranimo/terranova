@@ -3,7 +3,7 @@ import { WorldGenerator } from '../../simulation';
 import { gameStore } from "../../simulation/stores";
 import { Link } from 'react-router-dom';
 import { RouteComponentProps } from 'react-router'
-
+import classnames from 'classnames';
 import {
   Classes,
   Card,
@@ -118,6 +118,18 @@ export class LoadGameView extends Component<RouteComponentProps<{}>, {
     return (
       <Container>
         <h1>Terra Nova</h1>
+        <ul className={Classes.BREADCRUMBS} style={{ margin: '1rem 0' }}>
+          <li>
+            <Link to={'/'} className={Classes.BREADCRUMB}>
+              Main Menu
+            </Link>
+          </li>
+          <li>
+            <span className={classnames(Classes.BREADCRUMB, Classes.BREADCRUMB_CURRENT)}>
+              Load Game
+            </span>
+          </li>
+        </ul>
         <Card>
           <h4 className={Classes.HEADING}>Load Saved Game</h4>
           {this.renderSaves()}

@@ -54,3 +54,16 @@ table.detail-table tr td:first-child {
 label.bp3-checkbox, label.bp3-radio {
   user-select: none;
 }
+
+
+.margin-h-1 {
+  margin: 0 1rem;
+}
+
+.margin-v-1 {
+  margin: 1rem 0;
+}
+
+.margin-1 {
+  margin: 1rem;
+}
