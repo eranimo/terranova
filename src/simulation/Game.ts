@@ -32,8 +32,8 @@ export default class Game extends GameLoop {
   gameCells: Set<GameCell>;
   gameCellMap: Array2D<GameCell>;
 
-  constructor(params: IGameParams) {
-    super();
+  constructor(params: IGameParams, onError: (error: Error) => void) {
+    super(onError);
     this.gameData = params.gameData || Object.assign({}, initialGameData);
     this.params = params;
     this.world = null;

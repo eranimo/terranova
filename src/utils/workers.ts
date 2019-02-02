@@ -107,13 +107,22 @@ export interface IWorkerMessage {
 
 export class ReactiveWorkerClient {
   workerEvents$: Observable<IWorkerMessage>;
+  workerErrors$: Subject<string>;
+
   constructor(public worker: Worker, debug: boolean = false) {
     this.workerEvents$ = fromEvent<MessageEvent>(this.worker, 'message')
       .pipe(map(event => event.data as IWorkerMessage));
 
+    this.workerErrors$ = new Subject();
+
     if (debug) {
       this.workerEvents$.subscribe(msg => console.log('[worker client: in]', msg));
     }
+
+    this.workerEvents$.pipe(
+      filter(x => x.error),
+      map(msg => msg.reason)
+    ).subscribe(this.workerErrors$);
   }
 
   /**
@@ -167,6 +176,7 @@ export class ReactiveWorkerClient {
             if (msg.error) {
               // error happened
               observer.error(msg.reason);
+              this.workerErrors$.next(msg.reason);
             } else if (msg.streaming && msg.complete) {
               // stream ended
               observer.complete();
@@ -289,6 +299,11 @@ export class ReactiveWorker {
     reason: errorMsg,
   });
 
+  public reportError = (error: Error) => this.ctx.postMessage({
+    error: true,
+    reason: error.message,
+  })
+
   private processMessage(
     func: (payload: any) => any,
     shouldRespond: boolean
@@ -316,6 +331,7 @@ export class ReactiveWorker {
           }
         }
       } catch (err) {
+        console.log('error', err)
         FAIL(err.message)
       }
     };

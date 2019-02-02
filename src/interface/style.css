@@ -67,3 +67,12 @@ label.bp3-checkbox, label.bp3-radio {
 .margin-1 {
   margin: 1rem;
 }
+
+.word-break {
+  word-break: break-word;
+}
+
+.alert-fit {
+  max-width: none;
+  width: fit-content;
+}

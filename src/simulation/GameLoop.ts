@@ -1,6 +1,7 @@
 import { BehaviorSubject, Subject } from 'rxjs';
 import { clamp } from '@blueprintjs/core/lib/esm/common/utils';
 import { Timer, ITimerOptions } from './Timer';
+import { worker } from 'cluster';
 
 
 export enum EMonth {
@@ -83,12 +84,14 @@ export default class GameLoop {
   date$: Subject<IGameDate>;
   timers: Set<Timer>;
   throttle: boolean;
+  onError: (error: Error) => void;
 
   MAX_SPEED = speeds.length;
 
   constructor(
-    maxFPS: number = 60,
+    onError: (error: Error) => void,
   ) {
+    this.onError = onError;
     this.state = {
       started: new BehaviorSubject<boolean>(false),
       running: new BehaviorSubject<boolean>(false),
@@ -101,7 +104,7 @@ export default class GameLoop {
     this.lastFrameTimeMs = 0;
     this.lastFPSUpdate = 0;
     this.framesThisSecond = 0;
-    this.maxFPS = maxFPS;
+    this.maxFPS = 60;
     this.fps = 0;
     this.delta = 0;
     this.timestep = 1000 / (this.maxFPS * this.state.speed.value);
@@ -216,7 +219,11 @@ export default class GameLoop {
     // let i = 0;
     // for (let x = 0; x < 1e6; x++) i = i ** i;
     for (const timer of this.timers) {
-      timer.update();
+      try {
+        timer.update();
+      } catch (error) {
+        this.onError(error);
+      }
       if (!timer.isActive) {
         this.timers.delete(timer);
       }

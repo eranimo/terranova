@@ -169,6 +169,7 @@ export class GameControls extends Component<IWorldMapContainerChildProps> {
         ))}
       </Menu>
     );
+
     return (
       <GameControlsContainer>
         <Popover content={menu}>
