@@ -28,6 +28,7 @@
     "file-loader": "^2.0.0",
     "html-webpack-plugin": "^3.2.0",
     "jest": "^23.6.0",
+    "release-it": "^10.0.7",
     "style-loader": "^0.23.1",
     "ts-jest": "^23.10.5",
     "typescript": "3.2.4",

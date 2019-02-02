@@ -2,10 +2,8 @@ const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const { CheckerPlugin } = require('awesome-typescript-loader');
 const webpack = require('webpack');
-
-const VERSION = require('child_process')
-  .execSync('git rev-parse --short HEAD')
-  .toString().trim();
+const package = require('./package.json');
+const VERSION = package.version;
 
 console.log(`Using version: ${VERSION}`);
 
