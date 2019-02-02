@@ -44,14 +44,14 @@ export class LoadGameView extends Component<RouteComponentProps<{}>, {
   }
 
   loadSaves() {
-    gameStore.getSaves()
+    return gameStore.getSaves()
       .then(saves => this.setState({ isLoading: false, saves }))
   }
 
-  deleteSave() {
+  async deleteSave() {
     this.setState({ isLoading: true });
-    gameStore.removeSave(this.state.deleteModalSaveName)
-    this.loadSaves();
+    await gameStore.removeSave(this.state.deleteModalSaveName)
+    await this.loadSaves();
     this.setState({ deleteModalSaveName: null });
   }
 
