@@ -6,6 +6,9 @@
   "scripts": {
     "build": "rm -rf public/ && NODE_ENV=production webpack",
     "test": "jest",
+    "release-minor": "release-it minor",
+    "release-major": "release-it major",
+    "release-patch": "release-it patch",
     "dev": "webpack-dev-server --progress"
   },
   "author": "Kaelan Cooter (me@kaelan.org)",
