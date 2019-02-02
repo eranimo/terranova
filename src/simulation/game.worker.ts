@@ -1,9 +1,9 @@
-import { BehaviorSubject, ReplaySubject, merge } from 'rxjs';
+import { BehaviorSubject, ReplaySubject } from 'rxjs';
 import { EGameEvent } from './gameTypes';
 import Game from './Game';
 import { ReactiveWorker } from '../utils/workers';
 import { IGameCellView, IPopView } from './GameCell'
-import { map, switchMap } from 'rxjs/operators';
+import { map, switchMap, merge, mergeMap } from 'rxjs/operators';
 import { WorldRegion } from './WorldRegion';
 import GameCell from './GameCell';
 
@@ -41,9 +41,8 @@ const worker = new ReactiveWorker(ctx, false)
     });
     //Emits a cell when the cell changes
     worker.addChannel('Populations', () => {
-      const updates$ = new ReplaySubject<IGameCellView>();
-      game.gameCell$.subscribe(gameCell => gameCell.gameCellState$.subscribe(updates$));
-      return updates$;
+      return game.gameCell$.pipe(
+        mergeMap(gameCell => gameCell.gameCellState$));
       // return updates$.pipe(
       //   map(regions => regions.map(region => region.export()))
       // );
