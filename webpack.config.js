@@ -1,6 +1,11 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const { CheckerPlugin } = require('awesome-typescript-loader');
+const webpack = require('webpack');
+const package = require('./package.json');
+const VERSION = package.version;
+
+console.log(`Using version: ${VERSION}`);
 
 module.exports = {
   resolve: {
@@ -89,6 +94,9 @@ module.exports = {
   },
   mode: process.env.NODE_ENV || 'development',
   plugins: [
+    new webpack.DefinePlugin({
+      VERSION: JSON.stringify(VERSION)
+    }),
     new CheckerPlugin(),
     new HtmlWebpackPlugin({
       title: 'Terranova'

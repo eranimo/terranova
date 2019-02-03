@@ -186,10 +186,18 @@ export const tileDirectionWeights = [
   [EDirection8.SOUTH_EAST, 128],
 ]
 
+// unused, for tilemap calculation
 export const cellTileBase = 4;
 export const cellFeatureTileIndex = {
   [ECellFeature.COASTAL]: 0,
   [ECellFeature.OCEANIC]: 1,
   [ECellFeature.LAND]: 2,
   [ECellFeature.LAKE]: 3,
+}
+
+export interface IFeature {
+  id: number;
+  relativeSize: number; // 0 to 1
+  cells: [number, number][];
+  size: number;
 }

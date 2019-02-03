@@ -13,11 +13,11 @@ const rowNeighbors: number[] = [-1, -1, -1,  0, 0,  1, 1, 1];
 const colNeighbors: number[] = [-1,  0,  1, -1, 1, -1, 0, 1];
 
 export function BFS(
-  visited,
+  visited: ndarray,
   searchFunc: (x: number, y: number) => boolean,
   x: number,
   y: number
-): number[][] {
+): [number, number][] {
   const queue: [number, number][] = [];
   queue.unshift([x, y]);
   let output = [];
@@ -47,7 +47,7 @@ export function groupDistinct(
   heuristic: (x: number, y: number) => boolean,
   width: number,
   height: number,
-) {
+): [number, number][][] {
   const visited = ndarray(new Uint8ClampedArray(width * height), [width, height]);
 
   // determine landFeatures
