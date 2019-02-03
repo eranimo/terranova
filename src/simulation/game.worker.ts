@@ -34,6 +34,34 @@ function gameInit() {
     );
   });
 
+  // //Emits a cell when the cell changes
+  worker.addChannel('gamecell', () => {
+    return game.gameCell$.pipe(
+      mergeMap(gameCell => gameCell.gameCellState$));
+  });        
+
+  worker.addChannel('gamecells', () => {
+    const updates$ = new BehaviorSubject<GameCell[]>(game.gameCells.value);
+    updates$.next(game.gameCells.value);
+    game.gameCells.subscribe(updates$);
+    game.gameCells.subscribe(gameCells => {
+      for (const gameCell of gameCells) {
+        gameCell.newPop$.subscribe(() => {
+          updates$.next(game.gameCells.value);
+        });
+
+        gameCell.pops.subscribe(pop => {
+          pop.forEach(pop => pop.popGrowth$.subscribe(() => {
+            updates$.next(game.gameCells.value)
+          }));
+        });
+      }
+    });
+    return updates$.pipe(
+      map(gamecells => gamecells.map(gamecell => gamecell.export()))
+    );
+  })
+
   for (const [key, subject] of Object.entries(game.state)) {
     worker.send(EGameEvent.STATE_CHANGE, { key, value: subject.value });
     subject.subscribe(value => worker.send(EGameEvent.STATE_CHANGE, { key, value }));
@@ -42,7 +70,7 @@ function gameInit() {
   console.log('game init', game);
 }
 
-const worker = new ReactiveWorker(ctx, true)
+const worker = new ReactiveWorker(ctx, false)
   .on(EGameEvent.INIT, async ({ params }) => {
     const timeStart = performance.now();
     console.log('game params', params);
@@ -52,35 +80,8 @@ const worker = new ReactiveWorker(ctx, true)
       worker.reportError(error);
     });
 
-    //Emits a cell when the cell changes
-    worker.addChannel('Populations', () => {
-      return game.gameCell$.pipe(
-        mergeMap(gameCell => gameCell.gameCellState$));
-      // return updates$.pipe(
-      //   map(regions => regions.map(region => region.export()))
-      // );
-    });
-
-    game.newRegion$.subscribe(region => {
-      // worker.addChannel(`channel-${region.name}`)
-      // console.log('game.worker: NEW REGION', region)
-      // worker.send(EGameEvent.NEW_REGION, region.export());
-    });
-
-    game.newRegion$.subscribe(gameCell => {
-      console.log('game.worker: NEW GAME CELL', gameCell)
-      worker.send(EGameEvent.NEW_GAME_CELL, gameCell);
-    });
-
-    for (const [key, subject] of Object.entries(game.state)) {
-      worker.send(EGameEvent.STATE_CHANGE, { key, value: subject.value });
-      subject.subscribe(value => worker.send(EGameEvent.STATE_CHANGE, { key, value }));
-    }
-
-    console.log('game init', game);
     await game.init();
     gameInit();
-
 
     const timeEnd = performance.now();
     return timeEnd - timeStart;

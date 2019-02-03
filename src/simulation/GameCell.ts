@@ -156,7 +156,7 @@ export class Pop {
     this.popGrowth$.next(this.population);
   }
 
-  get totalPopulation: number {
+  get totalPopulation(): number {
     return this.population;
   }
 
@@ -268,7 +268,16 @@ export default class GameCell {
 
   }
   deliverState() {
+    console.log('Hello')
     this.gameCellState$.next(this.getState())
+  }
+
+  get populationSize(): number {
+    let result: number = 0;
+    for (const pop of this.pops) {
+      result += pop.totalPopulation;
+    }
+    return result;
   }
 
   // ran every tick
@@ -309,7 +318,6 @@ export default class GameCell {
       };
     });
 
-    console.log(delta.maxPeople);
     for (const buildingType of delta.maxBuildings.keys()) {
       const currBuildings = this.buildingByType[buildingType];
       let buildingDelta = Math.floor((delta.maxBuildings.get(buildingType) - currBuildings) / maintenanceFactor);
@@ -330,7 +338,7 @@ export default class GameCell {
       let popLimit = delta.maxPeople.get(popType);
       let popsToRemove = new Array<Pop>();
       let totalInClass = 0;
-      for(const pop of this.popsByClass.get(popType)) {
+      for (const pop of this.popsByClass.get(popType)) {
         let newPopulation = pop.update(Math.min(popLimit, food));
         popLimit = Math.max(popLimit - newPopulation, 0);
         food = Math.max(food - newPopulation, 0);
@@ -372,5 +380,9 @@ export default class GameCell {
       }
     }
     this.deliverState();
+  }
+
+  export(): IGameCellView {
+    return this.getState();
   }
 }
