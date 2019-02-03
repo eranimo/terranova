@@ -8,6 +8,7 @@ import { WorldRegion } from './WorldRegion';
 import { worldStore } from './stores';
 import GameCell, { Pop, EPopClass, IPopCoordinates, IGameCellView, IPopView, timeFactor } from './GameCell';
 import Array2D from '../utils/Array2D';
+import { ObservableSet } from './ObservableSet';
 
 
 export interface IGameData {
@@ -29,7 +30,7 @@ export default class Game extends GameLoop {
   gameData: IGameData;
   params: IGameParams;
   newRegion$: ReplaySubject<WorldRegion>;
-  gameCells: Set<GameCell>;
+  gameCells: ObservableSet<GameCell>;
   gameCell$: ReplaySubject<IGameCellView>;
   gameCellMap: Array2D<GameCell>;
 
@@ -114,9 +115,10 @@ export default class Game extends GameLoop {
     //   onFinished: () => console.log('timer done!'),
     // });
 
-    this.gameCells = new Set();
+    this.gameCells = new ObservableSet();
     this.gameCellMap = new Array2D(this.world.size.width, this.world.size.height);
 
+    console.log('GAME: add game cell');
     const gc1 = this.populateCell(81, 135);
     gc1.addPop(EPopClass.FORAGER, 1000);
 
@@ -133,9 +135,8 @@ export default class Game extends GameLoop {
     //     gc1.addPop(new Pop(EPopClass.NOBLE, 50));
     //   }
     // }
-    const numTicks = Math.floor(360/timeFactor)
     this.addTimer({
-      ticksLength: numTicks,
+      ticksLength: 30,
       isRepeated: true,
       onTick: null,
       onFinished: () =>  this.updatePops(),
@@ -144,26 +145,8 @@ export default class Game extends GameLoop {
 
   populateCell(x: number, y: number): GameCell {
     const gameCell = new GameCell(this.world.getCell(x, y));
-    const popSet = new Set<IPopView>();
-    gameCell.newPop$.subscribe((pop) => {
-      const popView = {
-        population: pop.population,
-        socialClass: pop.class,
-      };
-      pop.popGrowth$.subscribe((population) => {
-        popView.population = population;
-      });
-      popSet.add(popView);
-    });
     this.gameCells.add(gameCell);
-    this.gameCell$.next({
-      pops: popSet,
-      buildingByType: gameCell.buildingByType,
-      xCoord: x,
-      yCoord: y
-    });
     this.gameCellMap.set(x, y, gameCell);
-
     return gameCell;
   }
 
@@ -172,6 +155,7 @@ export default class Game extends GameLoop {
   }
 
   updatePops() {
+    console.log('update!');
     for (const gameCell of this.gameCells) {
       gameCell.update();
     }

@@ -170,7 +170,7 @@ export interface IGameCellDelta {
 }
 
 export interface IGameCellView {
-  pops: Set<IPopView>,
+  populationSize: number,
   buildingByType: Record<EBuildingType, number>,
   xCoord: number,
   yCoord: number
@@ -207,6 +207,14 @@ export default class GameCell {
     this.pops.add(pop);
     this.popsByClass.get(pop.class).add(pop);
     this.newPop$.next(pop);
+  }
+
+  get populationSize(): number {
+    let result: number = 0;
+    for (const pop of this.pops) {
+      result += pop.population;
+    }
+    return result;
   }
 
   // ran every tick
@@ -258,7 +266,7 @@ export default class GameCell {
     for (const popType of populationPriorities) {
       let popLimit = delta.maxPeople.get(popType);
       let popsToRemove = new Array<Pop>();
-      for(const pop of this.popsByClass.get(popType)) {
+      for (const pop of this.popsByClass.get(popType)) {
         let newPopulation = pop.update(Math.min(popLimit, food));
         popLimit -= newPopulation;
         food -= newPopulation;
@@ -271,5 +279,14 @@ export default class GameCell {
         this.popsByClass.get(pop.class).remove(pop);
       }
     }
+  }
+
+  export(): IGameCellView {
+    return {
+      populationSize: this.populationSize,
+      buildingByType: this.buildingByType,
+      xCoord: this.worldCell.x,
+      yCoord: this.worldCell.y,
+    };
   }
 }
