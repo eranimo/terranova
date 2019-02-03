@@ -907,6 +907,24 @@ amdefine@>=0.0.4:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/amdefine/-/amdefine-1.0.1.tgz#4a5282ac164729e93619bcfd3ad151f817ce91f5"
 
+amp-extend@^1.0.1:
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/amp-extend/-/amp-extend-1.0.1.tgz#6c543bee629c116b831857642f0ff940a15ae1ff"
+  dependencies:
+    amp-is-object "^1.0.0"
+
+amp-is-array@^1.0.1:
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/amp-is-array/-/amp-is-array-1.0.1.tgz#e7c42e450191b5e8a48ab02da69ce9e1f9a5058c"
+
+amp-is-number@^1.0.1:
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/amp-is-number/-/amp-is-number-1.0.1.tgz#f430d2e65d1bbd2cc41dbd9afb7f03d3e328a314"
+
+amp-is-object@^1.0.0, amp-is-object@^1.0.1:
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/amp-is-object/-/amp-is-object-1.0.1.tgz#0a8cb5956b9112a16a73677e8cbad37bba247702"
+
 ansi-align@^2.0.0:
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/ansi-align/-/ansi-align-2.0.0.tgz#c36aeccba563b89ceb556f3690f0b1d9e3547f7f"
@@ -2104,6 +2122,15 @@ cookie@0.3.1:
   version "0.3.1"
   resolved "https://registry.yarnpkg.com/cookie/-/cookie-0.3.1.tgz#e7e0a1f9ef43b4c8ba925c5c5a96e806d16873bb"
 
+coordinate-systems@^1.1.0:
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/coordinate-systems/-/coordinate-systems-1.1.0.tgz#aef2a12c48e114bdc205f6229d840fe7c354cb85"
+  dependencies:
+    amp-extend "^1.0.1"
+    amp-is-array "^1.0.1"
+    amp-is-number "^1.0.1"
+    amp-is-object "^1.0.1"
+
 copy-concurrently@^1.0.0:
   version "1.0.5"
   resolved "https://registry.yarnpkg.com/copy-concurrently/-/copy-concurrently-1.0.5.tgz#92297398cae34937fcafd6ec8139c18051f0b5e0"
@@ -2340,6 +2367,30 @@ cyclist@~0.2.2:
   version "0.2.2"
   resolved "https://registry.yarnpkg.com/cyclist/-/cyclist-0.2.2.tgz#1b33792e11e914a2fd6d6ed6447464444e5fa640"
 
+d3-array@1, d3-array@^1.0:
+  version "1.2.4"
+  resolved "https://registry.yarnpkg.com/d3-array/-/d3-array-1.2.4.tgz#635ce4d5eea759f6f605863dbcfc30edc737f71f"
+
+d3-delaunay@^4.1.2:
+  version "4.1.5"
+  resolved "https://registry.yarnpkg.com/d3-delaunay/-/d3-delaunay-4.1.5.tgz#4318c6d28b22988d88d11650eda440318afe419a"
+  dependencies:
+    delaunator "^2.0.0"
+
+d3-geo-voronoi@^1.1.2:
+  version "1.1.2"
+  resolved "https://registry.yarnpkg.com/d3-geo-voronoi/-/d3-geo-voronoi-1.1.2.tgz#df56adfec59e5f06803d36391b5baf9290be585e"
+  dependencies:
+    d3-array "^1.0"
+    d3-delaunay "^4.1.2"
+    d3-geo "^1.0"
+
+d3-geo@^1.0:
+  version "1.11.3"
+  resolved "https://registry.yarnpkg.com/d3-geo/-/d3-geo-1.11.3.tgz#5bb08388f45e4b281491faa72d3abd43215dbd1c"
+  dependencies:
+    d3-array "1"
+
 d@1:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/d/-/d-1.0.0.tgz#754bb5bfe55451da69a58b94d45f4c5b0462d58f"
@@ -2503,6 +2554,10 @@ del@^3.0.0:
     p-map "^1.1.1"
     pify "^3.0.0"
     rimraf "^2.2.8"
+
+delaunator@^2.0.0:
+  version "2.0.5"
+  resolved "https://registry.yarnpkg.com/delaunator/-/delaunator-2.0.5.tgz#c2a9ba2cf3d5aaab8fa0aa3ae82426d3fc0aeaf5"
 
 delayed-stream@~1.0.0:
   version "1.0.0"
@@ -3785,10 +3840,6 @@ hash.js@^1.0.0, hash.js@^1.0.3:
 he@1.1.x:
   version "1.1.1"
   resolved "https://registry.yarnpkg.com/he/-/he-1.1.1.tgz#93410fd21b009735151f8868c2f271f3427e23fd"
-
-hexasphere.js@^0.2.2:
-  version "0.2.2"
-  resolved "https://registry.yarnpkg.com/hexasphere.js/-/hexasphere.js-0.2.2.tgz#ff92de8659765744c044f76d4543d23fa14fd492"
 
 highlight-es@^1.0.0:
   version "1.0.3"
