@@ -33,7 +33,7 @@ class GlobeViewer {
     this.camera.position.set(0, 5, 5);
 
     console.time('hexasphere generation');
-    const hexasphere = new Hexasphere(5, 50, 0.98);
+    const hexasphere = new Hexasphere(5, 20, 0.9);
     console.log(hexasphere);
     console.timeEnd('hexasphere generation');
     const landMaterial = new THREE.MeshBasicMaterial({ color: 0x7cfc00, transparent: true });
@@ -60,9 +60,14 @@ class GlobeViewer {
         geometry.faces.push(new THREE.Face3(0,4,5));
       }
 
-      var x = (latLong.lon + 180) / 360;
-      var y = (latLong.lat + 90) / 180;
-      const height = (noise.noise2D(3 * x, 3 * y) + 1) / 2;
+      const R = 1000;
+      const lon = (latLong.lon + 180) / 360;
+      const lat = (latLong.lat + 90) / 180;
+      const x = R * Math.cos(lat) * Math.cos(lon);
+      const y = R * Math.cos(lat) * Math.sin(lon);
+      const z = R * Math.sin(lat);
+
+      const height = (noise.noise3D(5 * (x / R), 5 * (y / R), 5 * (z / R)) + 1) / 2;
       const materialIndex = (height < 0.5) ? 0 : 1;
       const mesh = new THREE.Mesh(geometry, materials[materialIndex]);
       mesh.matrixAutoUpdate = false;
