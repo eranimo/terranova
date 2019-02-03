@@ -5,6 +5,7 @@ import { ReactiveWorker } from '../utils/workers';
 
 import { map } from 'rxjs/operators';
 import { WorldRegion } from './WorldRegion';
+import GameCell from './GameCell';
 
 
 const ctx: Worker = self as any;
@@ -34,6 +35,28 @@ function gameInit() {
     );
   });
 
+  worker.addChannel('gamecells', () => {
+    const updates$ = new BehaviorSubject<GameCell[]>(game.gameCells.value);
+    updates$.next(game.gameCells.value);
+    game.gameCells.subscribe(updates$);
+    game.gameCells.subscribe(gameCells => {
+      for (const gameCell of gameCells) {
+        gameCell.newPop$.subscribe(() => {
+          updates$.next(game.gameCells.value);
+        });
+
+        gameCell.pops.subscribe(pop => {
+          pop.forEach(pop => pop.popGrowth$.subscribe(() => {
+            updates$.next(game.gameCells.value)
+          }));
+        });
+      }
+    });
+    return updates$.pipe(
+      map(gamecells => gamecells.map(gamecell => gamecell.export()))
+    );
+  })
+
   for (const [key, subject] of Object.entries(game.state)) {
     worker.send(EGameEvent.STATE_CHANGE, { key, value: subject.value });
     subject.subscribe(value => worker.send(EGameEvent.STATE_CHANGE, { key, value }));
@@ -42,7 +65,7 @@ function gameInit() {
   console.log('game init', game);
 }
 
-const worker = new ReactiveWorker(ctx, true)
+const worker = new ReactiveWorker(ctx, false)
   .on(EGameEvent.INIT, async ({ params }) => {
     const timeStart = performance.now();
     console.log('game params', params);

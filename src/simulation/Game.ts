@@ -6,8 +6,9 @@ import World from './World';
 import { IWorldCell } from './worldTypes';
 import { WorldRegion } from './WorldRegion';
 import { worldStore } from './stores';
-import GameCell, { Pop, EPopClass } from './GameCell';
+import GameCell, { Pop, EPopClass, IPopCoordinates, IGameCellView, IPopView, timeFactor } from './GameCell';
 import Array2D from '../utils/Array2D';
+import { ObservableSet } from './ObservableSet';
 
 
 export interface IGameData {
@@ -29,7 +30,8 @@ export default class Game extends GameLoop {
   gameData: IGameData;
   params: IGameParams;
   newRegion$: ReplaySubject<WorldRegion>;
-  gameCells: Set<GameCell>;
+  gameCells: ObservableSet<GameCell>;
+  gameCell$: ReplaySubject<IGameCellView>;
   gameCellMap: Array2D<GameCell>;
 
   constructor(params: IGameParams, onError: (error: Error) => void) {
@@ -37,6 +39,7 @@ export default class Game extends GameLoop {
     this.gameData = params.gameData || Object.assign({}, initialGameData);
     this.params = params;
     this.world = null;
+    this.gameCell$ = new ReplaySubject();
   }
 
   async init() {
@@ -112,9 +115,17 @@ export default class Game extends GameLoop {
     //   onFinished: () => console.log('timer done!'),
     // });
 
-    this.gameCells = new Set();
+    this.gameCells = new ObservableSet();
     this.gameCellMap = new Array2D(this.world.size.width, this.world.size.height);
 
+    console.log('GAME: add game cell');
+    const gc1 = this.populateCell(81, 135);
+    gc1.addPop(EPopClass.FORAGER, 1000);
+
+    setTimeout(() => {
+      region2.cells$.add(this.world.getCell(85, 136));
+      this.newRegion$.next(region2);
+    }, 6000);
     // perf test
     // for (let x = 0; x < 10; x++) {
     //   for (let y = 0; y < 10; y++) {
@@ -124,19 +135,27 @@ export default class Game extends GameLoop {
     //     gc1.addPop(new Pop(EPopClass.NOBLE, 50));
     //   }
     // }
+    this.addTimer({
+      ticksLength: 30,
+      isRepeated: true,
+      onTick: null,
+      onFinished: () =>  this.updatePops(),
+    });
   }
 
   populateCell(x: number, y: number): GameCell {
     const gameCell = new GameCell(this.world.getCell(x, y));
     this.gameCells.add(gameCell);
     this.gameCellMap.set(x, y, gameCell);
-
     return gameCell;
   }
 
   update(elapsedTime: number) {
     super.update(elapsedTime);
+  }
 
+  updatePops() {
+    console.log('update!');
     for (const gameCell of this.gameCells) {
       gameCell.update();
     }
