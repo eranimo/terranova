@@ -10,6 +10,7 @@ import { GameView } from './gameview';
 import { NewGameView } from './views/NewGameView';
 
 import * as URLS from './urls';
+import { GlobeView } from './globe/GlobeView';
 
 (window as any).VERSION = VERSION;
 
@@ -48,6 +49,10 @@ export class Application extends Component {
           <Route
             path={URLS.GAME_VIEW_URL}
             component={GameView}
+          />
+          <Route
+            path="/globe"
+            component={GlobeView}
           />
         </Switch>
       </BrowserRouter>
