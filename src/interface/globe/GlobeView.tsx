@@ -4,12 +4,16 @@ import * as THREE from 'three';
 const OrbitControls = require('three-orbit-controls')(THREE);
 import Hexasphere from 'hexasphere.js';
 import { materialize } from "rxjs/operators";
+import Stats from 'stats.js';
+import SimplexNoise from 'simplex-noise';
+import Alea from 'alea';
 
 
 class GlobeViewer {
   renderer: THREE.WebGLRenderer;
   scene: THREE.Scene;
-  camera: THREE.PerspectiveCamera
+  camera: THREE.PerspectiveCamera;
+  stats: Stats;
 
   constructor(element: HTMLDivElement) {
     this.scene = new THREE.Scene();
@@ -19,15 +23,26 @@ class GlobeViewer {
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     element.appendChild(this.renderer.domElement);
 
+    this.stats = new Stats();
+    this.stats.showPanel(1);
+    document.body.appendChild(this.stats.dom);
+
+    const rng = new (Alea as any)(Math.random());
+    const noise = new SimplexNoise(rng);
+
     this.camera.position.set(0, 5, 5);
 
-    const hexasphere = new Hexasphere(5, 55, 0.98);
     console.time('hexasphere generation');
+    const hexasphere = new Hexasphere(5, 50, 0.98);
     console.log(hexasphere);
     console.timeEnd('hexasphere generation');
     const landMaterial = new THREE.MeshBasicMaterial({ color: 0x7cfc00, transparent: true });
     const oceanMaterial = new THREE.MeshBasicMaterial({ color: 0x0f2342, transparent: true });
 
+    const materials = [landMaterial, oceanMaterial];
+
+    const tileMeshes: { mesh: THREE.Mesh, materialIndex: number }[] = [];
+    const totalGeometry = new THREE.Geometry();
     for (const tile of hexasphere.tiles) {
       const latLong = tile.getLatLon(hexasphere.radius);
 
@@ -45,25 +60,36 @@ class GlobeViewer {
         geometry.faces.push(new THREE.Face3(0,4,5));
       }
 
-      const material = (Math.random() < 0.5) ? landMaterial : oceanMaterial;
-      const mesh = new THREE.Mesh(geometry, material);
-      this.scene.add(mesh);
+      var x = (latLong.lon + 180) / 360;
+      var y = (latLong.lat + 90) / 180;
+      const height = (noise.noise2D(3 * x, 3 * y) + 1) / 2;
+      const materialIndex = (height < 0.5) ? 0 : 1;
+      const mesh = new THREE.Mesh(geometry, materials[materialIndex]);
+      mesh.matrixAutoUpdate = false;
+      tileMeshes.push({ mesh, materialIndex })
     }
+    for (const tileMesh of tileMeshes) {
+      tileMesh.mesh.updateMatrix();
+      totalGeometry.merge(tileMesh.mesh.geometry as any, tileMesh.mesh.matrix, tileMesh.materialIndex)
+    }
+    const combinedMesh = new THREE.Mesh(totalGeometry, new THREE.MeshFaceMaterial(materials));
+    this.scene.add(combinedMesh);
 
     const light = new THREE.AmbientLight( 0x111111 );
     this.scene.add(light);
 
     new OrbitControls(this.camera, this.renderer.domElement);
 
-    console.time('initial draw');
+    console.time('draw');
     this.draw();
-    console.timeEnd('initial draw');
+    console.timeEnd('draw');
   }
 
   draw() {
-    // requestAnimationFrame(this.draw.bind(this));
-
+    requestAnimationFrame(this.draw.bind(this));
+    this.stats.begin();
     this.renderer.render(this.scene, this.camera);
+    this.stats.end();
   }
 }
 
