@@ -11,6 +11,8 @@ import { NewGameView } from './views/NewGameView';
 
 import * as URLS from './urls';
 
+(window as any).VERSION = VERSION;
+
 export class Application extends Component {
   render() {
     return (

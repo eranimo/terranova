@@ -1,4 +1,4 @@
-import { Button, Card, Classes, FormGroup, InputGroup, MenuItem } from '@blueprintjs/core';
+import { Button, Card, Classes, FormGroup, InputGroup, MenuItem, Callout } from '@blueprintjs/core';
 import { Select } from '@blueprintjs/select';
 import classnames from 'classnames';
 import React, { Component, FormEvent } from 'react';
@@ -62,6 +62,11 @@ class WorldSelect extends Component<{
             : 'Select a world'}
           rightIcon="double-caret-vertical"
         />
+        {this.state.value && this.state.value.data.buildVersion !== VERSION && (
+          <Callout intent="warning" className="margin-v-1">
+            This world was saved in version <b>{this.state.value.data.buildVersion || '(no version)'}</b>, but the current version is <b>{VERSION}</b>
+          </Callout>
+        )}
       </WorldSelectInput>
     );
   }

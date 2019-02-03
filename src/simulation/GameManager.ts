@@ -39,20 +39,20 @@ export default class GameManager {
     this.params = await gameStore.load(this.saveName);
 
     // start game worker
-    this.worker = new ReactiveWorkerClient(new GameWorker(), false);
+    this.worker = new ReactiveWorkerClient(new GameWorker(), true);
 
     this.date$ = new Subject();
     this.worker.on<IGameDate>(EGameEvent.DATE)
       .subscribe((date) => this.date$.next(date));
 
     this.state = {
-      started: new BehaviorSubject(undefined),
-      running: new BehaviorSubject(undefined),
-      ticks: new BehaviorSubject(undefined),
-      dayCount: new BehaviorSubject(undefined),
-      speed: new BehaviorSubject(undefined),
-      speedIndex: new BehaviorSubject(undefined),
-      delta: new BehaviorSubject(undefined),
+      started: new BehaviorSubject<boolean>(undefined),
+      running: new BehaviorSubject<boolean>(undefined),
+      ticks: new BehaviorSubject<number>(undefined),
+      dayCount: new BehaviorSubject<number>(undefined),
+      speed: new BehaviorSubject<number>(undefined),
+      speedIndex: new BehaviorSubject<number>(undefined),
+      delta: new BehaviorSubject<number>(undefined),
     };
 
     // load world data
@@ -88,11 +88,19 @@ export default class GameManager {
       });
   }
 
+  pause() {
+    this.worker.action(EGameEvent.PAUSE).send();
+  }
+
+  play() {
+    this.worker.action(EGameEvent.PLAY).send();
+  }
+
   togglePlay() {
     if (this.state.running.value) {
-      this.worker.action(EGameEvent.PAUSE).send();
+      this.pause();
     } else {
-      this.worker.action(EGameEvent.PLAY).send();
+      this.play();
     }
   }
 
