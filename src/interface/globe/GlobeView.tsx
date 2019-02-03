@@ -7,6 +7,7 @@ import { materialize } from "rxjs/operators";
 import Stats from 'stats.js';
 import SimplexNoise from 'simplex-noise';
 import Alea from 'alea';
+import { colorToNumber, getHexColor } from "../../utils/color";
 
 
 class GlobeViewer {
@@ -30,58 +31,49 @@ class GlobeViewer {
     const rng = new (Alea as any)(Math.random());
     const noise = new SimplexNoise(rng);
 
-    this.camera.position.set(0, 5, 5);
+    this.camera.position.set(0, 6, 6);
 
-    console.time('hexasphere generation');
-    const hexasphere = new Hexasphere(5, 20, 0.9);
-    console.log(hexasphere);
-    console.timeEnd('hexasphere generation');
-    const landMaterial = new THREE.MeshBasicMaterial({ color: 0x7cfc00, transparent: true });
-    const oceanMaterial = new THREE.MeshBasicMaterial({ color: 0x0f2342, transparent: true });
+    const geometry = new THREE.SphereGeometry(5, 64, 64);
+    const material = new THREE.MeshPhongMaterial({
+      // color: 0xffff00,
+    });
+    const sphere = new THREE.Mesh( geometry, material );
+    this.scene.add( sphere );
 
-    const materials = [landMaterial, oceanMaterial];
-
-    const tileMeshes: { mesh: THREE.Mesh, materialIndex: number }[] = [];
-    const totalGeometry = new THREE.Geometry();
-    for (const tile of hexasphere.tiles) {
-      const latLong = tile.getLatLon(hexasphere.radius);
-
-      const geometry = new THREE.Geometry();
-
-      for (const bp of tile.boundary) {
-        geometry.vertices.push(new THREE.Vector3(bp.x, bp.y, bp.z))
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const width = 5 * 360;
+    const height = 5 * 180;
+    for (let x = 0; x < width; x++) {
+      for (let y = 0; y < height; y++) {
+        const nx = x / width - 0.5;
+        const ny = y / height - 0.5;
+        const value = ((noise.noise2D(30 * nx, 30 * ny) + 1) / 2) * 255;
+        const heightColor = colorToNumber(value, value, value);
+        // const heightColor = value < 100 ? 0xC0C0C0 : 0xDEDEDE;
+        ctx.fillStyle = `#${getHexColor(heightColor)}`;
+        ctx.fillRect(x, y, 1, 1,);
       }
-
-      geometry.faces.push(new THREE.Face3(0,1,2));
-      geometry.faces.push(new THREE.Face3(0,2,3));
-      geometry.faces.push(new THREE.Face3(0,3,4));
-
-      if(geometry.vertices.length > 5){
-        geometry.faces.push(new THREE.Face3(0,4,5));
-      }
-
-      const R = 1000;
-      const lon = (latLong.lon + 180) / 360;
-      const lat = (latLong.lat + 90) / 180;
-      const x = R * Math.cos(lat) * Math.cos(lon);
-      const y = R * Math.cos(lat) * Math.sin(lon);
-      const z = R * Math.sin(lat);
-
-      const height = (noise.noise3D(5 * (x / R), 5 * (y / R), 5 * (z / R)) + 1) / 2;
-      const materialIndex = (height < 0.5) ? 0 : 1;
-      const mesh = new THREE.Mesh(geometry, materials[materialIndex]);
-      mesh.matrixAutoUpdate = false;
-      tileMeshes.push({ mesh, materialIndex })
     }
-    for (const tileMesh of tileMeshes) {
-      tileMesh.mesh.updateMatrix();
-      totalGeometry.merge(tileMesh.mesh.geometry as any, tileMesh.mesh.matrix, tileMesh.materialIndex)
-    }
-    const combinedMesh = new THREE.Mesh(totalGeometry, new THREE.MeshFaceMaterial(materials));
-    this.scene.add(combinedMesh);
 
-    const light = new THREE.AmbientLight( 0x111111 );
+    const heightTexture = new THREE.CanvasTexture(
+      canvas,
+      THREE.EquirectangularReflectionMapping,
+      THREE.ClampToEdgeWrapping,
+      THREE.ClampToEdgeWrapping,
+      THREE.NearestFilter,
+      THREE.NearestFilter,
+    );
+    material.map = heightTexture;
+
+    const light = new THREE.AmbientLight( 0xffffff );
+    light.position.set( 1, 1, 1 ).normalize();
     this.scene.add(light);
+
+    var object = new THREE.Mesh( geometry, new THREE.MeshBasicMaterial({ color: 0xff0000 }));
+    var box = new THREE.BoxHelper( object, 0xffff00 as any);
+    this.scene.add( box );
+
 
     new OrbitControls(this.camera, this.renderer.domElement);
 
@@ -108,7 +100,9 @@ export class GlobeView extends Component<RouteComponentProps<{}>> {
   }
 
   componentDidMount() {
+    console.time('init');
     this.viewer = new GlobeViewer(this._scene.current);
+    console.timeEnd('init');
   }
 
   render() {
