@@ -347,7 +347,6 @@ function decideTerrainTypes(
   const terrainRoughness = ndarray(new Float32Array(width * height), [width, height]);
   for (let x = 0; x < width; x++) {
     for (let y = 0; y < height; y++) {
-      const allNeighbors = getNeighborsLabelled(x, y);
       const myHeight = heightmap.get(x, y);
       const cellType = cellTypes.get(x, y);
       let min = Infinity;
