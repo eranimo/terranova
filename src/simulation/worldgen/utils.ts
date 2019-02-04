@@ -1,7 +1,7 @@
 import { EWorldShape } from '../types';
-import ndarray from 'ndarray';
-import { groupBy, mapValues, memoize } from 'lodash';
-import fill from 'ndarray-fill';
+import * as ndarray from 'ndarray';
+import { groupBy, mapValues, memoize, sortBy } from 'lodash';
+import * as fill from 'ndarray-fill';
 import ops from 'ndarray-ops';
 import * as Stats from 'simple-statistics';
 import Alea from 'alea';
@@ -12,11 +12,17 @@ import { EDirection } from '../worldTypes';
 const rowNeighbors: number[] = [-1, -1, -1,  0, 0,  1, 1, 1];
 const colNeighbors: number[] = [-1,  0,  1, -1, 1, -1, 0, 1];
 
+function isValid(x: number, y: number, width: number, height) {
+  return x >= 0 && y >= 0 && x < width && y < height;
+}
+
 export function BFS(
   visited: ndarray,
   searchFunc: (x: number, y: number) => boolean,
   x: number,
-  y: number
+  y: number,
+  width: number,
+  height: number,
 ): [number, number][] {
   const queue: [number, number][] = [];
   queue.unshift([x, y]);
@@ -33,7 +39,13 @@ export function BFS(
     for (let i = 0; i < 8; i++) {
       const nx = cx + rowNeighbors[i];
       const ny = cy + colNeighbors[i];
-      if (searchFunc(nx, ny) && visited.get(nx, ny) === 0) {
+      if (!isValid(nx, ny, width, height)) {
+        continue;
+      }
+      if (
+        searchFunc(nx, ny) &&
+        visited.get(nx, ny) === 0
+      ) {
         visited.set(nx, ny, 1);
         queue.unshift([nx, ny]);
         output.push([nx, ny]);
@@ -47,18 +59,22 @@ export function groupDistinct(
   heuristic: (x: number, y: number) => boolean,
   width: number,
   height: number,
+  shouldSort: boolean = false,
 ): [number, number][][] {
   const visited = ndarray(new Uint8ClampedArray(width * height), [width, height]);
 
   // determine landFeatures
-  const result = [];
+  const result: [number, number][][]  = [];
   fill(visited, () => 0);
   for (let x = 0; x < width; x++) {
     for (let y = 0; y < height; y++) {
       if (heuristic(x, y) && visited.get(x, y) === 0) {
-        result.push(BFS(visited, heuristic, x, y));
+        result.push(BFS(visited, heuristic, x, y, width, height));
       }
     }
+  }
+  if (shouldSort) {
+    return sortBy(result, item => -item.length);
   }
   return result;
 }

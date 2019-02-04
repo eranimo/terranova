@@ -126,7 +126,7 @@ function removeDepressions(
     for (let y = 0; y < height; y++) {
       if (depressionCellsGrid.get(x, y) === 1 && visited.get(x, y) === 0) {
         // new island
-        const lakeCells = BFS(visited, groupFunc, x, y) as [number, number][];
+        const lakeCells = BFS(visited, groupFunc, x, y, width, height) as [number, number][];
         depressions.push(lakeCells);
       }
     }

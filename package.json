@@ -45,6 +45,7 @@
     "@blueprintjs/core": "3.6.1",
     "@blueprintjs/icons": "3.1.0",
     "@blueprintjs/select": "^3.2.1",
+    "@types/cytoscape": "^3.2.9",
     "@types/lodash": "^4.14.117",
     "@types/ndarray": "^1.0.6",
     "@types/pixi.js": "^4.8.0",
