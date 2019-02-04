@@ -25,7 +25,7 @@ describe('groupDistinct', () => {
       --XXX----X-
       --XX-----X-
       -----------
-      --XX-------
+      --XX---X---
       -----------
     `, {
       '-': false,
@@ -47,8 +47,11 @@ describe('groupDistinct', () => {
       true,
     );
 
-    console.log(groups);
-
-    expect(groups).toHaveLength(4);
+    expect(groups).toHaveLength(5);
+    expect(groups[0]).toHaveLength(5);
+    expect(groups[1]).toHaveLength(4);
+    expect(groups[2]).toHaveLength(3);
+    expect(groups[3]).toHaveLength(2);
+    expect(groups[4]).toHaveLength(1);
   });
 });

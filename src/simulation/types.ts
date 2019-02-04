@@ -78,7 +78,7 @@ export interface IWorldWorkerOutput {
   temperatureZones: ndarray.Data<number>;
   biomes: ndarray.Data<number>;
   terrainRoughness: ndarray.Data<number>;
-  features: Record<string, IFeature[] | Record<string, IFeature[]>>;
+  landforms: IFeature[];
 }
 
 export interface ITerrainWorkerOutput {

@@ -32,7 +32,15 @@ import {
   loopGridCircle,
 } from './utils';
 import { enumMembers } from '../../utils/enums';
+import Array2D from '../../utils/Array2D';
 
+
+interface IDrainageMap {
+  [id: number]: {
+    color: number,
+    cells: [number, number][],
+  }
+}
 
 const ctx: Worker = self as any;
 
@@ -70,12 +78,11 @@ function removeDepressions(
   // add all edges to the open queue
   // set them as "closed"
   // calculate all cell neighbors
-  const cellNeighbors = [];
+  const cellNeighbors = new Array2D<number[][]>(width, height);
   for (let x = 0; x < width; x++) {
-    cellNeighbors[x] = [];
     for (let y = 0; y < height; y++) {
-      cellNeighbors[x][y] = getValidNeighborsLabelled(x, y, width, height);
-      const isEdge = cellNeighbors[x][y].length != 4;
+      cellNeighbors.set(x, y, getValidNeighborsLabelled(x, y, width, height));
+      const isEdge = cellNeighbors.get(x, y).length != 4;
       if (isEdge) {
         open.add([x, y, heightmap.get(x, y)]);
         closed.set(x, y, 1);
@@ -92,7 +99,7 @@ function removeDepressions(
     }
     const [cx, cy] = cell;
 
-    for (const [nx, ny] of cellNeighbors[cx][cy]) {
+    for (const [nx, ny] of cellNeighbors.get(cx, cy)) {
       if (closed.get(nx, ny) === 1) continue;
       closed.set(nx, ny, 1);
       if (waterheight.get(nx, ny) <= waterheight.get(cx, cy)) {
@@ -104,6 +111,7 @@ function removeDepressions(
     }
   }
 
+  console.time('reverse depressions into mountains');
   // turn lakes into hills by inverting them
   let depressions: [number, number][][] = [];
   const depressionCellsGrid = ndarray(new Uint8ClampedArray(width * height), [width, height]);
@@ -156,6 +164,7 @@ function removeDepressions(
     }
     return true;
   });
+  console.timeEnd('reverse depressions into mountains');
 
   return { waterheight, cellNeighbors, heightmap, lakeCells };
 }
@@ -224,7 +233,7 @@ function decideTerrainTypes(
   heightmap: ndarray,
   waterheight: ndarray,
   flowDirections: ndarray,
-  cellNeighbors: [number, number, number][][][],
+  cellNeighbors: Array2D<number[][]>,
 ) {
   const { size: { width, height }, riverThreshold } = options;
 
@@ -235,6 +244,7 @@ function decideTerrainTypes(
 
   // inland ocean cells should be considered lakes
   // NOTE: assumes top-left cell of the map is an ocean cell
+  console.time('determine ocean');
   const isOcean = ndarray(new Int16Array(width * height), [width, height]);
   fill(isOcean, () => 0);
   const q = new Collections.Queue<[number, number]>();
@@ -244,13 +254,14 @@ function decideTerrainTypes(
     const [cx, cy] = q.dequeue();
     isOcean.set(cx, cy, 1);
 
-    for (const [nx, ny] of cellNeighbors[cx][cy]) {
+    for (const [nx, ny] of cellNeighbors.get(cx, cy)) {
       if (heightmap.get(nx, ny) <= sealevel && seenCells.get(nx, ny) === 0) {
         seenCells.set(nx, ny, 1);
         q.add([nx, ny]);
       }
     }
   }
+  console.timeEnd('determine ocean');
 
   const isLake = ndarray(new Int16Array(width * height), [width, height]);
   fill(isLake, (x, y) => waterheight.get(x, y) > heightmap.get(x, y));
@@ -262,6 +273,7 @@ function decideTerrainTypes(
   fill(upstreamCells, () => 0);
 
   // determine coastal cells by finding all land cells with at least one ocean neighbor
+  console.time('determine coastline');
   const coastalCells = [];
   const isCoastalCell = ndarray(new Int16Array(width * height), [width, height]);
   for (let x = 0; x < width; x++) {
@@ -269,8 +281,8 @@ function decideTerrainTypes(
       // cell is coastal if it's a land cell next to lake or ocean
       const isCoastal = (
         (isOcean.get(x, y) === 0 && isLake.get(x, y) === 0) &&
-        (cellNeighbors[x][y].some(([nx, ny]) => isOcean.get(nx, ny) === 1) ||
-         cellNeighbors[x][y].some(([nx, ny]) => isLake.get(nx, ny) === 1))
+        (cellNeighbors.get(x, y).some(([nx, ny]) => isOcean.get(nx, ny) === 1) ||
+         cellNeighbors.get(x, y).some(([nx, ny]) => isLake.get(nx, ny) === 1))
       );
       if (isCoastal) {
         coastalCells.push([x, y]);
@@ -280,12 +292,13 @@ function decideTerrainTypes(
       }
     }
   }
-  // console.log('coastalCells', coastalCells);
+  console.timeEnd('determine coastline');
 
   // determine upstream cell count
+  console.time('upstream count');
   function findUpstreamCount(x, y) {
     let count = 0;
-    for (const [nx, ny, ndir] of cellNeighbors[x][y]) {
+    for (const [nx, ny, ndir] of cellNeighbors.get(x, y)) {
       const neighborFlowDir: EDirection = flowDirections.get(nx, ny);
       const isUpstream = oppositeDirections[neighborFlowDir] === ndir;
       if (isUpstream) {
@@ -299,7 +312,9 @@ function decideTerrainTypes(
   for (const [x, y] of coastalCells) {
     findUpstreamCount(x, y);
   }
+  console.timeEnd('upstream count');
 
+  console.time('determine rivers');
   const data = Array.from(upstreamCells.data).filter(i => i > 0);
   // const upstreamCellsMax = ops.sup(upstreamCells);
   let riverThresholdAmount;
@@ -317,6 +332,7 @@ function decideTerrainTypes(
       }
     }
   }
+  console.timeEnd('determine rivers');
 
   const cellTypes = ndarray(new Int16Array(width * height), [width, height]);
   fill(cellTypes, (x, y) => {
@@ -326,6 +342,8 @@ function decideTerrainTypes(
     return ECellType.LAND;
   });
 
+  console.time('terrain roughness');
+  const range = 1;
   const terrainRoughness = ndarray(new Float32Array(width * height), [width, height]);
   for (let x = 0; x < width; x++) {
     for (let y = 0; y < height; y++) {
@@ -336,8 +354,8 @@ function decideTerrainTypes(
       let max = -Infinity;
       let changeInHeight = 0;
       let validCells = 0;
-      for (let nx = x - 2; nx < x + 2; nx++) {
-        for (let ny = y - 2; ny < y + 2; ny++) {
+      for (let nx = x - range; nx < x + range; nx++) {
+        for (let ny = y - range; ny < y + range; ny++) {
           if (isValidCell(nx, ny, width, height)) {
             const neighborHeight = heightmap.get(nx, ny);
             min = Math.min(min, neighborHeight);
@@ -353,8 +371,9 @@ function decideTerrainTypes(
       terrainRoughness.set(x, y, changeInHeight / validCells);
     }
   }
-  console.log('terrainRoughness', ndarrayStats(terrainRoughness));
+  console.timeEnd('terrain roughness');
 
+  console.time('determine cell features');
   const cellFeatures = ndarray(new Int16Array(width * height), [width, height]);
   let oceanCellCount = 0;
   fill(cellFeatures, (x, y) => {
@@ -372,7 +391,9 @@ function decideTerrainTypes(
     }
     return ECellFeature.LAND;
   });
+  console.timeEnd('determine cell features');
 
+  console.time('terrain types');
   const terrainMap = ndarray(new Int16Array(width * height), [width, height]);
   const ROUGHNESS_CUTOFF = 4;
   const HIGHNESS_CUTOFF = 140;
@@ -405,13 +426,14 @@ function decideTerrainTypes(
       }
     }
   });
+  console.timeEnd('terrain types');
 
   return { cellTypes, cellFeatures, upstreamCells, oceanCellCount, terrainRoughness, riverMap, terrainMap };
 }
 
 function decideDrainageBasins(
   options: IWorldMapGenOptions,
-  cellNeighbors: [number, number, number][][][],
+  cellNeighbors: Array2D<number[][]>,
   waterheight: ndarray,
   cellTypes: ndarray,
 ) {
@@ -457,7 +479,7 @@ function decideDrainageBasins(
       currentLabel++;
     }
 
-    for (const [nx, ny] of cellNeighbors[cx][cy]) {
+    for (const [nx, ny] of cellNeighbors.get(cx, cy)) {
       if (labels[nx][ny] !== undefined) continue;
       labels[nx][ny] = labels[cx][cy];
       if (waterheight.get(nx, ny) <= z) {
@@ -468,12 +490,7 @@ function decideDrainageBasins(
     }
   }
 
-  const drainageBasins: {
-    [id: number]: {
-      color: number,
-      cells: [number, number][],
-    }
-  } = {};
+  const drainageBasins: IDrainageMap = {};
   for (let x = 0; x < width; x++) {
     for (let y = 0; y < height; y++) {
       if (cellTypes.get(x, y) === ECellType.OCEAN) continue;
@@ -653,15 +670,13 @@ function generateBiomes(
   };
 }
 
-function findFeatures(
+function findLandforms(
   options: IWorldMapGenOptions,
   cellTypes: ndarray,
   riverMap: ndarray,
   oceanCellCount: number,
-  lakeCells: [number, number][][],
   cellFeatures: ndarray,
-  biomes: ndarray,
-): Record<string, IFeature[] | Record<string, IFeature[]>> {
+): IFeature[] {
   const { size: { width, height } } = options;
   const landCellCount = (width * height) - oceanCellCount;
 
@@ -677,52 +692,16 @@ function findFeatures(
   }));
 
   // determine rivers
-  let riverCount = 0;
   let lakeCount = 0;
   for (let x = 0; x < width; x++) {
     for (let y = 0; y < height; y++) {
-      if (riverMap.get(x, y) === 1) {
-        riverCount++;
-      } else if (cellFeatures.get(x, y) === ECellFeature.LAKE) {
+      if (cellFeatures.get(x, y) === ECellFeature.LAKE) {
         lakeCount++;
       }
     }
   }
-  const rivers: IFeature[] = groupDistinct(
-    (x: number, y: number) => (
-      riverMap.get(x, y) === 1
-    ),
-    width, height,
-  ).map((cells, index) => ({
-    relativeSize: cells.length / riverCount,
-    id: index,
-    size: cells.length,
-    cells,
-  }));
 
-  const lakes: IFeature[] = lakeCells.map((cells, index) => ({
-    relativeSize: cells.length / lakeCount,
-    id: index,
-    size: cells.length,
-    cells,
-  }));
-
-  const bioregions = {};
-  for (const biome of enumMembers<EBiome>(EBiome)) {
-    bioregions[biome] = groupDistinct(
-      (x: number, y: number) => (
-        biomes.get(x, y) === biome
-      ),
-      width, height,
-    ).map((cells, index) => ({
-      relativeSize: cells.length / landCellCount,
-      id: index,
-      size: cells.length,
-      cells,
-    }));
-  }
-
-  return { rivers, lakes, landmasses, bioregions };
+  return landmasses;
 }
 
 function runTerrainWorker<T>(
@@ -739,6 +718,16 @@ function runTerrainWorker<T>(
   });
 }
 
+async function step(label: string, func: () => unknown) {
+  console.group(`Step: ${label}`);
+  const startTime = performance.now();
+  await func();
+  const endTime = performance.now();
+  console.info(`Execution time (${label}): ${endTime - startTime}ms`);
+  console.groupEnd();
+  return endTime - startTime;
+}
+
 const createWorkerRunner = (
   workerClass: any,
   options: IWorldMapGenOptions,
@@ -748,85 +737,100 @@ const createWorkerRunner = (
 ctx.onmessage = async (event: MessageEvent) => {
   const options: IWorldMapGenOptions = event.data;
   const sealevel = options.sealevel;
+  const { size: { width, height } } = options;
   console.time('Worldgen');
 
-  console.time('step: terrain');
+  let waterheight: ndarray;
+  let cellNeighbors: Array2D<number[][]>;
+  let heightmap: ndarray;
+  let flowDirections: ndarray;
+  let cellTypes: ndarray;
+  let cellFeatures: ndarray;
+  let upstreamCells: ndarray;
+  let oceanCellCount: number;
+  let terrainRoughness: ndarray;
+  let riverMap: ndarray;
+  let terrainMap: ndarray;
+  let drainageBasins: IDrainageMap;
+  let temperatures: ndarray;
+  let moistureMap: ndarray;
+  let biomes: ndarray;
+  let moistureZones: ndarray;
+  let temperatureZones: ndarray;
+  let landforms: IFeature[];
+  let stepTimes = {};
 
-  console.time('terrain init');
-  const TerrainWorker = require('./terrain.worker');
-  console.timeEnd('terrain init');
+  stepTimes['terrain'] = await step('Terrain', async () => {
+    await step('Generate', async () => {
+      const TerrainWorker = require('./terrain.worker');
+      const heightmapData = new SharedArrayBuffer(width * height * Uint8ClampedArray.BYTES_PER_ELEMENT);
+      const terrainWorkerRunner = createWorkerRunner(TerrainWorker, options, heightmapData);
 
-  console.time('terrain worker');
-  const { size: { width, height } } = options;
-  const heightmapData = new SharedArrayBuffer(width * height * Uint8ClampedArray.BYTES_PER_ELEMENT);
-  const terrainWorkerRunner = createWorkerRunner(TerrainWorker, options, heightmapData);
+      // top left
+      const workerPromises = [];
+      const TERRAIN_WORKER_SPLIT = 1;
+      for (let cx = 0; cx < width; cx += width / TERRAIN_WORKER_SPLIT) {
+        for (let cy = 0; cy < height; cy += height / TERRAIN_WORKER_SPLIT) {
+          workerPromises.push(terrainWorkerRunner([cx, cy, cx + (width / TERRAIN_WORKER_SPLIT), cy + (height / TERRAIN_WORKER_SPLIT)]));
+        }
+      }
+      await Promise.all(workerPromises);
+      heightmap = ndarray(new Uint8ClampedArray(heightmapData), [width, height]);
+    });
 
-  // top left
-  const workerPromises = [];
-  const TERRAIN_WORKER_SPLIT = 1;
-  for (let cx = 0; cx < width; cx += width / TERRAIN_WORKER_SPLIT) {
-    for (let cy = 0; cy < height; cy += height / TERRAIN_WORKER_SPLIT) {
-      workerPromises.push(terrainWorkerRunner([cx, cy, cx + (width / TERRAIN_WORKER_SPLIT), cy + (height / TERRAIN_WORKER_SPLIT)]));
-    }
-  }
-  await Promise.all(workerPromises);
-  console.timeEnd('terrain worker');
-  const heightmap = ndarray(new Uint8ClampedArray(heightmapData), [width, height]);
+    await step('Remove depressions', () => {
+      const result = removeDepressions(options, heightmap, options.sealevel);
+      waterheight = result.waterheight;
+      cellNeighbors = result.cellNeighbors;
+    });
 
-  console.time('terrain reinit');
-  console.timeEnd('terrain reinit');
+    return {}
+  });
 
-  console.time('step: remove depressions');
-  const { waterheight, cellNeighbors, lakeCells } = removeDepressions(options, heightmap, options.sealevel);
-  console.timeEnd('step: remove depressions');
+  stepTimes['flow'] = await step('Determine flow directions', () => {
+    flowDirections = determineFlowDirections(options, heightmap);
+  });
 
-  console.timeEnd('step: terrain');
+  stepTimes['terrain_types'] = await step('Determine terrain', () => {
+    let result = decideTerrainTypes(options, sealevel, heightmap, waterheight, flowDirections, cellNeighbors);
+    cellTypes = result.cellTypes;
+    cellFeatures = result.cellFeatures;
+    upstreamCells = result.upstreamCells;
+    oceanCellCount = result.oceanCellCount;
+    terrainRoughness = result.terrainRoughness;
+    riverMap = result.riverMap;
+    terrainMap = result.terrainMap;
+  });
 
-  console.time('step: determineFlowDirections');
-  const flowDirections = determineFlowDirections(options, heightmap);
-  console.timeEnd('step: determineFlowDirections');
+  stepTimes['drainage_basins'] = await step('Determine drainage basins', () => {
+    drainageBasins = decideDrainageBasins(options, cellNeighbors, waterheight, cellTypes);
+  });
 
-  console.time('step: decideTerrainTypes');
-  let {
-    cellTypes,
-    cellFeatures,
-    upstreamCells,
-    oceanCellCount,
-    terrainRoughness,
-    riverMap,
-    terrainMap,
-  } = decideTerrainTypes(options, sealevel, heightmap, waterheight, flowDirections, cellNeighbors);
-  console.timeEnd('step: decideTerrainTypes');
+  stepTimes['temperature'] = await step('Generate temperature', () => {
+    temperatures = decideTemperature(options, sealevel, waterheight);
+  });
 
-  console.time('step: decideDrainageBasins');
-  const drainageBasins = decideDrainageBasins(options, cellNeighbors, waterheight, cellTypes);
-  console.timeEnd('step: decideDrainageBasins');
+  stepTimes['moisture'] = await step('Generate moisture', () => {
+    moistureMap = generateMoisture(options, heightmap, sealevel, cellTypes, riverMap);
+  });
 
-  console.time('step: decideTemperature');
-  const temperatures = decideTemperature(options, sealevel, waterheight);
-  console.timeEnd('step: decideTemperature');
+  stepTimes['biomes'] = await step('Generate biomes', () => {
+    const result = generateBiomes(options, temperatures, moistureMap, cellTypes, cellFeatures);
+    biomes = result.biomes;
+    moistureZones = result.moistureZones;
+    temperatureZones = result.temperatureZones;
+  });
 
-  console.time('step: generateMoisture');
-  const moistureMap = generateMoisture(options, heightmap, sealevel, cellTypes, riverMap);
-  console.timeEnd('step: generateMoisture');
-
-  console.time('step: generateBiomes');
-  const {
-    biomes,
-    moistureZones,
-    temperatureZones
-  } = generateBiomes(options, temperatures, moistureMap, cellTypes, cellFeatures);
-  console.timeEnd('step: generateBiomes');
-
-  console.time('step: findFeatures');
-  const features = findFeatures(options, cellTypes, riverMap, oceanCellCount, lakeCells, cellFeatures, biomes);
-  console.timeEnd('step: findFeatures');
+  stepTimes['landforms'] = await step('Determine landforms', () => {
+    landforms = findLandforms(options, cellTypes, riverMap, oceanCellCount, cellFeatures);
+  });
 
   // console.log('upstreamCells', ndarrayStats(upstreamCells));
   // console.log('moistureMap', ndarrayStats(moistureMap));
   // console.log('temperatures', ndarrayStats(temperatures));
   // console.log('biomes', countUnique(biomes));
   console.timeEnd('Worldgen');
+  console.log('execution times', stepTimes);
 
   // convert from SharedArrayBuffer
   const heightmapC = ndarray(new Uint8ClampedArray(width * height), [width, height]);
@@ -850,7 +854,7 @@ ctx.onmessage = async (event: MessageEvent) => {
     temperatureZones: temperatureZones.data,
     terrainRoughness: terrainRoughness.data,
     biomes: biomes.data,
-    features,
+    landforms,
   };
   ctx.postMessage(output, [
     (flowDirections.data as any).buffer,

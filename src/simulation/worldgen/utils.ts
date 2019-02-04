@@ -42,13 +42,12 @@ export function BFS(
       if (!isValid(nx, ny, width, height)) {
         continue;
       }
-      if (
-        searchFunc(nx, ny) &&
-        visited.get(nx, ny) === 0
-      ) {
+      if (visited.get(nx, ny) === 0) {
         visited.set(nx, ny, 1);
-        queue.unshift([nx, ny]);
-        output.push([nx, ny]);
+        if (searchFunc(nx, ny)) {
+          queue.unshift([nx, ny]);
+          output.push([nx, ny]);
+        }
       }
     }
   }
@@ -138,8 +137,8 @@ export const getValidNeighborsLabelled = (
   width: number,
   height: number
 ): number[][] => (
-  getNeighborsLabelled(x, y)
-    .filter(([x, y]) => x >= 0 && y >= 0 && x < width && y < height)
+  _getNeighborsLabelled(x, y)
+    .filter(([nx, ny]) => isValidCell(nx, ny, width, height))
 );
 
 export function shuffle<T>(rng, a: Array<T>): Array<T> {
