@@ -46,16 +46,20 @@ export default class GameManager {
       .subscribe((date) => this.date$.next(date));
 
     this.state = {
-      started: new BehaviorSubject(undefined),
-      running: new BehaviorSubject(undefined),
-      ticks: new BehaviorSubject(undefined),
-      dayCount: new BehaviorSubject(undefined),
-      speed: new BehaviorSubject(undefined),
-      speedIndex: new BehaviorSubject(undefined),
+      started: new BehaviorSubject<boolean>(undefined),
+      running: new BehaviorSubject<boolean>(undefined),
+      ticks: new BehaviorSubject<number>(undefined),
+      dayCount: new BehaviorSubject<number>(undefined),
+      speed: new BehaviorSubject<number>(undefined),
+      speedIndex: new BehaviorSubject<number>(undefined),
+      delta: new BehaviorSubject<number>(undefined),
     };
 
     // load world data
     this.world = await worldStore.load(this.params.worldSaveName);
+
+    // world map events
+    this.worldMap = new WorldMap(this.world)
 
     // send INIT event to worker
     this.loading$ = new BehaviorSubject(true);
@@ -64,6 +68,20 @@ export default class GameManager {
       .subscribe((startupTime) => {
         console.log(`Startup time: ${startupTime}`);
         this.loading$.next(true);
+
+        this.worker.channel('regions', (regions) => {
+          console.log('region channel', regions);
+          for (const region of regions) {
+            this.worldMap.addRegion(region);
+          }
+        });
+
+        this.worker.channel('gamecells', (gamecells) => {
+          console.log('gamecell channel', gamecells);
+          for (const gamecell of gamecells) {
+            this.worldMap.addGameCell(gamecell);
+          }
+        });
       });
 
     // listen for state change events
@@ -71,25 +89,21 @@ export default class GameManager {
       .subscribe(({ key, value }) => {
         this.state[key].next(value);
       });
+  }
 
-    // world map events
-    this.worldMap = new WorldMap(this.world);
-    this.worker.on<IWorldRegionView>(EGameEvent.NEW_REGION)
-      .subscribe((region: IWorldRegionView) => {
-        this.worldMap.addRegion(region);
-      });
-    this.worker.on(EGameEvent.NEW_GAME_CELL).
-      subscribe((gameCell: IGameCellView) => {
-        console.log("Got it");
-        this.worldMap.addGameCell(gameCell);
-    });
+  pause() {
+    this.worker.action(EGameEvent.PAUSE).send();
+  }
+
+  play() {
+    this.worker.action(EGameEvent.PLAY).send();
   }
 
   togglePlay() {
     if (this.state.running.value) {
-      this.worker.action(EGameEvent.PAUSE).send();
+      this.pause();
     } else {
-      this.worker.action(EGameEvent.PLAY).send();
+      this.play();
     }
   }
 

@@ -11,7 +11,7 @@ export class WorldMap {
   cellRegionMap: Array2D<string>;
   cellRegionUpdate$: Array2D<ReplaySubject<string>>;
   regionUpdate$: ReplaySubject<IWorldRegionView>;
-  gameCellMap: Array2D<IGameCellView>
+  gameCellMap: Array2D<IGameCellView>;
 
   constructor(world: World) {
     this.world = world;

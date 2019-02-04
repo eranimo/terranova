@@ -1,12 +1,15 @@
-import { BehaviorSubject } from 'rxjs';
+import { BehaviorSubject, Subject } from 'rxjs';
 
 
 export class ObservableSet<T> extends BehaviorSubject<T[]> {
   public data: Set<T>;
+  updates$: Subject<number>;
 
   constructor(initialData: T[] = []) {
     super(initialData);
     this.data = new Set(initialData);
+    this.updates$ = new Subject<number>();
+    this.updates$.next(this.size);
   }
 
   public add(...data: T[]) {
@@ -16,6 +19,7 @@ export class ObservableSet<T> extends BehaviorSubject<T[]> {
     if (data.length > 0) {
       this.next(Array.from(this.data));
     }
+    this.updates$.next(this.size);
   }
 
   public remove(...data: T[]) {
@@ -25,6 +29,7 @@ export class ObservableSet<T> extends BehaviorSubject<T[]> {
     if (data.length > 0) {
       this.next(Array.from(this.data));
     }
+    this.updates$.next(this.size);
   }
 
   get size() {

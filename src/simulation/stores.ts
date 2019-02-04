@@ -9,6 +9,7 @@ export const worldStore = new SaveStore<World>({
   createEntry: (world: World) => ({
     options: world.params.options,
     worldString: world.exportString,
+    buildVersion: world.params.buildVersion,
   }),
   createRecord: (world: World) => world.params,
 });
@@ -23,7 +24,7 @@ export const gameStore = new SaveStore<IGameParams>({
 });
 
 export async function gameFactory(params: IGameParams): Promise<Game> {
-  const game = new Game(params);
+  const game = new Game(params, console.error);
   await gameStore.save(game.params, params.name);
   return game;
 }

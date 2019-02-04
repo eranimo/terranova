@@ -127,7 +127,7 @@ export const buildingAttributes: Record<EBuildingType, IBuildingAttributes> = {
 
 export class Pop {
   readonly class: EPopClass;
-  private population: number;
+  population: number;
   readonly growthRate: number; // per Month
   popGrowth$: Subject<number>;
 
@@ -154,10 +154,6 @@ export class Pop {
   private updatePopulation(maxPop: number) {
     this.population = Math.min(this.population * (1 + this.growthRate), maxPop);
     this.popGrowth$.next(this.population);
-  }
-
-  get totalPopulation: number {
-    return this.population;
   }
 
   update(maxPop: number): number {
@@ -206,7 +202,7 @@ const requiredBuilding: Record<EBuildingType, EPopClass | null> = {
 };
 
 export interface IGameCellView {
-  pops: Set<IPopView>,
+  populationSize: number,
   buildingByType: Record<EBuildingType, number>,
   xCoord: number,
   yCoord: number
@@ -253,11 +249,19 @@ export default class GameCell {
       }
   }
 
+  get populationSize(): number {
+    let result: number = 0;
+    for (const pop of this.pops) {
+      result += pop.population;
+    }
+    return result;
+  }
+
   // ran every tick
   update() {
     const deltas = new Array<IGameCellDelta>();
     for (const pop of this.pops) {
-      deltas.push(popClassAttributes[pop.class].labor(pop.totalPopulation, this));
+      deltas.push(popClassAttributes[pop.class].labor(pop.population, this));
     }
     const delta = deltas.reduce((previous: IGameCellDelta, next: IGameCellDelta) : IGameCellDelta => {
       let buildingDeltas = new Map<EBuildingType, number>();
@@ -297,7 +301,7 @@ export default class GameCell {
       let buildingDelta = Math.floor((delta.maxBuildings.get(buildingType) - currBuildings) / maintenanceFactor);
       this.buildingByType[buildingType] = currBuildings + buildingDelta;
       const maxPeople = delta.maxPeople;
-      if (maxPeople.has(requiredBuilding[buildingType])) {\
+      if (maxPeople.has(requiredBuilding[buildingType])) {
         maxPeople.set(
           requiredBuilding[buildingType],
           Math.max(this.buildingByType[buildingType], maxPeople.get(requiredBuilding[buildingType]))
@@ -312,7 +316,7 @@ export default class GameCell {
       let popLimit = delta.maxPeople.get(popType);
       let popsToRemove = new Array<Pop>();
       let totalInClass = 0;
-      for(const pop of this.popsByClass.get(popType)) {
+      for (const pop of this.popsByClass.get(popType)) {
         let newPopulation = pop.update(Math.min(popLimit, food));
         popLimit = Math.max(popLimit - newPopulation, 0);
         food = Math.max(food - newPopulation, 0);
@@ -344,7 +348,7 @@ export default class GameCell {
             if (maxNewPopulation > 0) {
               let popsFromSource = sourcePop.emigrate(maxNewPopulation, destPop);
               maxNewPopulation -= popsFromSource;
-              if (sourcePop.totalPopulation <= 0) {
+              if (sourcePop.population <= 0) {
                 popsToRemove.push(sourcePop);
               }
             }
@@ -353,5 +357,14 @@ export default class GameCell {
         }
       }
     }
+  }
+
+  export(): IGameCellView {
+    return {
+      populationSize: this.populationSize,
+      buildingByType: this.buildingByType,
+      xCoord: this.worldCell.x,
+      yCoord: this.worldCell.y,
+    };
   }
 }
