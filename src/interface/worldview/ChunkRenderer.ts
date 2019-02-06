@@ -164,7 +164,7 @@ export class ChunkRenderer {
 
   private renderChunk(chunkX: number, chunkY: number): IChunkData {
     if (this.renderedChunks.has(chunkX, chunkY)) {
-      return;
+      return this.renderedChunks.get(chunkX, chunkY);
     }
     const { cellWidth, cellHeight, chunkWidth, chunkHeight } = this.options;
 
