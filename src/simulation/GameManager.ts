@@ -80,11 +80,10 @@ export default class GameManager {
           console.log('alpha cells', cells);
         });
 
-        this.worker.channel('gamecells', (gamecells) => {
-          console.log('gamecell channel', gamecells);
-          for (const gamecell of gamecells) {
-            this.worldMap.addGameCell(gamecell);
-          }
+        this.worker.channel('gamecell', (gameCell) => {
+          console.log('gamecell channel', gameCell);
+          console.log('Pop Info', gameCell.pops.reduce((prev, next) => prev + next.population, 0));
+          this.worldMap.addGameCell(gameCell);
         });
       });
 

@@ -1,6 +1,6 @@
 import { meanBy } from 'lodash';
 import { Point } from 'pixi.js';
-import { ReplaySubject, Subject } from 'rxjs';
+import { ReplaySubject, Subject, BehaviorSubject } from 'rxjs';
 import GameLoop from './GameLoop';
 import World from './World';
 import { IWorldCell } from './worldTypes';
@@ -31,7 +31,7 @@ export default class Game extends GameLoop {
   params: IGameParams;
   newRegion$: ReplaySubject<WorldRegion>;
   gameCells: ObservableSet<GameCell>;
-  gameCell$: ReplaySubject<IGameCellView>;
+  gameCell$: ReplaySubject<GameCell>;
   gameCellMap: Array2D<GameCell>;
 
   constructor(params: IGameParams, onError: (error: Error) => void) {
@@ -40,6 +40,7 @@ export default class Game extends GameLoop {
     this.params = params;
     this.world = null;
     this.gameCell$ = new ReplaySubject();
+    this.gameCell$.subscribe(gameCell => this.gameCells.add(gameCell));
   }
 
   async init() {
@@ -136,7 +137,7 @@ export default class Game extends GameLoop {
     //   }
     // }
     this.addTimer({
-      ticksLength: 30,
+      ticksLength: 360,
       isRepeated: true,
       onTick: null,
       onFinished: () =>  this.updatePops(),
