@@ -1,17 +1,12 @@
-<<<<<<< HEAD
-import { IWorldCell } from './worldTypes';
 import { BehaviorSubject, Observable } from 'rxjs';
-=======
-import { BehaviorSubject, ReplaySubject } from 'rxjs';
->>>>>>> 0a3483f2aa964fefd5eb9c0345995ebc15c6e16d
-import { EGameEvent } from './gameTypes';
-import Game, { IGameParams } from './Game';
+import { map, mergeMap } from 'rxjs/operators';
 import { ReactiveWorker } from '../utils/workers';
-import { IGameCellView, IPopView } from './GameCell'
-import { map, switchMap, merge, mergeMap } from 'rxjs/operators';
-import { WorldRegion } from './WorldRegion';
+import Game from './Game';
 import GameCell from './GameCell';
+import { EGameEvent } from './gameTypes';
 import { ObservableSet } from './ObservableSet';
+import { WorldRegion } from './WorldRegion';
+import { IWorldCell } from './worldTypes';
 
 const ctx: Worker = self as any;
 
@@ -72,7 +67,7 @@ function gameInit() {
   worker.addChannel('gamecell', () => {
     return game.gameCell$.pipe(
       mergeMap(gameCell => gameCell.gameCellState$));
-  });        
+  });
 
   worker.addChannel('gamecells', () => {
     const updates$ = new BehaviorSubject<GameCell[]>(game.gameCells.value);
