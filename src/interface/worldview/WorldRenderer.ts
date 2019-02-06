@@ -256,7 +256,6 @@ export default class WorldRenderer {
       })
       .on('moved', () => {
         this.chunkRenderer.render();
-        this.update();
         this.updateViewportState();
       });
   }
