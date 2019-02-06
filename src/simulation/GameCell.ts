@@ -261,10 +261,9 @@ export default class GameCell {
       xCoord: this.worldCell.x,
       yCoord: this.worldCell.y
     }
-
   }
+
   deliverState() {
-    console.log('Hello')
     this.gameCellState$.next(this.getState())
   }
 

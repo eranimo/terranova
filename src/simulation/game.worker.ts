@@ -46,7 +46,6 @@ function channelFromObservableSetItems<T, V = T>(
 function gameInit() {
   game.date$.subscribe(date => worker.send(EGameEvent.DATE, date));
 
-  // emits on every region update (new regions, region changed)
   channelFromObservableSet(
     game.world.regions,
     'regions',
