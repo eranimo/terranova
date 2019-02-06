@@ -75,3 +75,42 @@ Steps and config:
     - calculate insolation (input), and radiance (output)
     - calculate temperature
     - spread temperature to neighboring cells
+
+
+
+# UI
+- New Game
+  1. World Generator
+
+  UI:
+    - top left:
+      - dropdown menu:
+        - save map (open modal)
+        - load map (open modal)
+        - exit
+      - world config dropdown
+      - regenerate button
+      - randomize button
+    - left sidebar (33% width)
+      - world config
+      - bottom:
+        - start game button (primary)
+    - bottom right:
+      - map mode menu
+      - minimap
+      - view controls:
+        - grid
+        - debug layer
+        - coastline border
+        - regions
+  2. Game Generator: edit game starting conditions
+- Game
+  - load map
+  - load game
+  - start game worker
+
+  UI:
+    - full page card
+
+- Load Game: list of saved games
+- Options
