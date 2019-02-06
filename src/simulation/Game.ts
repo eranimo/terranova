@@ -1,6 +1,6 @@
 import { meanBy } from 'lodash';
 import { Point } from 'pixi.js';
-import { ReplaySubject, Subject } from 'rxjs';
+import { ReplaySubject, Subject, BehaviorSubject } from 'rxjs';
 import GameLoop from './GameLoop';
 import World from './World';
 import { IWorldCell } from './worldTypes';
@@ -31,7 +31,7 @@ export default class Game extends GameLoop {
   params: IGameParams;
   newRegion$: ReplaySubject<WorldRegion>;
   gameCells: ObservableSet<GameCell>;
-  gameCell$: ReplaySubject<IGameCellView>;
+  gameCell$: ReplaySubject<GameCell>;
   gameCellMap: Array2D<GameCell>;
 
   constructor(params: IGameParams, onError: (error: Error) => void) {
@@ -40,6 +40,7 @@ export default class Game extends GameLoop {
     this.params = params;
     this.world = null;
     this.gameCell$ = new ReplaySubject();
+    this.gameCell$.subscribe(gameCell => this.gameCells.add(gameCell));
   }
 
   async init() {
@@ -89,9 +90,9 @@ export default class Game extends GameLoop {
     }, 4000);
 
     setTimeout(() => {
-      console.log('GAME: update region Beta')
-      region2.cells$.add(this.world.getCell(85, 136));
-      this.newRegion$.next(region2);
+      console.log('GAME: update region Alpha')
+      region1.cells$.add(this.world.getCell(85, 136));
+      this.newRegion$.next(region1);
     }, 6000);
 
     setTimeout(() => {
@@ -136,7 +137,7 @@ export default class Game extends GameLoop {
     //   }
     // }
     this.addTimer({
-      ticksLength: 30,
+      ticksLength: 360,
       isRepeated: true,
       onTick: null,
       onFinished: () =>  this.updatePops(),
@@ -155,7 +156,6 @@ export default class Game extends GameLoop {
   }
 
   updatePops() {
-    console.log('update!');
     for (const gameCell of this.gameCells) {
       gameCell.update();
     }
