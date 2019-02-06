@@ -1,1 +1,1 @@
-export { WorldGenerator, RegionGenerator } from './worldgen';
+export { WorldGenerator } from './worldgen';
