@@ -127,17 +127,9 @@ export default class Game extends GameLoop {
       region2.cells$.add(this.world.getCell(85, 136));
       this.newRegion$.next(region2);
     }, 6000);
-    // perf test
-    // for (let x = 0; x < 10; x++) {
-    //   for (let y = 0; y < 10; y++) {
-    //     const gc1 = this.populateCell(x, y);
-    //     gc1.addPop(new Pop(EPopClass.FORAGER, 1000));
-    //     gc1.addPop(new Pop(EPopClass.FARMER, 10000));
-    //     gc1.addPop(new Pop(EPopClass.NOBLE, 50));
-    //   }
-    // }
+
     this.addTimer({
-      ticksLength: 360,
+      ticksLength: 30,
       isRepeated: true,
       onTick: null,
       onFinished: () =>  this.updatePops(),

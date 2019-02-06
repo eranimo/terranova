@@ -28,11 +28,14 @@ function channelFromObservableSetItems<T, V = T>(
   set: ObservableSet<T>,
   nameFunc: (value: T) => string,
   createFunc: (value: T) => Observable<V>,
-  mappingFunc: (value: V) => any,
+  mappingFunc?: (value: V) => any,
 ) {
   const createChannel = (item: T) => {
     worker.addChannel(nameFunc(item), () => {
-      return createFunc(item).pipe(map(mappingFunc));
+      if (mappingFunc) {
+        return createFunc(item).pipe(map(mappingFunc));
+      }
+      return createFunc(item);
     });
   }
   set.value.forEach(createChannel);
@@ -45,6 +48,11 @@ function channelFromObservableSetItems<T, V = T>(
 
 function gameInit() {
   game.date$.subscribe(date => worker.send(EGameEvent.DATE, date));
+  for (const [key, subject] of Object.entries(game.state)) {
+    worker.send(EGameEvent.STATE_CHANGE, { key, value: subject.value });
+    subject.subscribe(value => worker.send(EGameEvent.STATE_CHANGE, { key, value }));
+  }
+  console.log('game init', game);
 
   channelFromObservableSet(
     game.world.regions,
@@ -63,42 +71,20 @@ function gameInit() {
   );
 
   // //Emits a cell when the cell changes
-  worker.addChannel('gamecell', () => {
-    return game.gameCell$.pipe(
-      mergeMap(gameCell => gameCell.gameCellState$));
-  });
+  channelFromObservableSet(
+    game.gameCells,
+    'gamecells',
+    gameCells => gameCells.map(gameCell => gameCell.getReference())
+  );
 
-  worker.addChannel('gamecells', () => {
-    const updates$ = new BehaviorSubject<GameCell[]>(game.gameCells.value);
-    updates$.next(game.gameCells.value);
-    game.gameCells.subscribe(updates$);
-    game.gameCells.subscribe(gameCells => {
-      for (const gameCell of gameCells) {
-        gameCell.newPop$.subscribe(() => {
-          updates$.next(game.gameCells.value);
-        });
-
-        gameCell.pops.subscribe(pop => {
-          pop.forEach(pop => pop.popGrowth$.subscribe(() => {
-            updates$.next(game.gameCells.value)
-          }));
-        });
-      }
-    });
-    return updates$.pipe(
-      map(gamecells => gamecells.map(gamecell => gamecell.export()))
-    );
-  })
-
-  for (const [key, subject] of Object.entries(game.state)) {
-    worker.send(EGameEvent.STATE_CHANGE, { key, value: subject.value });
-    subject.subscribe(value => worker.send(EGameEvent.STATE_CHANGE, { key, value }));
-  }
-
-  console.log('game init', game);
+  channelFromObservableSetItems(
+    game.gameCells,
+    (gameCell: GameCell) => `gamecell/${gameCell.id}`,
+    (gameCell: GameCell) => gameCell.gameCellState$.asObservable()
+  );
 }
 
-const worker = new ReactiveWorker(ctx, true)
+const worker = new ReactiveWorker(ctx, false)
   .on(EGameEvent.INIT, async ({ params }) => {
     const timeStart = performance.now();
     console.log('game params', params);

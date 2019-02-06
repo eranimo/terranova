@@ -201,12 +201,11 @@ const requiredBuilding: Record<EBuildingType, EPopClass | null> = {
 };
 
 export interface IGameCellView {
-  pops: Array<IPopView>,
-  buildingByType: Record<EBuildingType, number>,
   xCoord: number,
   yCoord: number
 }
 
+let gameCellIDs = 0;
 export default class GameCell {
   pops: ObservableSet<Pop>;
   popsByClass: Map<EPopClass, ObservableSet<Pop>>;
@@ -216,10 +215,12 @@ export default class GameCell {
   food: number;
   readonly carryingCapacity: number;
   gameCellState$: BehaviorSubject<IGameCellView>
+  id: number;
 
   constructor(
     readonly worldCell: IWorldCell,
   ) {
+    this.id = gameCellIDs++;
     this.newPop$ = new ReplaySubject();
     this.pops = new ObservableSet();
     this.popsByClass = new Map();
@@ -256,11 +257,17 @@ export default class GameCell {
       popViews.push({population: pop.population, socialClass: pop.class})
     }
     return {
+      ...this.getReference(),
       pops: popViews,
-      buildingByType: this.buildingByType,
+      populationSize: this.populationSize,
+    }
+  }
+
+  getReference() {
+    return {
       xCoord: this.worldCell.x,
       yCoord: this.worldCell.y
-    }
+    };
   }
 
   deliverState() {

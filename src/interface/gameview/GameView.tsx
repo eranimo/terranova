@@ -70,10 +70,10 @@ export class GameView extends Component<GameViewProps, GameViewState> {
       this.setState({
         warningOpen: true,
         warning: {
-          title: 'Version mismatch',
+          title: 'Outdated World',
           content: (
             <Fragment>
-              This map was saved in version <b>{gameManager.world.params.buildVersion || '(no version)'}</b>
+              This map was saved in version <b>{gameManager.world.params.buildVersion || '(no version)'}</b>{' '}
               but you are running version <b>{VERSION}</b>. This might cause errors. Please make a new world.
             </Fragment>
           ),
