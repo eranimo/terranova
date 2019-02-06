@@ -89,9 +89,9 @@ export default class Game extends GameLoop {
     }, 4000);
 
     setTimeout(() => {
-      console.log('GAME: update region Beta')
-      region2.cells$.add(this.world.getCell(85, 136));
-      this.newRegion$.next(region2);
+      console.log('GAME: update region Alpha')
+      region1.cells$.add(this.world.getCell(85, 136));
+      this.newRegion$.next(region1);
     }, 6000);
 
     setTimeout(() => {
@@ -155,7 +155,6 @@ export default class Game extends GameLoop {
   }
 
   updatePops() {
-    console.log('update!');
     for (const gameCell of this.gameCells) {
       gameCell.update();
     }

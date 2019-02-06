@@ -1,4 +1,4 @@
-import { fromEvent, Observable, Subject, isObservable, BehaviorSubject } from "rxjs";
+import { fromEvent, Observable, Subject, isObservable, BehaviorSubject, Subscription } from "rxjs";
 import { map, filter } from "rxjs/operators";
 import { v4 as uuid } from 'uuid';
 
@@ -215,6 +215,7 @@ export class ReactiveWorkerClient {
 export class ReactiveWorker {
   incomingMessages$: Subject<IWorkerMessage>;
   channels: Record<string, Channel<unknown>>;
+  channelSubs: Record<string, Subscription>;
 
   constructor(public ctx: Worker, debug: boolean = false) {
     this.incomingMessages$ = new Subject();
@@ -229,11 +230,13 @@ export class ReactiveWorker {
 
     // channel logic
     this.channels = {};
+    this.channelSubs = {};
     this.incomingMessages$.pipe(filter(msg => msg.channel !== undefined))
       .subscribe(msg => {
         // console.log('channel msg', msg);
         if (!(msg.channel in this.channels)) {
-          throw new Error(`Unknown channel ${msg.channel}`);
+          return;
+          // throw new Error(`Unknown channel ${msg.channel}`);
         }
 
         if (typeof msg.channelEnabled !== 'undefined') {
@@ -256,9 +259,9 @@ export class ReactiveWorker {
     const observable = createFunc();
     const channel = new Channel(observable);
     this.channels[name] = channel;
-    // console.log('new channel', name, channel);
+    console.log('new channel', name, channel);
 
-    channel.subject.subscribe(value => {
+    this.channelSubs[name] = channel.subject.subscribe(value => {
       if (channel.enabled) {
         // console.log('channel new value', name, value);
         this.ctx.postMessage({
@@ -271,6 +274,11 @@ export class ReactiveWorker {
 
   hasChannel(name): boolean {
     return name in this.channels;
+  }
+
+  removeChannel(name: string) {
+    this.channelSubs[name].unsubscribe();
+    delete this.channels[name];
   }
 
   private msgOfType(type: string): Observable<IWorkerMessage> {

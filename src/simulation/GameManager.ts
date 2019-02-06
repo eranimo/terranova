@@ -39,7 +39,7 @@ export default class GameManager {
     this.params = await gameStore.load(this.saveName);
 
     // start game worker
-    this.worker = new ReactiveWorkerClient(new GameWorker(), false);
+    this.worker = new ReactiveWorkerClient(new GameWorker(), true);
 
     this.date$ = new Subject();
     this.worker.on<IGameDate>(EGameEvent.DATE)
@@ -74,6 +74,10 @@ export default class GameManager {
           for (const region of regions) {
             this.worldMap.addRegion(region);
           }
+        });
+
+        this.worker.channel('region/Alpha', (cells) => {
+          console.log('alpha cells', cells);
         });
 
         this.worker.channel('gamecells', (gamecells) => {

@@ -243,10 +243,10 @@ export default class GameCell {
   }
 
   removePops(popsToRemove: Array<Pop>) {
-      for(const pop of popsToRemove) {
-        this.pops.remove(pop);
-        this.popsByClass.get(pop.class).remove(pop);
-      }
+    for(const pop of popsToRemove) {
+      this.pops.remove(pop);
+      this.popsByClass.get(pop.class).remove(pop);
+    }
   }
 
   get populationSize(): number {
@@ -295,7 +295,7 @@ export default class GameCell {
       };
     });
 
-    console.log(delta.maxPeople);
+    // console.log(delta.maxPeople);
     for (const buildingType of delta.maxBuildings.keys()) {
       const currBuildings = this.buildingByType[buildingType];
       let buildingDelta = Math.floor((delta.maxBuildings.get(buildingType) - currBuildings) / maintenanceFactor);

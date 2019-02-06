@@ -255,7 +255,6 @@ export default class WorldRenderer {
         maxHeight: this.worldHeight * 5,
       })
       .on('moved', () => {
-        console.log('moved!');
         this.chunkRenderer.render();
         this.update();
         this.updateViewportState();
