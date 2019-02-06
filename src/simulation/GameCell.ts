@@ -1,6 +1,6 @@
 import { IWorldCell } from "./worldTypes";
 import { ObservableSet } from "./ObservableSet";
-import { Subject } from "rxjs";
+import { Subject, ReplaySubject, BehaviorSubject } from "rxjs";
 import { EBiome } from './worldTypes'
 import { enumMembers } from "../utils/enums";
 
@@ -30,7 +30,14 @@ export enum EPopClass {
   NOBLE,
 }
 
+export const growthRates: Record<EPopClass, number> =  {
+  [EPopClass.NOBLE]: Math.pow(1/70, 1/timeFactor),
+  [EPopClass.FARMER]: Math.pow(1/100, 1/timeFactor),
+  [EPopClass.FORAGER]: 0
+}
+
 const populationPriorities = [EPopClass.NOBLE, EPopClass.FARMER, EPopClass.FORAGER];
+const promotionPriority = populationPriorities.reverse();
 
 interface IClassAttributes {
   title: string,
@@ -60,13 +67,13 @@ export const popClassAttributes: Record<EPopClass, IClassAttributes> = {
     labor: (population: number, gameCell: GameCell) : IGameCellDelta => {
       const farmerFactor = 1.2;
       const farmerProductionFactor = 1.1;
-      let food = Math.floor(Math.min(Math.floor(population), gameCell.buildingByType[EBuildingType.FARM]) * farmerProductionFactor);
+      let food = Math.min(Math.floor(population), gameCell.buildingByType[EBuildingType.FARM]) * farmerProductionFactor;
       const maxFarms = new Map<EBuildingType, number>([[
         EBuildingType.FARM,
         Math.min(population, gameCell.carryingCapacity * farmerFactor) * farmerProductionFactor
       ]]);
       let maxPops = newPopsMap();
-      maxPops.set(EPopClass.FARMER, food);
+      maxPops.set(EPopClass.FARMER, Math.max(food, gameCell.buildingByType[EBuildingType.FARM]));
       maxPops.set(EPopClass.NOBLE, Math.floor(population / 100));
       return {
         maxBuildings: maxFarms,
@@ -81,6 +88,7 @@ export const popClassAttributes: Record<EPopClass, IClassAttributes> = {
     title: 'Noble',
     labor: (population: number, gameCell: GameCell) : IGameCellDelta => {
       let maxPops = newPopsMap();
+      maxPops.set(EPopClass.NOBLE, Math.floor(population * .75));
       return {
         maxBuildings: new Map<EBuildingType, number>(),
         maxHousing: 0,
@@ -121,22 +129,31 @@ export class Pop {
   readonly class: EPopClass;
   population: number;
   readonly growthRate: number; // per Month
-  popGrowth$: Subject<number>;
+  popGrowth$: BehaviorSubject<number>;
 
   constructor(popClass: EPopClass, population: number) {
     this.class = popClass;
-    this.growthRate = Math.pow((1 / 100), 1/timeFactor);
+    this.growthRate = growthRates[popClass];
     this.population = population;
-    this.popGrowth$ = new Subject();
+    this.popGrowth$ = new BehaviorSubject(population);
+  }
+
+  public emigrate(maxToRemove: number, targetPop: Pop): number {
+    let ret = Math.min(maxToRemove, this.population);
+    this.population -= ret;
+    this.popGrowth$.next(this.population);
+    targetPop.immigrate(ret);
+    return ret;
+  }
+
+  private immigrate(addPop: number): void {
+    this.population += addPop;
+    this.popGrowth$.next(this.population);
   }
 
   private updatePopulation(maxPop: number) {
     this.population = Math.min(this.population * (1 + this.growthRate), maxPop);
     this.popGrowth$.next(this.population);
-  }
-
-  public getPopulation(): number {
-    return this.population;
   }
 
   update(maxPop: number): number {
@@ -153,7 +170,6 @@ export interface IPopView {
 export interface IPopCoordinates {
   population: number,
   socialClass: EPopClass,
-  popGrowth$: Subject<number>,
   xCoord: number,
   yCoord: number
 }
@@ -168,9 +184,24 @@ export interface IGameCellDelta {
   foodProduced: number,
   maxPeople: Map<EPopClass, number>
 }
+const promoteFrom: Record<EPopClass, Array<EPopClass>> = {
+  [EPopClass.NOBLE]: [EPopClass.FARMER],
+  [EPopClass.FARMER]: [EPopClass.FORAGER],
+  [EPopClass.FORAGER]: []
+}
+
+const demotionPath: Record<EPopClass, EPopClass | null> = {
+  [EPopClass.NOBLE]: EPopClass.FARMER,
+  [EPopClass.FARMER]: EPopClass.FORAGER,
+  [EPopClass.FORAGER]: null
+}
+
+const requiredBuilding: Record<EBuildingType, EPopClass | null> = {
+  [EBuildingType.FARM]: EPopClass.FARMER
+};
 
 export interface IGameCellView {
-  populationSize: number,
+  pops: Array<IPopView>,
   buildingByType: Record<EBuildingType, number>,
   xCoord: number,
   yCoord: number
@@ -179,16 +210,17 @@ export interface IGameCellView {
 export default class GameCell {
   pops: ObservableSet<Pop>;
   popsByClass: Map<EPopClass, ObservableSet<Pop>>;
-  newPop$: Subject<Pop>;
+  newPop$: ReplaySubject<Pop>;
   buildingByType: Record<EBuildingType, number>;
   housing: number;
   food: number;
   readonly carryingCapacity: number;
+  gameCellState$: BehaviorSubject<IGameCellView>
 
   constructor(
     readonly worldCell: IWorldCell,
   ) {
-    this.newPop$ = new Subject();
+    this.newPop$ = new ReplaySubject();
     this.pops = new ObservableSet();
     this.popsByClass = new Map();
     this.buildingByType = {
@@ -200,6 +232,7 @@ export default class GameCell {
     this.housing = 0;
     this.food = 0;
     this.carryingCapacity = carryingCapacities[worldCell.biome];
+    this.gameCellState$ = new BehaviorSubject(this.getState());
   }
 
   addPop(popClass: EPopClass, population: number) {
@@ -207,6 +240,32 @@ export default class GameCell {
     this.pops.add(pop);
     this.popsByClass.get(pop.class).add(pop);
     this.newPop$.next(pop);
+    return pop;
+  }
+
+  removePops(popsToRemove: Array<Pop>) {
+    for(const pop of popsToRemove) {
+      this.pops.remove(pop);
+      this.popsByClass.get(pop.class).remove(pop);
+    }
+  }
+
+  private getState() {
+    const popViews = new Array<IPopView>();
+    for (const pop of this.pops) {
+      popViews.push({population: pop.population, socialClass: pop.class})
+    }
+    return {
+      pops: popViews,
+      buildingByType: this.buildingByType,
+      xCoord: this.worldCell.x,
+      yCoord: this.worldCell.y
+    }
+
+  }
+  deliverState() {
+    console.log('Hello')
+    this.gameCellState$.next(this.getState())
   }
 
   get populationSize(): number {
@@ -259,34 +318,67 @@ export default class GameCell {
       const currBuildings = this.buildingByType[buildingType];
       let buildingDelta = Math.floor((delta.maxBuildings.get(buildingType) - currBuildings) / maintenanceFactor);
       this.buildingByType[buildingType] = currBuildings + buildingDelta;
+      const maxPeople = delta.maxPeople;
+      if (maxPeople.has(requiredBuilding[buildingType])) {
+        maxPeople.set(
+          requiredBuilding[buildingType],
+          Math.max(this.buildingByType[buildingType], maxPeople.get(requiredBuilding[buildingType]))
+        );
+      }
     }
     this.housing += Math.floor((delta.maxHousing - this.housing) / maintenanceFactor);
     let food: number = delta.foodProduced;
     let housingLimit: number = this.housing;
+    const promotions: Map<EPopClass, number> = new Map();
     for (const popType of populationPriorities) {
       let popLimit = delta.maxPeople.get(popType);
       let popsToRemove = new Array<Pop>();
+      let totalInClass = 0;
       for (const pop of this.popsByClass.get(popType)) {
         let newPopulation = pop.update(Math.min(popLimit, food));
-        popLimit -= newPopulation;
-        food -= newPopulation;
-        if (newPopulation == 0) {
+        popLimit = Math.max(popLimit - newPopulation, 0);
+        food = Math.max(food - newPopulation, 0);
+        if (newPopulation <= 0) {
           popsToRemove.push(pop);
         }
       }
-      for(const pop of popsToRemove) {
-        this.pops.remove(pop);
-        this.popsByClass.get(pop.class).remove(pop);
+      this.removePops(popsToRemove);
+      if (popLimit > 0) {
+        promotions.set(popType, Math.floor(popLimit * Math.random()));
       }
     }
+    for (const popType of promotionPriority) {
+      if (promotions.get(popType) > 0) {
+        let popsToRemove = new Array<Pop>();
+        let populationToAdd = 0;
+        let maxNewPopulation = promotions.get(popType);
+        let destPop: Pop;
+        if (this.popsByClass.get(popType).size < 1) {
+          destPop = this.addPop(popType, populationToAdd);
+        } else {
+          for (const pop of this.popsByClass.get(popType)) {
+            destPop = pop;
+            break;
+          }
+        }
+        for(const sourceType of promoteFrom[popType]) {
+          for(const sourcePop of this.popsByClass.get(sourceType)) {
+            if (maxNewPopulation > 0) {
+              let popsFromSource = sourcePop.emigrate(maxNewPopulation, destPop);
+              maxNewPopulation -= popsFromSource;
+              if (sourcePop.population <= 0) {
+                popsToRemove.push(sourcePop);
+              }
+            }
+          }
+          this.removePops(popsToRemove);
+        }
+      }
+    }
+    this.deliverState();
   }
 
   export(): IGameCellView {
-    return {
-      populationSize: this.populationSize,
-      buildingByType: this.buildingByType,
-      xCoord: this.worldCell.x,
-      yCoord: this.worldCell.y,
-    };
+    return this.getState();
   }
 }

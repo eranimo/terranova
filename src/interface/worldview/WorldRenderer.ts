@@ -111,6 +111,11 @@ export default class WorldRenderer {
     });
     (window as any).WORLD_RENDER_VIEWPORT = this.viewport;
     (window as any).WORLD_RENDER_OPTIONS = options;
+    (window as any).WORLD_RENDER_DRAW = () => {
+      this.chunkRenderer.render();
+      this.update();
+      this.updateViewportState();
+    }
     this.app.stage.addChild(this.viewport);
     this.viewport.moveCenter(this.worldWidth / 2, this.worldHeight / 2);
     this.viewport.zoomPercent(1/3);
