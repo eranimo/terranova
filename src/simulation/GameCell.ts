@@ -156,13 +156,6 @@ export class Pop {
     this.popGrowth$.next(this.population);
   }
 
-<<<<<<< HEAD
-=======
-  get totalPopulation(): number {
-    return this.population;
-  }
-
->>>>>>> 0a3483f2aa964fefd5eb9c0345995ebc15c6e16d
   update(maxPop: number): number {
     this.updatePopulation(maxPop);
     return this.population;
@@ -260,7 +253,7 @@ export default class GameCell {
   private getState() {
     const popViews = new Array<IPopView>();
     for (const pop of this.pops) {
-      popViews.push({population: pop.totalPopulation, socialClass: pop.class})
+      popViews.push({population: pop.population, socialClass: pop.class})
     }
     return {
       pops: popViews,
@@ -278,7 +271,7 @@ export default class GameCell {
   get populationSize(): number {
     let result: number = 0;
     for (const pop of this.pops) {
-      result += pop.totalPopulation;
+      result += pop.population;
     }
     return result;
   }
