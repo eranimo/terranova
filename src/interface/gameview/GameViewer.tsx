@@ -1,4 +1,4 @@
-import React, { Component, Fragment } from 'react';
+import React, { Component, Fragment, SFC, useContext } from 'react';
 import styled from 'styled-components';
 import WorldMapContainer, { IWorldMapContainerChildProps } from '../worldview/WorldMapContainer';
 import { FullSizeBlock } from '../components/layout';
@@ -9,6 +9,8 @@ import classnames from 'classnames';
 import GameManager from '../../simulation/GameManager';
 import { EGameSpeed, gameSpeedTitles, EMonth, IGameDate } from '../../simulation/GameLoop';
 import { gameMapModes } from './gameMapModes';
+import { useObservable } from '../../utils/hooks';
+import { GameStateContainer } from './GameView';
 
 
 const GameViewContainer = styled.div`
@@ -42,111 +44,78 @@ const monthTitles = {
   [EMonth.DECEMBER]: 'December',
 }
 
-class TimeDisplay extends Component<{ game: GameManager }, { date: IGameDate }> {
-  state = {
-    date: {
-      dayOfMonth: 0,
-      month: 0,
-      year: 0,
-    },
-  }
+const TimeDisplay = () => {
+  const { date$ } = useContext(GameStateContainer.Context);
+  const date = useObservable(date$, null);
+  if (!date) return null;
+  const { dayOfMonth, month, year } = date;
+  const monthName = monthTitles[month];
+  const yearNum = year.toLocaleString();
 
-  componentWillMount() {
-    this.props.game.date$.subscribe(date => this.setState({ date }));
-  }
-
-  render() {
-    const { dayOfMonth, month, year } = this.state.date;
-    const monthName = monthTitles[month];
-    const yearNum = year.toLocaleString();
-
-    return `${monthName} ${dayOfMonth}, Y${yearNum}`;
-  }
+  return <Fragment>{monthName} {dayOfMonth}, Y{yearNum}</Fragment>;
 }
 
-class PlayButton extends Component<{ game: GameManager }, { running: boolean }> {
-  state = {
-    running: false,
-  }
+const PlayButton = () => {
+  const game = useContext(GameStateContainer.Context);
+  const running = useObservable(game.state.ofKey('running'), null);
+  return (
+    <Button
+      minimal
+      icon={running ? 'pause' : 'play'}
+      onClick={() => game.togglePlay()}
+    />
+  );
+}
 
-  componentWillMount() {
-    this.props.game.state.ofKey('running').subscribe(running => this.setState({ running }));
-  }
+const SpeedControls = () => {
+  const game = useContext(GameStateContainer.Context);
+  const speed = useObservable(game.state.ofKey('speed'), null);
+  const speedIndex = useObservable(game.state.ofKey('speedIndex'), null);
 
-  render() {
-    return (
+  return (
+    <ButtonGroup minimal>
+      <Button
+        icon="double-chevron-left"
+        disabled={speedIndex === 0}
+        onClick={() => game.slower()}
+      />
+      {speed && <Button style={{ width: 134 }}>
+        Speed: <b>{gameSpeedTitles[speed.toString()]}</b>
+      </Button>}
+      <Button
+        icon="double-chevron-right"
+        disabled={speedIndex === 3}
+        onClick={() => game.faster()}
+      />
+    </ButtonGroup>
+  )
+}
+
+const GameMenu = () => {
+  const menu = (
+    <Menu>
+      <Link to="/" className={classnames(Classes.MENU_ITEM, Classes.iconClass('log-out'))}>
+        Exit game
+      </Link>
+    </Menu>
+  );
+
+  return (
+    <GameMenuContainer>
+      <Popover content={menu} position={Position.BOTTOM}>
+        <Button icon="menu" minimal />
+      </Popover>
+      <Divider />
+      <PlayButton />
       <Button
         minimal
-        icon={this.state.running ? 'pause' : 'play'}
-        onClick={() => this.props.game.togglePlay()}
-      />
-    );
-  }
-}
-
-class GameSpeedControls extends Component<{ game: GameManager }, { speed: EGameSpeed, speedIndex: number }> {
-  state = {
-    speed: 0,
-    speedIndex: 0,
-  }
-
-  componentWillMount() {
-    this.props.game.state.ofKey('speed').subscribe(speed => this.setState({ speed }));
-    this.props.game.state.ofKey('speedIndex').subscribe(speedIndex => this.setState({ speedIndex }));
-  }
-
-  render() {
-    const { game } = this.props;
-    const { speed, speedIndex } = this.state;
-
-    return (
-      <ButtonGroup minimal>
-        <Button
-          icon="double-chevron-left"
-          disabled={speedIndex === 0}
-          onClick={() => game.slower()}
-        />
-        {speed && <Button style={{ width: 134 }}>
-          Speed: <b>{gameSpeedTitles[speed.toString()]}</b>
-        </Button>}
-        <Button
-          icon="double-chevron-right"
-          disabled={speedIndex === 3}
-          onClick={() => game.faster()}
-        />
-      </ButtonGroup>
-    )
-  }
-}
-
-export class GameMenu extends Component<{ game: GameManager }> {
-  render() {
-    const { game } = this.props;
-    const menu = (
-      <Menu>
-        <Link to="/" className={classnames(Classes.MENU_ITEM, Classes.iconClass('log-out'))}>
-          Exit game
-        </Link>
-      </Menu>
-    );
-
-    return (
-      <GameMenuContainer>
-        <Popover content={menu} position={Position.BOTTOM}>
-          <Button icon="menu" minimal />
-        </Popover>
-        <Divider />
-        <PlayButton game={game} />
-        <Button
-          minimal
-          style={{ width: 140 }}
-        >
-          <TimeDisplay game={game} />
-        </Button>
-        <GameSpeedControls game={game} />
-      </GameMenuContainer>
-    )
-  }
+        style={{ width: 140 }}
+      >
+        <TimeDisplay />
+      </Button>
+      <SpeedControls />
+    </GameMenuContainer>
+  )
 }
 
 const GameControlsContainer = styled(GameViewContainer)`
@@ -235,7 +204,7 @@ export default class GameViewer extends Component<IGameViewerProps> {
         >
           {(props: IWorldMapContainerChildProps) => (
             <Fragment>
-              <GameMenu game={game} />
+              <GameMenu />
               <GameControls {...props} />
             </Fragment>
           )}

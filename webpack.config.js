@@ -92,6 +92,7 @@ module.exports = {
       chunks: 'all',
     },
   },
+  stats: 'minimal',
   mode: process.env.NODE_ENV || 'development',
   plugins: [
     new webpack.DefinePlugin({

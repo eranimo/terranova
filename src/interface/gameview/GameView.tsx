@@ -1,4 +1,4 @@
-import React, { Component, Fragment, ReactElement, ReactNode } from 'react';
+import React, { Component, Fragment, ReactElement, ReactNode, useState } from 'react';
 import { RouteComponentProps } from 'react-router'
 import {
   Spinner, Alert, Classes
@@ -7,6 +7,7 @@ import GameViewer from './GameViewer';
 import GameManager from '../../simulation/GameManager';
 import { DevConsole, DevConsoleManager } from './DevConsole';
 import classnames from 'classnames';
+import createContainer from 'constate';
 
 
 type GameViewProps = RouteComponentProps<{
@@ -28,6 +29,10 @@ type GameViewState = {
   errorOpen: boolean;
   isCrashError: boolean;
 }
+
+export const GameStateContainer = createContainer(({ game }: { game: GameManager }) => {
+  return useState(game)[0];
+})
 
 export class GameView extends Component<GameViewProps, GameViewState> {
   consoleManager: DevConsoleManager;
@@ -168,13 +173,15 @@ export class GameView extends Component<GameViewProps, GameViewState> {
             </div>
           )}
         </Alert>
-        <DevConsole
-          onInit={this.onConsoleInit}
-        />
-        {!this.state.isCrashError && <GameViewer
-          game={this.state.game}
-          isLoading={this.state.isLoading}
-        />}
+        <GameStateContainer.Provider game={this.gameManager}>
+          <DevConsole
+            onInit={this.onConsoleInit}
+          />
+          {!this.state.isCrashError && <GameViewer
+            game={this.state.game}
+            isLoading={this.state.isLoading}
+          />}
+        </GameStateContainer.Provider>
       </Fragment>
     );
   }
