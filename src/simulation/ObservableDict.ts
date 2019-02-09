@@ -1,4 +1,4 @@
-import { Subject, BehaviorSubject, combineLatest, ObjectUnsubscribedError } from 'rxjs';
+import { Subject, BehaviorSubject, combineLatest, ObjectUnsubscribedError, Observable } from 'rxjs';
 import { distinctUntilChanged } from 'rxjs/operators';
 
 
@@ -33,6 +33,10 @@ export class ObservableDict<T extends object> extends BehaviorSubject<T> {
       return true;
     }))
     .subscribe((latest: T) => this.next(latest));
+  }
+
+  ofKey<K extends keyof T>(key: K): Observable<T[K]> {
+    return this.data[key].asObservable() as Observable<T[K]>;
   }
 
   set<K extends keyof T>(key: K, value: T[K]) {

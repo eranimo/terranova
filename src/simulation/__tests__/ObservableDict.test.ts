@@ -78,4 +78,15 @@ describe('ObservableDict', () => {
     expect(keys[0]).toBe('foobar');
     expect(keys[1]).toBe(1);
   });
+
+  test('ofKey()', () => {
+    const observer = jest.fn();
+    dict.ofKey('str').subscribe(observer);
+    dict.set('str', 'zoo');
+    dict.set('num', 1);
+    dict.set('num', 2);
+    expect(observer).toBeCalledTimes(2);
+    expect(observer).toBeCalledWith('foobar');
+    expect(observer).toBeCalledWith('zoo');
+  });
 });

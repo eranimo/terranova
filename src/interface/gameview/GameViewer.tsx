@@ -70,7 +70,7 @@ class PlayButton extends Component<{ game: GameManager }, { running: boolean }> 
   }
 
   componentWillMount() {
-    this.props.game.state.running.subscribe(running => this.setState({ running }));
+    this.props.game.state.ofKey('running').subscribe(running => this.setState({ running }));
   }
 
   render() {
@@ -91,8 +91,8 @@ class GameSpeedControls extends Component<{ game: GameManager }, { speed: EGameS
   }
 
   componentWillMount() {
-    this.props.game.state.speed.subscribe(speed => this.setState({ speed }));
-    this.props.game.state.speedIndex.subscribe(speedIndex => this.setState({ speedIndex }));
+    this.props.game.state.ofKey('speed').subscribe(speed => this.setState({ speed }));
+    this.props.game.state.ofKey('speedIndex').subscribe(speedIndex => this.setState({ speedIndex }));
   }
 
   render() {

@@ -10,9 +10,20 @@ import { worldStore, gameStore } from "./stores";
 import Array2D from '../utils/Array2D';
 import { WorldMap } from '../common/WorldMap';
 import { IGameCellView } from './GameCell'
+import { ObservableDict } from './ObservableDict';
 
 
 const GameWorker = require('./game.worker');
+
+interface IGameLoopState {
+  started: boolean;
+  running: boolean;
+  ticks: number;
+  dayCount: number;
+  speed: number;
+  speedIndex: number;
+  delta: number;
+}
 
 /**
  * Interface between the UI & Renderer and the Game Worker
@@ -28,7 +39,7 @@ export default class GameManager {
   date$: Subject<IGameDate>;
   loading$: BehaviorSubject<boolean>;
   running$: BehaviorSubject<boolean>;
-  state: any;
+  state: ObservableDict<IGameLoopState>;
 
   constructor(saveName: string) {
     this.saveName = saveName;
@@ -45,15 +56,15 @@ export default class GameManager {
     this.worker.on<IGameDate>(EGameEvent.DATE)
       .subscribe((date) => this.date$.next(date));
 
-    this.state = {
-      started: new BehaviorSubject<boolean>(undefined),
-      running: new BehaviorSubject<boolean>(undefined),
-      ticks: new BehaviorSubject<number>(undefined),
-      dayCount: new BehaviorSubject<number>(undefined),
-      speed: new BehaviorSubject<number>(undefined),
-      speedIndex: new BehaviorSubject<number>(undefined),
-      delta: new BehaviorSubject<number>(undefined),
-    };
+    this.state = new ObservableDict({
+      started: undefined,
+      running: undefined,
+      ticks: undefined,
+      dayCount: undefined,
+      speed: undefined,
+      speedIndex: undefined,
+      delta: undefined,
+    });
 
     // load world data
     this.world = await worldStore.load(this.params.worldSaveName);
@@ -96,7 +107,7 @@ export default class GameManager {
     // listen for state change events
     this.worker.on(EGameEvent.STATE_CHANGE)
       .subscribe(({ key, value }) => {
-        this.state[key].next(value);
+        this.state.set(key, value);
       });
   }
 
@@ -109,7 +120,7 @@ export default class GameManager {
   }
 
   togglePlay() {
-    if (this.state.running.value) {
+    if (this.state.get('running')) {
       this.pause();
     } else {
       this.play();

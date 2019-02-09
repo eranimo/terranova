@@ -106,8 +106,8 @@ export class GameView extends Component<GameViewProps, GameViewState> {
   onConsoleInit = (consoleManager: DevConsoleManager) => {
     if (this.gameManager) {
       console.log('consoleManager', consoleManager);
-      this.gameManager.state.ticks.subscribe(consoleManager.ticks);
-      this.gameManager.state.delta.subscribe(consoleManager.delta);
+      this.gameManager.state.ofKey('ticks').subscribe(consoleManager.ticks);
+      this.gameManager.state.ofKey('delta').subscribe(consoleManager.delta);
     }
   }
 
