@@ -11,6 +11,9 @@ import { EGameSpeed, gameSpeedTitles, EMonth, IGameDate } from '../../simulation
 import { gameMapModes } from './gameMapModes';
 import { useObservable } from '../../utils/hooks';
 import { GameStateContainer } from './GameView';
+import { IWorldRegionView } from '../../simulation/WorldRegion';
+import { useChannel } from '../../utils/workers';
+import { getHexColor } from '../../utils/color';
 
 
 const GameViewContainer = styled.div`
@@ -24,10 +27,28 @@ const GameViewContainer = styled.div`
   border-radius: 3px;
 `;
 
-const GameMenuContainer = styled(GameViewContainer)`
-  top: 0;
-  left: 0;
-`;
+const GameViewPos = {
+  Top: {
+    Left: styled(GameViewContainer)`
+      top: 0;
+      left: 0;
+    `,
+    Right: styled(GameViewContainer)`
+      top: 0;
+      right: 0;
+    `,
+  },
+  Bottom: {
+    Left: styled(GameViewContainer)`
+      bottom: 0;
+      left: 0;
+    `,
+    Right: styled(GameViewContainer)`
+      bottom: 0;
+      right: 0;
+    `,
+  }
+}
 
 const monthTitles = {
   [EMonth.JANUARY]: 'January',
@@ -101,7 +122,7 @@ const GameMenu = () => {
   );
 
   return (
-    <GameMenuContainer>
+    <GameViewPos.Top.Left>
       <Popover content={menu} position={Position.BOTTOM}>
         <Button icon="menu" minimal />
       </Popover>
@@ -114,18 +135,37 @@ const GameMenu = () => {
         <TimeDisplay />
       </Button>
       <SpeedControls />
-    </GameMenuContainer>
+    </GameViewPos.Top.Left>
   )
 }
 
-const GameControlsContainer = styled(GameViewContainer)`
-  bottom: 0;
-  right: 0;
-`;
+const MapCellsView = (props: IWorldMapContainerChildProps) => {
+  const { selectedCell } = props;
+  const game = useContext(GameStateContainer.Context);
+  const regions = useObservable(game.worker.channel$<IWorldRegionView[]>('regions'), []);
 
-export class GameControls extends Component<IWorldMapContainerChildProps> {
+  if (selectedCell === null) {
+    return (
+      <GameViewPos.Bottom.Left>
+        {regions.map(region => (
+          <div>
+            {region.name} ({region.cells.length}) <br />
+          </div>
+        ))}
+      </GameViewPos.Bottom.Left>
+    )
+  }
+
+  return (
+    <GameViewPos.Bottom.Left>
+      {selectedCell.x} {selectedCell.y}
+    </GameViewPos.Bottom.Left>
+  )
+}
+
+export class MapControls extends Component<IWorldMapContainerChildProps> {
   render() {
-    const { viewOptions, selectedCell, onChangeField, onChangeMapMode, deselect } = this.props;
+    const { viewOptions, onChangeField, onChangeMapMode } = this.props;
     const menu = (
       <Menu>
         {Object.entries(mapModeDesc).map(([name, title]) => (
@@ -140,7 +180,7 @@ export class GameControls extends Component<IWorldMapContainerChildProps> {
     );
 
     return (
-      <GameControlsContainer>
+      <GameViewPos.Bottom.Right>
         <Popover content={menu}>
           <Button minimal small rightIcon="chevron-up">
             Map Mode: <b>{mapModeDesc[viewOptions.mapMode]}</b>
@@ -181,7 +221,7 @@ export class GameControls extends Component<IWorldMapContainerChildProps> {
             />
           </Tooltip>
         </ButtonGroup>
-      </GameControlsContainer>
+      </GameViewPos.Bottom.Right>
     )
   }
 }
@@ -205,7 +245,8 @@ export default class GameViewer extends Component<IGameViewerProps> {
           {(props: IWorldMapContainerChildProps) => (
             <Fragment>
               <GameMenu />
-              <GameControls {...props} />
+              <MapControls {...props} />
+              <MapCellsView {...props} />
             </Fragment>
           )}
         </WorldMapContainer>

@@ -80,12 +80,15 @@ export default class GameManager {
         console.log(`Startup time: ${startupTime}`);
         this.loading$.next(true);
 
-        this.worker.channel('regions', (regions) => {
-          console.log('region channel', regions);
-          for (const region of regions) {
-            this.worldMap.addRegion(region);
-          }
-        });
+        this.worker.channel('regions');
+
+        this.worker.channel$<IWorldRegionView[]>('regions')
+          .subscribe((regions) => {
+            console.log('region channel', regions);
+            for (const region of regions) {
+              this.worldMap.addRegion(region);
+            }
+          });
 
         this.worker.channel('region/Alpha', (cells) => {
           console.log('alpha cells', cells);

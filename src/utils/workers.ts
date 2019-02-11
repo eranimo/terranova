@@ -1,6 +1,7 @@
 import { fromEvent, Observable, Subject, isObservable, BehaviorSubject, Subscription } from "rxjs";
 import { map, filter } from "rxjs/operators";
 import { v4 as uuid } from 'uuid';
+import { useState, useEffect } from "react";
 
 
 export class WorkerPool<T extends Worker> {
@@ -92,7 +93,6 @@ export function buildWorker(
   }
 }
 
-
 export interface IWorkerMessage {
   type?: string;
   id?: string;
@@ -135,7 +135,17 @@ export class ReactiveWorkerClient {
       .pipe(map(msg => msg.payload));
   }
 
-  channel(name: string, handler: (payload) => void) {
+  channel$<T>(name: string): Observable<T> {
+    const sub = new Subject<T>();
+    this.workerEvents$.pipe(
+      filter(x => x.channel === name),
+      map(msg => msg.payload)
+    ).subscribe(sub);
+
+    return sub.asObservable();
+  }
+
+  channel(name: string, handler?: (payload) => void) {
     this.worker.postMessage({
       channel: name,
       channelEnabled: true,
@@ -379,7 +389,7 @@ export class ReactiveWorker {
 }
 
 
-class Channel<T> {
+export class Channel<T> {
   public enabled: boolean;
   subject: Subject<T>;
   value: T;
