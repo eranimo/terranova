@@ -285,9 +285,11 @@ export default class GameCell {
   // ran every tick
   update() {
     const deltas = new Array<IGameCellDelta>();
+    // Generate deltas for each pop, these will be combined later to determine the new gameCell state
     for (const pop of this.pops) {
       deltas.push(popClassAttributes[pop.class].labor(pop.population, this));
     }
+    // Combine the deltas
     const delta = deltas.reduce((previous: IGameCellDelta, next: IGameCellDelta) : IGameCellDelta => {
       let buildingDeltas = new Map<EBuildingType, number>();
 
@@ -320,6 +322,7 @@ export default class GameCell {
       };
     });
 
+    // Apply the changes to building counts to the gameCell
     for (const buildingType of delta.maxBuildings.keys()) {
       const currBuildings = this.buildingByType[buildingType];
       let buildingDelta = Math.floor((delta.maxBuildings.get(buildingType) - currBuildings) / maintenanceFactor);
@@ -336,6 +339,7 @@ export default class GameCell {
     let food: number = delta.foodProduced;
     let housingLimit: number = this.housing;
     const promotions: Map<EPopClass, number> = new Map();
+    // Distribute food based on which social class gets food priority, pops will prefer to grow even during a food shortage
     for (const popType of populationPriorities) {
       let popLimit = delta.maxPeople.get(popType);
       let popsToRemove = new Array<Pop>();
@@ -353,6 +357,7 @@ export default class GameCell {
         promotions.set(popType, Math.floor(popLimit * Math.random()));
       }
     }
+    // Promote pops to new available roles
     for (const popType of promotionPriority) {
       if (promotions.get(popType) > 0) {
         let popsToRemove = new Array<Pop>();
