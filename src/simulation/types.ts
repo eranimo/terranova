@@ -1,4 +1,5 @@
 import ndarray from 'ndarray';
+import { IFeature } from './worldTypes';
 
 
 export interface IWorldMapGenOptions {
@@ -55,6 +56,7 @@ export enum EWorldShape {
 }
 
 export interface IWorldWorkerOutput {
+  buildVersion: string;
   options: IWorldMapGenOptions,
   sealevel: number,
   heightmap: ndarray.Data<number>,
@@ -76,6 +78,7 @@ export interface IWorldWorkerOutput {
   temperatureZones: ndarray.Data<number>;
   biomes: ndarray.Data<number>;
   terrainRoughness: ndarray.Data<number>;
+  landforms: IFeature[];
 }
 
 export interface ITerrainWorkerOutput {

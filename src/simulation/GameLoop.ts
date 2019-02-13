@@ -1,6 +1,7 @@
 import { BehaviorSubject, Subject } from 'rxjs';
 import { clamp } from '@blueprintjs/core/lib/esm/common/utils';
 import { Timer, ITimerOptions } from './Timer';
+import { worker } from 'cluster';
 
 
 export enum EMonth {
@@ -45,6 +46,7 @@ interface IGameState {
   dayCount: BehaviorSubject<number>;
   speed: BehaviorSubject<EGameSpeed>;
   speedIndex: BehaviorSubject<number>;
+  delta: BehaviorSubject<number>;
 }
 
 export enum EGameSpeed {
@@ -82,12 +84,14 @@ export default class GameLoop {
   date$: Subject<IGameDate>;
   timers: Set<Timer>;
   throttle: boolean;
+  onError: (error: Error) => void;
 
   MAX_SPEED = speeds.length;
 
   constructor(
-    maxFPS: number = 60,
+    onError: (error: Error) => void,
   ) {
+    this.onError = onError;
     this.state = {
       started: new BehaviorSubject<boolean>(false),
       running: new BehaviorSubject<boolean>(false),
@@ -95,11 +99,12 @@ export default class GameLoop {
       dayCount: new BehaviorSubject<number>(0),
       speed: new BehaviorSubject<EGameSpeed>(EGameSpeed.NORMAL),
       speedIndex: new BehaviorSubject<EGameSpeed>(1),
+      delta: new BehaviorSubject<EGameSpeed>(0),
     };
     this.lastFrameTimeMs = 0;
     this.lastFPSUpdate = 0;
     this.framesThisSecond = 0;
-    this.maxFPS = maxFPS;
+    this.maxFPS = 60;
     this.fps = 0;
     this.delta = 0;
     this.timestep = 1000 / (this.maxFPS * this.state.speed.value);
@@ -194,7 +199,7 @@ export default class GameLoop {
         break;
       }
     }
-
+    this.state.delta.next(this.delta);
     this.draw(this.delta / this.timestep);
     this.frameID = requestAnimationFrame(this.mainLoop.bind(this));
   }
@@ -214,7 +219,11 @@ export default class GameLoop {
     // let i = 0;
     // for (let x = 0; x < 1e6; x++) i = i ** i;
     for (const timer of this.timers) {
-      timer.update();
+      try {
+        timer.update();
+      } catch (error) {
+        this.onError(error);
+      }
       if (!timer.isActive) {
         this.timers.delete(timer);
       }

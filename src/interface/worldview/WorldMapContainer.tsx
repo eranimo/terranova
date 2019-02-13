@@ -25,7 +25,7 @@ const initialViewOptions: IViewOptions = {
 
 export interface IWorldMapContainerChildProps {
   viewOptions: IViewOptions,
-  selectedCell: IWorldCell,
+  selectedCell: IWorldCell | null,
   onChangeField: (fieldName: keyof IViewOptions) => (event: any) => void,
   onChangeMapMode: (mapMode: EMapMode) => void,
   deselect: () => void,

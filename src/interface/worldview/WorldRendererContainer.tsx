@@ -43,7 +43,6 @@ export class WorldRendererContainer extends React.Component<IWorldMapProps> {
         onCellClick: this.props.onCellClick,
       }
     });
-    console.log(this.renderer);
 
     // add pixi to the DOM
     this.root.current.appendChild(this.renderer.app.view);

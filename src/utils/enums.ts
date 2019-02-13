@@ -6,7 +6,7 @@ export function mapEnum<T>(data: T): EnumMember[] {
 }
 
 
-export function *enumMembers(enumType: any) { // there is no generic enum type :(
+export function *enumMembers(enumType: any) { // there is no generic enum type :(1
   for (let item in enumType) {
     if (isNaN(Number(item))) {
       yield enumType[item];

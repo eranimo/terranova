@@ -1,6 +1,6 @@
 import { meanBy } from 'lodash';
 import { Point } from 'pixi.js';
-import { ReplaySubject, Subject } from 'rxjs';
+import { ReplaySubject, Subject, BehaviorSubject } from 'rxjs';
 import GameLoop from './GameLoop';
 import World from './World';
 import { IWorldCell, EBiome } from './worldTypes';
@@ -9,6 +9,7 @@ import { worldStore } from './stores';
 import GameCell, { Pop, EPopClass, IPopCoordinates, IGameCellView, IPopView, IGameMigration, carryingCapacities, timeFactor } from './GameCell';
 import Array2D from '../utils/Array2D';
 import { enumMembers } from "../utils/enums";
+import { ObservableSet } from './ObservableSet';
 
 
 export interface IGameData {
@@ -30,16 +31,17 @@ export default class Game extends GameLoop {
   gameData: IGameData;
   params: IGameParams;
   newRegion$: ReplaySubject<WorldRegion>;
-  gameCells: Set<GameCell>;
-  gameCell$: ReplaySubject<IGameCellView>;
+  gameCells: ObservableSet<GameCell>;
+  gameCell$: ReplaySubject<GameCell>;
   gameCellMap: Array2D<GameCell>;
 
-  constructor(params: IGameParams) {
-    super();
+  constructor(params: IGameParams, onError: (error: Error) => void) {
+    super(onError);
     this.gameData = params.gameData || Object.assign({}, initialGameData);
     this.params = params;
     this.world = null;
     this.gameCell$ = new ReplaySubject();
+    this.gameCell$.subscribe(gameCell => this.gameCells.add(gameCell));
   }
 
   async init() {
@@ -91,6 +93,20 @@ export default class Game extends GameLoop {
     //   this.newRegion$.next(region2);
     // }, 6000);
 
+    setTimeout(() => {
+      const region = new WorldRegion({
+        cells: [
+          this.world.getCell(181, 135),
+          this.world.getCell(182, 135),
+        ],
+        name: 'Cappa',
+        color: 0x00FFFF,
+      });
+      console.log('GAME: add region Cappa')
+      this.world.regions.add(region);
+      this.newRegion$.next(region);
+    }, 7000);
+
     // this.addTimer({
     //   ticksLength: 30,
     //   isRepeated: true,
@@ -98,7 +114,7 @@ export default class Game extends GameLoop {
     //   onFinished: () => console.log('timer done!'),
     // });
 
-    this.gameCells = new Set();
+    this.gameCells = new ObservableSet();
     this.gameCellMap = new Array2D(this.world.size.width, this.world.size.height);
 
     for (let x = 0; x < this.world.size.width; x++) {
@@ -124,9 +140,9 @@ export default class Game extends GameLoop {
     //     gc1.addPop(new Pop(EPopClass.NOBLE, 50));
     //   }
     // }
-    const numTicks = Math.floor(360/timeFactor)
+    const numTicks = Math.floor(360/timeFactor);
     this.addTimer({
-      ticksLength: numTicks,
+      ticksLength: 30,
       isRepeated: true,
       onTick: null,
       onFinished: () =>  this.updatePops(),
@@ -136,26 +152,8 @@ export default class Game extends GameLoop {
   populateCell(x: number, y: number): GameCell {
     console.log()
     const gameCell = new GameCell(this.world.getCell(x, y));
-    const popSet = new Set<IPopView>();
-    gameCell.newPop$.subscribe((pop) => {
-      const popView = {
-        population: pop.totalPopulation,
-        socialClass: pop.class,
-      };
-      pop.popGrowth$.subscribe((population) => {
-        popView.population = population;
-      });
-      popSet.add(popView);
-    });
     this.gameCells.add(gameCell);
-    this.gameCell$.next({
-      pops: popSet,
-      buildingByType: gameCell.buildingByType,
-      xCoord: x,
-      yCoord: y
-    });
     this.gameCellMap.set(x, y, gameCell);
-
     return gameCell;
   }
 
