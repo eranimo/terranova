@@ -111,7 +111,7 @@ const newPopsMap = () : Map<EPopClass, number> => {
   return maxPops;
 }
 
-enum EBuildingType {
+export enum EBuildingType {
   FARM,
 }
 
