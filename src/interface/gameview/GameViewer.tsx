@@ -1,4 +1,4 @@
-import React, { Component, Fragment } from 'react';
+import React, { Component, Fragment, SFC, useContext } from 'react';
 import styled from 'styled-components';
 import WorldMapContainer, { IWorldMapContainerChildProps } from '../worldview/WorldMapContainer';
 import { FullSizeBlock } from '../components/layout';
@@ -9,6 +9,11 @@ import classnames from 'classnames';
 import GameManager from '../../simulation/GameManager';
 import { EGameSpeed, gameSpeedTitles, EMonth, IGameDate } from '../../simulation/GameLoop';
 import { gameMapModes } from './gameMapModes';
+import { useObservable } from '../../utils/hooks';
+import { GameStateContainer } from './GameView';
+import { IWorldRegionView } from '../../simulation/WorldRegion';
+import { useChannel } from '../../utils/workers';
+import { getHexColor } from '../../utils/color';
 
 
 const GameViewContainer = styled.div`
@@ -22,10 +27,28 @@ const GameViewContainer = styled.div`
   border-radius: 3px;
 `;
 
-const GameMenuContainer = styled(GameViewContainer)`
-  top: 0;
-  left: 0;
-`;
+const GameViewPos = {
+  Top: {
+    Left: styled(GameViewContainer)`
+      top: 0;
+      left: 0;
+    `,
+    Right: styled(GameViewContainer)`
+      top: 0;
+      right: 0;
+    `,
+  },
+  Bottom: {
+    Left: styled(GameViewContainer)`
+      bottom: 0;
+      left: 0;
+    `,
+    Right: styled(GameViewContainer)`
+      bottom: 0;
+      right: 0;
+    `,
+  }
+}
 
 const monthTitles = {
   [EMonth.JANUARY]: 'January',
@@ -42,121 +65,107 @@ const monthTitles = {
   [EMonth.DECEMBER]: 'December',
 }
 
-class TimeDisplay extends Component<{ game: GameManager }, { date: IGameDate }> {
-  state = {
-    date: {
-      dayOfMonth: 0,
-      month: 0,
-      year: 0,
-    },
-  }
+const TimeDisplay = () => {
+  const { date$ } = useContext(GameStateContainer.Context);
+  const date = useObservable(date$, null);
+  if (!date) return null;
+  const { dayOfMonth, month, year } = date;
+  const monthName = monthTitles[month];
+  const yearNum = year.toLocaleString();
 
-  componentWillMount() {
-    this.props.game.date$.subscribe(date => this.setState({ date }));
-  }
-
-  render() {
-    const { dayOfMonth, month, year } = this.state.date;
-    const monthName = monthTitles[month];
-    const yearNum = year.toLocaleString();
-
-    return `${monthName} ${dayOfMonth}, Y${yearNum}`;
-  }
+  return <Fragment>{monthName} {dayOfMonth}, Y{yearNum}</Fragment>;
 }
 
-class PlayButton extends Component<{ game: GameManager }, { running: boolean }> {
-  state = {
-    running: false,
-  }
+const PlayButton = () => {
+  const game = useContext(GameStateContainer.Context);
+  const running = useObservable(game.state.ofKey('running'), null);
+  return (
+    <Button
+      minimal
+      icon={running ? 'pause' : 'play'}
+      onClick={() => game.togglePlay()}
+    />
+  );
+}
 
-  componentWillMount() {
-    this.props.game.state.running.subscribe(running => this.setState({ running }));
-  }
+const SpeedControls = () => {
+  const game = useContext(GameStateContainer.Context);
+  const speed = useObservable(game.state.ofKey('speed'), null);
+  const speedIndex = useObservable(game.state.ofKey('speedIndex'), null);
 
-  render() {
-    return (
+  return (
+    <ButtonGroup minimal>
+      <Button
+        icon="double-chevron-left"
+        disabled={speedIndex === 0}
+        onClick={() => game.slower()}
+      />
+      {speed && <Button style={{ width: 134 }}>
+        Speed: <b>{gameSpeedTitles[speed.toString()]}</b>
+      </Button>}
+      <Button
+        icon="double-chevron-right"
+        disabled={speedIndex === 3}
+        onClick={() => game.faster()}
+      />
+    </ButtonGroup>
+  )
+}
+
+const GameMenu = () => {
+  const menu = (
+    <Menu>
+      <Link to="/" className={classnames(Classes.MENU_ITEM, Classes.iconClass('log-out'))}>
+        Exit game
+      </Link>
+    </Menu>
+  );
+
+  return (
+    <GameViewPos.Top.Left>
+      <Popover content={menu} position={Position.BOTTOM}>
+        <Button icon="menu" minimal />
+      </Popover>
+      <Divider />
+      <PlayButton />
       <Button
         minimal
-        icon={this.state.running ? 'pause' : 'play'}
-        onClick={() => this.props.game.togglePlay()}
-      />
-    );
-  }
+        style={{ width: 140 }}
+      >
+        <TimeDisplay />
+      </Button>
+      <SpeedControls />
+    </GameViewPos.Top.Left>
+  )
 }
 
-class GameSpeedControls extends Component<{ game: GameManager }, { speed: EGameSpeed, speedIndex: number }> {
-  state = {
-    speed: 0,
-    speedIndex: 0,
-  }
+const MapCellsView = (props: IWorldMapContainerChildProps) => {
+  const { selectedCell } = props;
+  const game = useContext(GameStateContainer.Context);
+  const regions = useObservable(game.worker.channel$<IWorldRegionView[]>('regions'), []);
 
-  componentWillMount() {
-    this.props.game.state.speed.subscribe(speed => this.setState({ speed }));
-    this.props.game.state.speedIndex.subscribe(speedIndex => this.setState({ speedIndex }));
-  }
-
-  render() {
-    const { game } = this.props;
-    const { speed, speedIndex } = this.state;
-
+  if (selectedCell === null) {
     return (
-      <ButtonGroup minimal>
-        <Button
-          icon="double-chevron-left"
-          disabled={speedIndex === 0}
-          onClick={() => game.slower()}
-        />
-        {speed && <Button style={{ width: 134 }}>
-          Speed: <b>{gameSpeedTitles[speed.toString()]}</b>
-        </Button>}
-        <Button
-          icon="double-chevron-right"
-          disabled={speedIndex === 3}
-          onClick={() => game.faster()}
-        />
-      </ButtonGroup>
+      <GameViewPos.Bottom.Left>
+        {regions.map(region => (
+          <div>
+            {region.name} ({region.cells.length}) <br />
+          </div>
+        ))}
+      </GameViewPos.Bottom.Left>
     )
   }
+
+  return (
+    <GameViewPos.Bottom.Left>
+      {selectedCell.x} {selectedCell.y}
+    </GameViewPos.Bottom.Left>
+  )
 }
 
-export class GameMenu extends Component<{ game: GameManager }> {
+export class MapControls extends Component<IWorldMapContainerChildProps> {
   render() {
-    const { game } = this.props;
-    const menu = (
-      <Menu>
-        <Link to="/" className={classnames(Classes.MENU_ITEM, Classes.iconClass('log-out'))}>
-          Exit game
-        </Link>
-      </Menu>
-    );
-
-    return (
-      <GameMenuContainer>
-        <Popover content={menu} position={Position.BOTTOM}>
-          <Button icon="menu" minimal />
-        </Popover>
-        <Divider />
-        <PlayButton game={game} />
-        <Button
-          minimal
-          style={{ width: 140 }}
-        >
-          <TimeDisplay game={game} />
-        </Button>
-        <GameSpeedControls game={game} />
-      </GameMenuContainer>
-    )
-  }
-}
-
-const GameControlsContainer = styled(GameViewContainer)`
-  bottom: 0;
-  right: 0;
-`;
-
-export class GameControls extends Component<IWorldMapContainerChildProps> {
-  render() {
-    const { viewOptions, selectedCell, onChangeField, onChangeMapMode, deselect } = this.props;
+    const { viewOptions, onChangeField, onChangeMapMode } = this.props;
     const menu = (
       <Menu>
         {Object.entries(mapModeDesc).map(([name, title]) => (
@@ -169,8 +178,9 @@ export class GameControls extends Component<IWorldMapContainerChildProps> {
         ))}
       </Menu>
     );
+
     return (
-      <GameControlsContainer>
+      <GameViewPos.Bottom.Right>
         <Popover content={menu}>
           <Button minimal small rightIcon="chevron-up">
             Map Mode: <b>{mapModeDesc[viewOptions.mapMode]}</b>
@@ -211,7 +221,7 @@ export class GameControls extends Component<IWorldMapContainerChildProps> {
             />
           </Tooltip>
         </ButtonGroup>
-      </GameControlsContainer>
+      </GameViewPos.Bottom.Right>
     )
   }
 }
@@ -234,8 +244,9 @@ export default class GameViewer extends Component<IGameViewerProps> {
         >
           {(props: IWorldMapContainerChildProps) => (
             <Fragment>
-              <GameMenu game={game} />
-              <GameControls {...props} />
+              <GameMenu />
+              <MapControls {...props} />
+              <MapCellsView {...props} />
             </Fragment>
           )}
         </WorldMapContainer>

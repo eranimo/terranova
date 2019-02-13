@@ -162,9 +162,9 @@ export class ChunkRenderer {
     }
   }
 
-  private renderChunk(chunkX: number, chunkY: number) {
+  private renderChunk(chunkX: number, chunkY: number): IChunkData {
     if (this.renderedChunks.has(chunkX, chunkY)) {
-      return;
+      return this.renderedChunks.get(chunkX, chunkY);
     }
     const { cellWidth, cellHeight, chunkWidth, chunkHeight } = this.options;
 
@@ -250,8 +250,7 @@ export class ChunkRenderer {
     // regions
     const chunkRegions = new Container();
     chunk.addChild(chunkRegions);
-
-    this.renderedChunks.set(chunkX, chunkY, {
+    const chunkData: IChunkData = {
       container: chunk,
       regions: chunkRegions,
       position: chunkPosition,
@@ -259,9 +258,10 @@ export class ChunkRenderer {
       grid: gridSprite,
       flowArrows,
       coastlineBorder,
-    });
-
+    };
+    this.renderedChunks.set(chunkX, chunkY, chunkData);
     this.renderChunkRegions(chunkX, chunkY);
+    return chunkData;
   }
 
   private renderChunkRegions(chunkX: number, chunkY: number) {
@@ -269,6 +269,10 @@ export class ChunkRenderer {
     const { cellWidth, cellHeight } = this.options;
     const chunk = this.renderedChunks.get(chunkX, chunkY);
 
+    if (!chunk) {
+      // not drawn yet
+      return;
+    }
     chunk.regions.removeChildren();
     const chunkRegions = new Set<IWorldRegionView>();
     for (const cell of chunkCells) {
@@ -328,9 +332,12 @@ export class ChunkRenderer {
         if (this.renderedChunks.has(x, y)) {
           this.renderedChunks.get(x, y).container.visible = true;
         } else {
-          this.renderChunk(x, y);
+          window.requestAnimationFrame(() => {
+            const chunk = this.renderChunk(x, y);
+            this.updateChunk(chunk);
+            this.visibleChunks.push(this.renderedChunks.get(x, y));
+          });
         }
-        this.visibleChunks.push(this.renderedChunks.get(x, y));
       }
     }
   }
@@ -345,20 +352,24 @@ export class ChunkRenderer {
     }
   }
 
+  updateChunk(chunk: IChunkData) {
+    chunk.grid.visible = this.viewOptions.drawGrid;
+    chunk.flowArrows.visible = this.viewOptions.showFlowArrows;
+    chunk.coastlineBorder.visible = this.viewOptions.drawCoastline;
+    chunk.regions.visible = this.viewOptions.showRegions;
+
+    for (const [mapMode, sprite] of Object.entries(chunk.mapModes)) {
+      sprite.visible = this.viewOptions.mapMode === mapMode;
+    }
+  }
+
   public update(viewOptions?: IViewOptions) {
     if (viewOptions) {
       this.viewOptions = viewOptions;
     }
     for (const chunk of this.mapChunks()) {
       if (chunk) {
-        chunk.grid.visible = this.viewOptions.drawGrid;
-        chunk.flowArrows.visible = this.viewOptions.showFlowArrows;
-        chunk.coastlineBorder.visible = this.viewOptions.drawCoastline;
-        chunk.regions.visible = this.viewOptions.showRegions;
-
-        for (const [mapMode, sprite] of Object.entries(chunk.mapModes)) {
-          sprite.visible = this.viewOptions.mapMode === mapMode;
-        }
+        this.updateChunk(chunk);
       }
     }
   }

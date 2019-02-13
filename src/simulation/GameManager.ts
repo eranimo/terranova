@@ -10,9 +10,20 @@ import { worldStore, gameStore } from "./stores";
 import Array2D from '../utils/Array2D';
 import { WorldMap } from '../common/WorldMap';
 import { IGameCellView } from './GameCell'
+import { ObservableDict } from './ObservableDict';
 
 
 const GameWorker = require('./game.worker');
+
+interface IGameLoopState {
+  started: boolean;
+  running: boolean;
+  ticks: number;
+  dayCount: number;
+  speed: number;
+  speedIndex: number;
+  delta: number;
+}
 
 /**
  * Interface between the UI & Renderer and the Game Worker
@@ -28,7 +39,7 @@ export default class GameManager {
   date$: Subject<IGameDate>;
   loading$: BehaviorSubject<boolean>;
   running$: BehaviorSubject<boolean>;
-  state: any;
+  state: ObservableDict<IGameLoopState>;
 
   constructor(saveName: string) {
     this.saveName = saveName;
@@ -45,17 +56,21 @@ export default class GameManager {
     this.worker.on<IGameDate>(EGameEvent.DATE)
       .subscribe((date) => this.date$.next(date));
 
-    this.state = {
-      started: new BehaviorSubject(undefined),
-      running: new BehaviorSubject(undefined),
-      ticks: new BehaviorSubject(undefined),
-      dayCount: new BehaviorSubject(undefined),
-      speed: new BehaviorSubject(undefined),
-      speedIndex: new BehaviorSubject(undefined),
-    };
+    this.state = new ObservableDict({
+      started: undefined,
+      running: undefined,
+      ticks: undefined,
+      dayCount: undefined,
+      speed: undefined,
+      speedIndex: undefined,
+      delta: undefined,
+    });
 
     // load world data
     this.world = await worldStore.load(this.params.worldSaveName);
+
+    // world map events
+    this.worldMap = new WorldMap(this.world)
 
     // send INIT event to worker
     this.loading$ = new BehaviorSubject(true);
@@ -65,27 +80,53 @@ export default class GameManager {
         console.log(`Startup time: ${startupTime}`);
         this.loading$.next(true);
 
-        const unsub = this.worker.channel('regions', (region) => {
-          console.log('region channel', region);
-          // unsub();
+        this.worker.channel('regions');
+
+        this.worker.channel$<IWorldRegionView[]>('regions')
+          .subscribe((regions) => {
+            console.log('region channel', regions);
+            for (const region of regions) {
+              this.worldMap.addRegion(region);
+            }
+          });
+
+        this.worker.channel('region/Alpha', (cells) => {
+          console.log('alpha cells', cells);
+        });
+
+        this.worker.channel('gamecells', (gameCell) => {
+          console.log('gamecells channel', gameCell);
+          // if (gameCell) {
+          //   console.log('Pop Info', gameCell.pops.reduce((prev, next) => prev + next.population, 0));
+          //   this.worldMap.addGameCell(gameCell);
+          // }
+        });
+
+        this.worker.channel('gamecell/0', (gamecell) => {
+          console.log('gamecell channel', gamecell);
         });
       });
 
     // listen for state change events
     this.worker.on(EGameEvent.STATE_CHANGE)
       .subscribe(({ key, value }) => {
-        this.state[key].next(value);
+        this.state.set(key, value);
       });
+  }
 
-    // world map events
-    this.worldMap = new WorldMap(this.world)
+  pause() {
+    this.worker.action(EGameEvent.PAUSE).send();
+  }
+
+  play() {
+    this.worker.action(EGameEvent.PLAY).send();
   }
 
   togglePlay() {
-    if (this.state.running.value) {
-      this.worker.action(EGameEvent.PAUSE).send();
+    if (this.state.get('running')) {
+      this.pause();
     } else {
-      this.worker.action(EGameEvent.PLAY).send();
+      this.play();
     }
   }
 

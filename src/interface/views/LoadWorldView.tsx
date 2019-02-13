@@ -3,7 +3,7 @@ import { WorldGenerator } from '../../simulation';
 import { worldStore } from "../../simulation/stores";
 import { Link } from 'react-router-dom';
 import { RouteComponentProps } from 'react-router'
-
+import classnames from 'classnames';
 import {
   Classes,
   Card,
@@ -44,14 +44,14 @@ export class LoadWorldView extends Component<RouteComponentProps<{}>, {
   }
 
   loadSaves() {
-    worldStore.getSaves()
+    return worldStore.getSaves()
       .then(saves => this.setState({ isLoading: false, saves }))
   }
 
-  deleteSave() {
+  async deleteSave() {
     this.setState({ isLoading: true });
-    worldStore.removeSave(this.state.deleteModalSaveName)
-    this.loadSaves();
+    await worldStore.removeSave(this.state.deleteModalSaveName)
+    await this.loadSaves();
     this.setState({ deleteModalSaveName: null });
   }
 
@@ -87,6 +87,18 @@ export class LoadWorldView extends Component<RouteComponentProps<{}>, {
                 >
                   {save.name}
                 </Link>
+                {save.data.buildVersion !== VERSION && (
+                  <Tooltip
+                    className="margin-h-1"
+                    content={(
+                      <span>
+                        This world was built with version <b>{save.data.buildVersion || '(not found)'}</b> but the
+                          current version is <b>{VERSION}</b>
+                      </span>
+                    )}
+                  >
+                    <Icon icon="warning-sign" intent="warning" />
+                  </Tooltip>)}
               </td>
               <td>
                 {new Date(save.createdAt).toLocaleDateString()}
@@ -129,6 +141,18 @@ export class LoadWorldView extends Component<RouteComponentProps<{}>, {
     return (
       <Container>
         <h1>Terra Nova</h1>
+        <ul className={Classes.BREADCRUMBS} style={{ margin: '1rem 0' }}>
+          <li>
+            <Link to={'/'} className={Classes.BREADCRUMB}>
+              Main Menu
+            </Link>
+          </li>
+          <li>
+            <span className={classnames(Classes.BREADCRUMB, Classes.BREADCRUMB_CURRENT)}>
+              Load World
+            </span>
+          </li>
+        </ul>
         <Card>
           <h4 className={Classes.HEADING}>Load Saved World</h4>
           {this.renderSaves()}
