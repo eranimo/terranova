@@ -126,7 +126,7 @@ export enum ERiverType {
 }
 
 export interface IWorldCell {
-  world: World;
+  world?: World;
   x: number;
   y: number;
   height: number;
