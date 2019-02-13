@@ -2,7 +2,9 @@ import { IWorldRegionView } from '../simulation/WorldRegion';
 import World from "../simulation/World";
 import Array2D from "../utils/Array2D";
 import { IGameCellView } from '../simulation/GameCell';
-import { Subject, ReplaySubject } from 'rxjs';
+import { Subject, ReplaySubject, Observable } from 'rxjs';
+import ndarray from 'ndarray';
+import { random } from 'lodash';
 
 
 export class WorldMap {
@@ -13,17 +15,33 @@ export class WorldMap {
   regionUpdate$: ReplaySubject<IWorldRegionView>;
   gameCellMap: Array2D<IGameCellView>;
 
+  populationMap: ndarray;
+  populationMapUpdate$: Subject<void>;
+
   constructor(world: World) {
     this.world = world;
+    const { width, height } = this.world.size;
     this.regionMap = new Map();
-    this.cellRegionMap = new Array2D(this.world.size.width, this.world.size.height);
+    this.cellRegionMap = new Array2D(width, height);
     this.cellRegionUpdate$ = new Array2D(
-      this.world.size.width,
-      this.world.size.height,
+      width,
+      height,
       (x, y) => new ReplaySubject<string>(),
     );
     this.regionUpdate$ = new ReplaySubject<IWorldRegionView>();
-    this.gameCellMap = new Array2D(this.world.size.width, this.world.size.height);
+    this.gameCellMap = new Array2D(width, height);
+
+    this.populationMap = ndarray(new Uint32Array(width * height), [width, height]);
+    this.populationMap.set(113, 86, 1000);
+    this.populationMap.set(112, 86, 5000);
+    this.populationMap.set(112, 85, 15000);
+    this.populationMap.set(112, 84, 20000);
+    this.populationMapUpdate$ = new Subject();
+
+    setInterval(() => {
+      this.populationMap.set(random(width), random(height), random(20000));
+      this.populationMapUpdate$.next();
+    }, 2000);
   }
 
   addRegion(region: IWorldRegionView) {
@@ -35,6 +53,7 @@ export class WorldMap {
       this.cellRegionUpdate$.get(cell.x, cell.y).next(region.name)
     }
   }
+
   addGameCell(gameCell: IGameCellView) {
     this.gameCellMap.set(gameCell.xCoord, gameCell.yCoord, gameCell);
   }

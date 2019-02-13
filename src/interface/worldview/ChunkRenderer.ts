@@ -4,7 +4,7 @@ import { Sprite, Container, Point, Graphics } from 'pixi.js';
 import { IWorldCell } from '../../simulation/worldTypes';
 import World from "../../simulation/World";
 import { IWorldRendererOptions } from './WorldRenderer';
-import { EMapMode, IMapMode, MapModeMap } from './mapModes';
+import { EMapMode, MapMode, MapModeMap } from './mapModes';
 import { isFunction } from 'lodash';
 import Array2D from '../../utils/Array2D';
 import { makeArrow } from './textures';
@@ -12,7 +12,7 @@ import Viewport from 'pixi-viewport';
 import { Subject, concat } from 'rxjs';
 import { IViewOptions } from './WorldRendererContainer';
 import { IWorldRegionView } from '../../simulation/WorldRegion';
-
+import hash from 'hash.js';
 
 const directionAngles = {
   [EDirection.NONE]: 0,
@@ -56,8 +56,9 @@ export class ChunkRenderer {
 
   public world: World;
   public worldMap: WorldMap;
-  public mapModes: Partial<Record<EMapMode, IMapMode>>;
+  public mapModes: Partial<Record<EMapMode, MapMode>>;
   public chunkContainer: Container;
+  chunkCellsMap: Array2D<IWorldCell[]>;
 
   constructor(
     worldMap: WorldMap,
@@ -79,7 +80,16 @@ export class ChunkRenderer {
 
     this.mapModes = {};
     for (const [name, factory] of Object.entries(mapModes)) {
-      this.mapModes[name] = factory(worldMap);
+      const mapMode = factory(worldMap);
+
+      // map mode data update
+      if (mapMode.update$) {
+        console.log(mapMode.update$);
+        mapMode.update$.subscribe(() => {
+          this.updateMapMode(name as EMapMode);
+        });
+      }
+      this.mapModes[name] = mapMode;
     }
 
     this.chunkContainer = new Container();
@@ -91,9 +101,12 @@ export class ChunkRenderer {
       this.options.cellHeight * this.options.chunkHeight,
     );
 
+    this.chunkCellsMap = new Array2D(this.world.size.width, this.world.size.height);
     for (let x = 0; x < this.chunkColumns; x++) {
       for (let y = 0; y < this.chunkRows; y++) {
-        for (const cell of this.getCellsInChunk(x, y)) {
+        const cells = Array.from(this.mapCellsInChunk(x, y));
+        this.chunkCellsMap.set(x, y, cells);
+        for (const cell of cells) {
           const cellUpdates$ = this.worldMap.cellRegionUpdate$.get(cell.x, cell.y);
           cellUpdates$.subscribe(region => {
             // cell's region updated
@@ -142,7 +155,7 @@ export class ChunkRenderer {
   }
 
   private getCellsInChunk(chunkX: number, chunkY: number): IWorldCell[] {
-    return Array.from(this.mapCellsInChunk(chunkX, chunkY));
+    return this.chunkCellsMap.get(chunkX, chunkY);
   }
 
   private *mapCellsInChunk(chunkX: number, chunkY: number): IterableIterator<IWorldCell> {
@@ -160,6 +173,29 @@ export class ChunkRenderer {
         yield this.renderedChunks.get(x, y);
       }
     }
+  }
+
+  updateMapMode(mapMode: EMapMode) {
+    const mapModeInst = this.mapModes[mapMode];
+    // update mapMode in all rendered chunks
+    console.time('update map mode');
+    for (let x = 0; x < this.chunkColumns; x++) {
+      for (let y = 0; y < this.chunkRows; y++) {
+        if (this.renderedChunks.has(x, y)) {
+          const chunk = this.renderedChunks.get(x, y);
+          const chunkCells = this.getCellsInChunk(x, y);
+          const mapModeSprite = mapModeInst.renderChunk(this.options, chunkCells, chunk.position);
+          mapModeSprite.interactive = false;
+          mapModeSprite.cacheAsBitmap = true;
+          const index = chunk.container.getChildIndex(chunk.mapModes[mapMode]);
+          chunk.container.removeChildAt(index);
+          chunk.container.addChildAt(mapModeSprite, index);
+          chunk.mapModes[mapMode] = mapModeSprite;
+          this.updateChunk(chunk);
+        }
+      }
+    }
+    console.timeEnd('update map mode');
   }
 
   private renderChunk(chunkX: number, chunkY: number): IChunkData {

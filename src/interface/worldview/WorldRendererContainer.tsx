@@ -77,7 +77,9 @@ export class WorldRendererContainer extends React.Component<IWorldMapProps> {
   }
 
   componentWillUnmount() {
-    this.renderer.destroy();
+    if (this.renderer) {
+      this.renderer.destroy();
+    }
   }
 
   selectCell(cell: IWorldCell) {

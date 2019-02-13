@@ -8,6 +8,7 @@ import { climateColors } from '../../simulation/colors';
 import { IWorldRendererOptions } from './WorldRenderer';
 import colormap from 'colormap';
 import { mapEnum } from '../../utils/enums';
+import { Observable } from 'rxjs';
 
 
 function rgbToNumber(r: number, g: number, b: number): number {
@@ -26,7 +27,6 @@ export enum EMapMode {
   MOISTURE_ZONES = "moisture_zones",
   TEMPERATURE_ZONES = "temperature_zones",
   TERRAIN_ROUGHNESS = "terrain_roughness",
-  POLITICAL = "political",
   POPULATION = "population",
 }
 
@@ -43,7 +43,6 @@ export const mapModeDesc = {
   [EMapMode.MOISTURE_ZONES]: "Moisture zones",
   [EMapMode.TEMPERATURE_ZONES]: "Temperature zones",
   [EMapMode.TERRAIN_ROUGHNESS]: "Terrain Roughness",
-  [EMapMode.POLITICAL]: "Political",
   [EMapMode.POPULATION]: "Population",
 }
 
@@ -78,29 +77,39 @@ export const moistureZoneColors: Record<string, number> = {
   [EMoistureZone.WET]: 0x5595D6,
 }
 
-export interface IMapMode {
+export class MapMode {
   title: string;
   worldMap: WorldMap;
-  showLegend: boolean;
+  showLegend?: boolean;
+  update$?: Observable<void>;
 
+  constructor() {
+    this.update$ = new Observable();
+  }
   renderChunk(
     renderOptions: IWorldRendererOptions,
     cells: IWorldCell[],
     chunkPosition: Point,
-  ): Sprite;
-  renderLegend?(): Container;
-  getCellColor(cell: IWorldCell): number;
+  ): Sprite {
+    throw new Error('Not implemented');
+  }
+  renderLegend?(): Container {
+    throw new Error('Not implemented');
+  };
+  getCellColor(cell: IWorldCell): number {
+    throw new Error('Not implemented');
+  };
 }
 
 // map mode with cell groups and rendering as a colored rectangle
 interface IGroupDef {
-  name: string
-  color?: number,
-  showLegend?: boolean,
+  name: string;
+  color?: number;
+  showLegend?: boolean;
   paintCell(cell: IWorldCell): number | null
 }
 
-class GroupedCellsMapMode implements IMapMode {
+class GroupedCellsMapMode extends MapMode {
   title: string;
   groups: IGroupDef[];
   worldMap: WorldMap;
@@ -116,6 +125,7 @@ class GroupedCellsMapMode implements IMapMode {
     },
     worldMap: WorldMap
   ) {
+    super();
     this.title = options.title;
     this.worldMap = worldMap;
     this.groups = options.groups;
@@ -215,46 +225,49 @@ class GroupedCellsMapMode implements IMapMode {
     return new Sprite(g.generateCanvasTexture());
   }
 }
-
-class ColormapMapMode implements IMapMode {
+export interface IColormapMapModeOptions {
   title: string;
-  datapoint: string;
+  getData: (worldMap: WorldMap, cell: IWorldCell) => number;
   colormap: string;
-  showLegend: boolean;
+  showLegend?: boolean;
+  update$?: () => Observable<void>;
+}
+
+export class ColormapMapMode extends MapMode {
+  title: string;
+  options: IColormapMapModeOptions;
   mapData: {
     min: number,
     max: number,
     colors: [number, number, number, number][],
     quantiles: { [quantile: number]: number},
-  }
+  };
   worldMap: WorldMap;
+  showLegend = true;
 
   constructor(
-    options: {
-      title: string,
-      datapoint: string,
-      colormap: string,
-      showLegend?: boolean,
-    },
+    options: IColormapMapModeOptions,
     worldMap: WorldMap
   ) {
+    super();
     this.title = options.title;
     this.worldMap = worldMap;
-    this.datapoint = options.datapoint;
-    this.colormap = options.colormap;
-    this.showLegend = options.showLegend !== false;
+    this.options = options;
+    if (this.options.update$) {
+      this.update$ = this.options.update$();
+    }
 
     const colors: [number, number, number, number][] = colormap({
       nshades: 101,
       format: 'rba',
-      colormap: this.colormap
+      colormap: this.options.colormap
     });
-    let item;
+    let item: number;
     let min = Infinity;
     let max = -Infinity;
     const data = [];
     for (const cell of worldMap.world.cells) {
-      item = cell[options.datapoint];
+      item = options.getData(this.worldMap, cell);
       data.push(item);
       if (item < min) {
         min = item;
@@ -271,7 +284,8 @@ class ColormapMapMode implements IMapMode {
 
   getCellColor(cell: IWorldCell) {
     const { min, max, colors } = this.mapData;
-    const index = Math.round(((cell[this.datapoint] - min) / (max - min)) * 100);
+    const value = this.options.getData(this.worldMap, cell);
+    const index = Math.round(((value - min) / (max - min)) * 100);
     let color: number[] = [0, 0, 0];
     if (!isNaN(index)) {
       color = colors[index];
@@ -356,10 +370,12 @@ class ColormapMapMode implements IMapMode {
     const g = new PIXI.Graphics(true);
     const { min, max, colors } = this.mapData;
     let index: number;
+    let value: number;
     let color: number[];
     const cellsByColor: Record<any, IWorldCell[]> = {};
     for (const cell of cells) {
-      index = Math.round(((cell[this.datapoint] - min) / (max - min)) * 100);
+      value = this.options.getData(this.worldMap, cell);
+      index = Math.round(((value - min) / (max - min)) * 100);
       if (isNaN(index)) {
         continue;
       }
@@ -391,7 +407,7 @@ class ColormapMapMode implements IMapMode {
   }
 }
 
-export type MapModeDef = (worldMap: WorldMap) => IMapMode
+export type MapModeDef = (worldMap: WorldMap) => MapMode
 export type MapModeMap = Partial<Record<EMapMode, MapModeDef>>;
 
 export const mapModes: MapModeMap = {
@@ -487,29 +503,29 @@ export const mapModes: MapModeMap = {
   [EMapMode.HEIGHT]: (worldMap: WorldMap) => (
     new ColormapMapMode({
       title: 'Height',
-      datapoint: 'height',
-      colormap: 'bathymetry'
+      getData: (worldMap, cell) => cell.height,
+      colormap: 'bathymetry',
     }, worldMap)
   ),
   [EMapMode.TEMPERATURE]: (worldMap: WorldMap) => (
     new ColormapMapMode({
       title: 'Temperature',
-      datapoint: 'temperature',
-      colormap: 'jet'
+      getData: (worldMap, cell) => cell.temperature,
+      colormap: 'jet',
     }, worldMap)
   ),
   [EMapMode.MOISTURE]: (worldMap: WorldMap) => (
     new ColormapMapMode({
       title: 'Moisture',
-      datapoint: 'moisture',
-      colormap: 'viridis'
+      getData: (worldMap, cell) => cell.moisture,
+      colormap: 'viridis',
     }, worldMap)
   ),
   [EMapMode.UPSTREAM_COUNT]: (worldMap: WorldMap) => (
     new ColormapMapMode({
       title: 'Upstream Count',
-      datapoint: 'upstreamCount',
-      colormap: 'velocity-blue'
+      getData: (worldMap, cell) => cell.upstreamCount,
+      colormap: 'velocity-blue',
     }, worldMap)
   ),
   [EMapMode.MOISTURE_ZONES]: (worldMap: WorldMap) => (
@@ -545,7 +561,7 @@ export const mapModes: MapModeMap = {
   [EMapMode.TERRAIN_ROUGHNESS]: (worldMap: WorldMap) => (
     new ColormapMapMode({
       title: 'Terrain Roughness',
-      datapoint: 'terrainRoughness',
+      getData: (worldMap, cell) => cell.terrainRoughness,
       colormap: 'greens'
     }, worldMap)
   ),
