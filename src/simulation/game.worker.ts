@@ -7,6 +7,7 @@ import { EGameEvent } from './gameTypes';
 import { ObservableSet } from './ObservableSet';
 import { WorldRegion } from './WorldRegion';
 import { IWorldCell } from './worldTypes';
+import ndarray from 'ndarray';
 
 const ctx: Worker = self as any;
 
@@ -47,12 +48,24 @@ function channelFromObservableSetItems<T, V = T>(
 }
 
 function gameInit() {
+  const { width, height } = game.world.size;
   game.date$.subscribe(date => worker.send(EGameEvent.DATE, date));
   for (const [key, subject] of Object.entries(game.state)) {
     worker.send(EGameEvent.STATE_CHANGE, { key, value: subject.value });
     subject.subscribe(value => worker.send(EGameEvent.STATE_CHANGE, { key, value }));
   }
   console.log('game init', game);
+
+  // const populationData = new SharedArrayBuffer(width * height * Uint32Array.BYTES_PER_ELEMENT);
+  // const population = ndarray(new Uint32Array(populationData), [width, height]);
+
+  // worker.send('population', { population: populationData });
+
+  // game.gameCells.add$.subscribe((gameCell) => {
+  //   gameCell.gameCellState$.subscribe(() => {
+
+  //   });
+  // });
 
   channelFromObservableSet(
     game.world.regions,

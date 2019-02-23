@@ -109,6 +109,7 @@ export default class WorldRenderer {
       worldHeight: this.worldHeight,
       divWheel: element,
     });
+    (window as any).PIXIAPP = this.app;
     (window as any).WORLD_RENDER_VIEWPORT = this.viewport;
     (window as any).WORLD_RENDER_OPTIONS = options;
     (window as any).WORLD_RENDER_DRAW = () => {

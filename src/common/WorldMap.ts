@@ -39,7 +39,11 @@ export class WorldMap {
     this.populationMapUpdate$ = new Subject();
 
     setInterval(() => {
-      this.populationMap.set(random(width), random(height), random(20000));
+      const x = random(width);
+      const y = random(height);
+      const num = random(20000);
+      console.log(`Setting population at ${x},${y} to ${num.toLocaleString()}`);
+      this.populationMap.set(x, y, num);
       this.populationMapUpdate$.next();
     }, 2000);
   }

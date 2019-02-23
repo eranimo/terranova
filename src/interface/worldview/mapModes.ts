@@ -2,13 +2,14 @@ import { WorldMap } from './../../common/WorldMap';
 import { EMoistureZone } from './../../simulation/worldTypes';
 import { EBiome, ETerrainType } from '../../simulation/worldTypes';
 import { terrainTypeLabels, cellFeatureLabels, temperatureZoneTitles, moistureZoneTitles } from "../../simulation/labels";
-import { Sprite, Graphics, Point, Container, Text, TextStyle } from 'pixi.js';
+import { Sprite, Graphics, Point, Container, Text, TextStyle, Texture } from 'pixi.js';
 import { IWorldCell, ECellFeature, ECellType, ETemperatureZone } from '../../simulation/worldTypes';
 import { climateColors } from '../../simulation/colors';
 import { IWorldRendererOptions } from './WorldRenderer';
 import colormap from 'colormap';
 import { mapEnum } from '../../utils/enums';
 import { Observable } from 'rxjs';
+import Array2D from '../../utils/Array2D';
 
 
 function rgbToNumber(r: number, g: number, b: number): number {
@@ -93,6 +94,14 @@ export class MapMode {
   ): Sprite {
     throw new Error('Not implemented');
   }
+
+  updateChunk(
+    renderOptions: IWorldRendererOptions,
+    cells: IWorldCell[],
+    chunkPosition: Point,
+  ): Graphics {
+    throw new Error('Not implemented');
+  }
   renderLegend?(): Container {
     throw new Error('Not implemented');
   };
@@ -106,7 +115,7 @@ interface IGroupDef {
   name: string;
   color?: number;
   showLegend?: boolean;
-  paintCell(cell: IWorldCell): number | null
+  getCellColor(cell: IWorldCell): number | null
 }
 
 class GroupedCellsMapMode extends MapMode {
@@ -185,7 +194,7 @@ class GroupedCellsMapMode extends MapMode {
 
   getCellColor(cell: IWorldCell) {
     for (const group of this.groups) {
-      const color = group.paintCell(cell);
+      const color = group.getCellColor(cell);
       if (color !== null) {
         return color;
       }
@@ -207,7 +216,7 @@ class GroupedCellsMapMode extends MapMode {
 
     for (const cell of cells) {
       for (const group of this.groups) {
-        const color = group.paintCell(cell);
+        const color = group.getCellColor(cell);
         if (color) {
           g.beginFill(color);
           g.drawRect(
@@ -244,6 +253,7 @@ export class ColormapMapMode extends MapMode {
   };
   worldMap: WorldMap;
   showLegend = true;
+  chunkGraphics: Record<string, Graphics>;
 
   constructor(
     options: IColormapMapModeOptions,
@@ -280,6 +290,8 @@ export class ColormapMapMode extends MapMode {
       quantiles[i] = Math.round(min + ((i / 100) * (max - min)));
     }
     this.mapData = { min, max, colors, quantiles };
+
+    this.chunkGraphics = {};
   }
 
   getCellColor(cell: IWorldCell) {
@@ -361,13 +373,17 @@ export class ColormapMapMode extends MapMode {
     return container;
   }
 
-  renderChunk(
+  updateChunk(
     renderOptions: IWorldRendererOptions,
     cells: IWorldCell[],
     chunkPosition: Point,
-  ): Sprite {
+  ): Graphics {
     const { cellWidth, cellHeight } = renderOptions;
-    const g = new PIXI.Graphics(true);
+    const key = `${chunkPosition.x},${chunkPosition.y}`;
+    if (!this.chunkGraphics[key]) {
+      this.chunkGraphics[key] = new Graphics(true);
+    }
+    const g = this.chunkGraphics[key];
     const { min, max, colors } = this.mapData;
     let index: number;
     let value: number;
@@ -403,7 +419,17 @@ export class ColormapMapMode extends MapMode {
       }
       g.endFill();
     }
-    return new Sprite(g.generateCanvasTexture());
+    return g;
+  }
+
+  renderChunk(
+    renderOptions: IWorldRendererOptions,
+    cells: IWorldCell[],
+    chunkPosition: Point,
+  ): Sprite {
+    const graphics = this.updateChunk(renderOptions, cells, chunkPosition);
+    const sprite = new Sprite(graphics.generateCanvasTexture());
+    return sprite;
   }
 }
 
@@ -417,7 +443,7 @@ export const mapModes: MapModeMap = {
       groups: [
         {
           name: 'coastal',
-          paintCell: (cell: IWorldCell) => (
+          getCellColor: (cell: IWorldCell) => (
               cell.feature === ECellFeature.COASTAL ||
               cell.feature === ECellFeature.LAKE
             )
@@ -426,13 +452,13 @@ export const mapModes: MapModeMap = {
         },
         {
           name: 'rivers',
-          paintCell: (cell: IWorldCell) => cell.riverType > 0
+          getCellColor: (cell: IWorldCell) => cell.riverType > 0
             ? climateColors.ocean.coast
             : null,
         },
         {
           name: 'ocean',
-          paintCell: (cell: IWorldCell) => (
+          getCellColor: (cell: IWorldCell) => (
             cell.type === ECellType.OCEAN
               ? climateColors.ocean.deep
               : null
@@ -440,7 +466,7 @@ export const mapModes: MapModeMap = {
         },
         ...Object.values(EBiome).map(biome => ({
           name: `biome-${biome}`,
-          paintCell: (cell: IWorldCell) => {
+          getCellColor: (cell: IWorldCell) => {
             if (cell.biome === biome) {
               const color = climateColors.biomes[biome];
               if (typeof color === 'object') {
@@ -462,7 +488,7 @@ export const mapModes: MapModeMap = {
       groups: mapEnum(ECellFeature).map(({ name, id }) => ({
         name: cellFeatureLabels[id],
         color: featureColors[id],
-        paintCell: (cell: IWorldCell) => (
+        getCellColor: (cell: IWorldCell) => (
           cell.feature === id
             ? featureColors[id]
             : null
@@ -477,7 +503,7 @@ export const mapModes: MapModeMap = {
       groups: mapEnum(ETerrainType).map(({ name, id }) => ({
         name: terrainTypeLabels[id],
         color: terrainTypeColors[id],
-        paintCell: (cell: IWorldCell) => (
+        getCellColor: (cell: IWorldCell) => (
           cell.terrainType === id
             ? terrainTypeColors[id]
             : null
@@ -491,7 +517,7 @@ export const mapModes: MapModeMap = {
       groups: [
         {
           name: `drainage-basins`,
-          paintCell: (cell: IWorldCell) => (
+          getCellColor: (cell: IWorldCell) => (
             cell.drainageBasin
               ? cell.drainageBasin.color
               : 0xFFF
@@ -535,7 +561,7 @@ export const mapModes: MapModeMap = {
       groups: mapEnum(ETerrainType).map(({ name, id }) => ({
         name: moistureZoneTitles[id],
         color: moistureZoneColors[id],
-        paintCell: (cell: IWorldCell) => (
+        getCellColor: (cell: IWorldCell) => (
           cell.moistureZone === id
             ? moistureZoneColors[id]
             : null
@@ -550,7 +576,7 @@ export const mapModes: MapModeMap = {
       groups: mapEnum(ETerrainType).map(({ name, id }) => ({
         name: temperatureZoneTitles[id],
         color: temperatureZoneColors[id],
-        paintCell: (cell: IWorldCell) => (
+        getCellColor: (cell: IWorldCell) => (
           cell.temperatureZone === id
             ? temperatureZoneColors[id]
             : null

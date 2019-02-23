@@ -209,7 +209,7 @@ export class ReactiveWorkerClient {
        * @param payload payload object
        */
       send(payload?): void {
-        return dispatch(false, payload)
+        return dispatch(false, payload);
       },
       /**
        * Sends an event to a worker, observing its results
@@ -379,11 +379,12 @@ export class ReactiveWorker {
   public send(
     type: string,
     payload?: any,
+    transfer?: Transferable[],
   ): this {
     this.ctx.postMessage({
       type,
       payload,
-    });
+    }, transfer);
     return this;
   }
 }

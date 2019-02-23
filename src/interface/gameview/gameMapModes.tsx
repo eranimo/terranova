@@ -6,7 +6,7 @@ export const gameMapModes: MapModeMap = {
   ...mapModes,
   [EMapMode.POPULATION]: (worldMap: WorldMap) => (
     new ColormapMapMode({
-      title: 'Political Map',
+      title: 'Population Map',
       getData: (worldMap, cell) => worldMap.populationMap.get(cell.x, cell.y),
       colormap: 'picnic',
       update$: () => worldMap.populationMapUpdate$

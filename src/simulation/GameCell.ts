@@ -263,7 +263,7 @@ export default class GameCell {
     }
   }
 
-  getReference() {
+  getReference(): IGameCellView {
     return {
       xCoord: this.worldCell.x,
       yCoord: this.worldCell.y

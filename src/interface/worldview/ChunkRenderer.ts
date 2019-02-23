@@ -25,6 +25,7 @@ const directionAngles = {
 export interface IChunkData {
   container: Container;
   position: Point,
+  location: Point,
   mapModes: Record<EMapMode, Sprite>;
   grid: Sprite;
   flowArrows: Container;
@@ -49,7 +50,6 @@ export class ChunkRenderer {
   private chunkColumns: number;
   private chunkRows: number;
   private overpaint: Point;
-  private visibleChunks: IChunkData[];
   private chunkWorldWidth: number;
   private chunkWorldHeight: number;
   private viewOptions: IViewOptions;
@@ -84,7 +84,6 @@ export class ChunkRenderer {
 
       // map mode data update
       if (mapMode.update$) {
-        console.log(mapMode.update$);
         mapMode.update$.subscribe(() => {
           this.updateMapMode(name as EMapMode);
         });
@@ -167,10 +166,10 @@ export class ChunkRenderer {
     }
   }
 
-  *mapChunks(): IterableIterator<IChunkData> {
+  *mapChunks(): IterableIterator<[number, number, IChunkData]> {
     for (let x = 0; x < this.chunkColumns; x++) {
       for (let y = 0; y < this.chunkRows; y++) {
-        yield this.renderedChunks.get(x, y);
+        yield [x, y, this.renderedChunks.get(x, y)];
       }
     }
   }
@@ -179,22 +178,15 @@ export class ChunkRenderer {
     const mapModeInst = this.mapModes[mapMode];
     // update mapMode in all rendered chunks
     console.time('update map mode');
-    for (let x = 0; x < this.chunkColumns; x++) {
-      for (let y = 0; y < this.chunkRows; y++) {
-        if (this.renderedChunks.has(x, y)) {
-          const chunk = this.renderedChunks.get(x, y);
-          const chunkCells = this.getCellsInChunk(x, y);
-          const mapModeSprite = mapModeInst.renderChunk(this.options, chunkCells, chunk.position);
-          mapModeSprite.interactive = false;
-          mapModeSprite.cacheAsBitmap = true;
-          const index = chunk.container.getChildIndex(chunk.mapModes[mapMode]);
-          chunk.container.removeChildAt(index);
-          chunk.container.addChildAt(mapModeSprite, index);
-          chunk.mapModes[mapMode] = mapModeSprite;
-          this.updateChunk(chunk);
-        }
-      }
+    let updateCount = 0;
+    for (const [x, y, chunk] of this.mapRenderedChunks()) {
+      let chunkCells = this.getCellsInChunk(x, y);
+      mapModeInst.updateChunk(this.options, chunkCells, chunk.position);
+      // chunk.mapModes[mapMode].texture.update();
+      chunk.mapModes[mapMode].texture.baseTexture.update();
+      updateCount++;
     }
+    console.log(`Chunks updated: ${updateCount}`);
     console.timeEnd('update map mode');
   }
 
@@ -290,6 +282,7 @@ export class ChunkRenderer {
       container: chunk,
       regions: chunkRegions,
       position: chunkPosition,
+      location: new Point(chunkX, chunkY),
       mapModes: mapModeLayers as Record<EMapMode, Sprite>,
       grid: gridSprite,
       flowArrows,
@@ -362,7 +355,6 @@ export class ChunkRenderer {
       Math.min(this.viewport.bottom + this.overpaint.y, this.viewport.worldHeight - 1),
     );
 
-    this.visibleChunks = [];
     for (let x = x1; x <= x2; x++) {
       for (let y = y1; y <= y2; y++) {
         if (this.renderedChunks.has(x, y)) {
@@ -371,8 +363,38 @@ export class ChunkRenderer {
           window.requestAnimationFrame(() => {
             const chunk = this.renderChunk(x, y);
             this.updateChunk(chunk);
-            this.visibleChunks.push(this.renderedChunks.get(x, y));
           });
+        }
+      }
+    }
+  }
+
+  getVisibleChunks(): IChunkData[] {
+    const { chunkX: x1, chunkY: y1 } = this.getChunkAtPoint(
+      Math.max(0, this.viewport.left - this.overpaint.x),
+      Math.max(0, this.viewport.top - this.overpaint.y),
+    );
+    const { chunkX: x2, chunkY: y2 } = this.getChunkAtPoint(
+      Math.min(this.viewport.right + this.overpaint.x, this.viewport.worldWidth - 1),
+      Math.min(this.viewport.bottom + this.overpaint.y, this.viewport.worldHeight - 1),
+    );
+
+    const chunks = [];
+    for (let x = x1; x <= x2; x++) {
+      for (let y = y1; y <= y2; y++) {
+        if (this.renderedChunks.has(x, y)) {
+          chunks.push(this.renderedChunks.get(x, y));
+        }
+      }
+    }
+    return chunks;
+  }
+
+  *mapRenderedChunks(): IterableIterator<[number, number, IChunkData]> {
+    for (let x = 0; x < this.chunkColumns; x++) {
+      for (let y = 0; y < this.chunkRows; y++) {
+        if (this.renderedChunks.has(x, y)) {
+          yield [x, y, this.renderedChunks.get(x, y)];
         }
       }
     }
@@ -403,7 +425,7 @@ export class ChunkRenderer {
     if (viewOptions) {
       this.viewOptions = viewOptions;
     }
-    for (const chunk of this.mapChunks()) {
+    for (const [x, y, chunk] of this.mapChunks()) {
       if (chunk) {
         this.updateChunk(chunk);
       }
