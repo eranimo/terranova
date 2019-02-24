@@ -8,6 +8,7 @@ import { IWorldMapProps, IViewOptions } from './WorldRendererContainer';
 import { debounce, pick, meanBy } from 'lodash';
 import { EMapMode, MapModeMap } from './mapModes';
 import { IWorldRegionView } from '../../simulation/WorldRegion';
+import { Subject } from 'rxjs';
 
 
 export interface IWorldRendererOptions {
@@ -38,6 +39,26 @@ interface IViewportState {
 interface IWorldRendererState {
   viewOptions: IViewOptions;
 }
+
+class MapController {
+  private callbacks: Array<(renderer: WorldRenderer) => void>;
+
+  constructor() {
+    this.callbacks = [];
+  }
+
+  init(renderer: WorldRenderer) {
+    for (const cb of this.callbacks) {
+      cb(renderer);
+    }
+  }
+
+  onInit(callback: (renderer: WorldRenderer) => void) {
+    this.callbacks.push(callback);
+  }
+}
+
+export const mapController = new MapController();
 
 /**
  * WorldRenderer
@@ -124,6 +145,7 @@ export default class WorldRenderer {
     // create chunk renderer
     console.log('[WorldRenderer] init chunk render');
     this.chunkRenderer = new ChunkRenderer(worldMap, this.viewport, this.options, mapModes);
+    mapController.init(this);
     this.viewport.addChild(this.chunkRenderer.chunkContainer);
 
     // create UI
@@ -213,7 +235,7 @@ export default class WorldRenderer {
       const legendBounds = legend.getBounds();
       legend.position.set(
         this.app.renderer.screen.width - legendBounds.width,
-        this.app.renderer.screen.height - legendBounds.height,
+        0,
       );
     });
   }

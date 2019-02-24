@@ -4,7 +4,7 @@ import { EMapMode, mapModes } from "./mapModes";
 import { getHexColor } from "../../utils/color";
 import Viewport from 'pixi-viewport';
 import { throttle } from "@blueprintjs/core/lib/esm/common/utils";
-import { IWorldRendererOptions } from "./WorldRenderer";
+import WorldRenderer, { IWorldRendererOptions, mapController } from "./WorldRenderer";
 
 
 interface IMinimapProps {
@@ -20,6 +20,7 @@ export class Minimap extends Component<IMinimapProps> {
   drawFrame: Function;
   widthRatio: number;
   heightRatio: number;
+  renderer: WorldRenderer;
 
   constructor(props) {
     super(props);
@@ -29,11 +30,19 @@ export class Minimap extends Component<IMinimapProps> {
     this.draw = throttle(this._draw.bind(this));
     this.drawFrame = throttle(this._drawFrame.bind(this));
 
-    if (this.viewport) {
-      this.viewport.on('moved', () => {
+    mapController.onInit(renderer => {
+      this.renderer = renderer;
+      console.log('minimap setup');
+      for (const mapMode of Object.values(renderer.chunkRenderer.mapModes)) {
+        mapMode.update$.subscribe(() => {
+          this.draw();
+          this.drawFrame();
+        });
+      }
+      renderer.viewport.on('moved', () => {
         this.drawFrame();
       });
-    }
+    });
   }
 
   get viewport(): Viewport {
@@ -55,36 +64,37 @@ export class Minimap extends Component<IMinimapProps> {
   }
 
   _draw() {
-    // const { worldMap, mapMode } = this.props;
-    // // const mapModeInst = mapModes[mapMode](worldMap);
-    // const { width, height } = worldMap.world.size;
-    // const containerElement = this._container.current;
-    // const mapElement = this._map.current;
-    // const frameElement = this._frame.current;
-    // const imgWidth = 200 * (width / height);
-    // const imgHeight = 200 * (height / width);
-    // if (mapElement === null) return;
-    // mapElement.width = width;
-    // mapElement.height = height;
-    // frameElement.width = width;
-    // frameElement.height = height;
-    // this.widthRatio = width / imgWidth;
-    // this.heightRatio = height / imgHeight;
-    // containerElement.style.width = `${imgWidth}px`;
-    // containerElement.style.height = `${imgHeight}px`;
-    // mapElement.style.width = `${imgWidth}px`;
-    // mapElement.style.height = `${imgHeight}px`;
-    // frameElement.style.width = `${imgWidth}px`;
-    // frameElement.style.height = `${imgHeight}px`;
-    // const ctx = mapElement.getContext('2d');
+    const { worldMap, mapMode } = this.props;
+    const mapModeInst = this.renderer.chunkRenderer.mapModes[mapMode];
+    const { width, height } = worldMap.world.size;
+    const containerElement = this._container.current;
+    const mapElement = this._map.current;
+    const frameElement = this._frame.current;
+    const imgWidth = Math.round(200 * (width / height));
+    const imgHeight = Math.round(200 * (height / width));
+    if (mapElement === null) return;
 
-    // for (let x = 0; x < width; x++) {
-    //   for (let y = 0; y < height; y++) {
-    //     const cell = worldMap.world.getCell(x, y);
-    //     ctx.fillStyle = `#${getHexColor(mapModeInst.getCellColor(cell))}`;
-    //     ctx.fillRect(x, y, 1, 1);
-    //   }
-    // }
+    mapElement.width = width;
+    mapElement.height = height;
+    frameElement.width = width;
+    frameElement.height = height;
+    this.widthRatio = width / imgWidth;
+    this.heightRatio = height / imgHeight;
+    containerElement.style.width = `${imgWidth}px`;
+    containerElement.style.height = `${imgHeight}px`;
+    mapElement.style.width = `${imgWidth}px`;
+    mapElement.style.height = `${imgHeight}px`;
+    frameElement.style.width = `${imgWidth}px`;
+    frameElement.style.height = `${imgHeight}px`;
+    const ctx = mapElement.getContext('2d');
+
+    for (let x = 0; x < width; x++) {
+      for (let y = 0; y < height; y++) {
+        const cell = worldMap.world.getCell(x, y);
+        ctx.fillStyle = mapModeInst.getCellColor(cell);
+        ctx.fillRect(x, y, 1, 1);
+      }
+    }
   }
 
   _drawFrame() {
@@ -97,10 +107,10 @@ export class Minimap extends Component<IMinimapProps> {
     if (this.viewport) {
       ctx.strokeStyle = 'white';
       ctx.strokeRect(
-        this.viewport.left / this.options.cellWidth,
-        this.viewport.top / this.options.cellHeight,
-        this.viewport.worldScreenWidth / this.options.cellWidth,
-        this.viewport.worldScreenHeight / this.options.cellHeight,
+        Math.floor(this.viewport.left / this.options.cellWidth),
+        Math.floor(this.viewport.top / this.options.cellHeight),
+        Math.floor(this.viewport.worldScreenWidth / this.options.cellWidth),
+        Math.floor(this.viewport.worldScreenHeight / this.options.cellHeight),
       );
     }
   }

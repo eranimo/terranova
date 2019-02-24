@@ -76,3 +76,7 @@ label.bp3-checkbox, label.bp3-radio {
   max-width: none;
   width: fit-content;
 }
+
+canvas {
+  image-rendering: pixelated;
+}

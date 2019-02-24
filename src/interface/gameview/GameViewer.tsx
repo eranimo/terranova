@@ -12,6 +12,8 @@ import { gameMapModes } from './gameMapModes';
 import { useObservable } from '../../utils/hooks';
 import { GameStateContainer } from './GameView';
 import { IWorldRegionView } from '../../simulation/WorldRegion';
+import Game from '../../simulation/Game';
+import { Minimap } from '../worldview/minimap';
 
 
 const GameViewContainer = styled.div`
@@ -47,6 +49,19 @@ const GameViewPos = {
     `,
   }
 }
+
+const Flex = styled.div<{ direction?: string }>`
+  display: flex;
+  flex-direction: ${props => props.direction || 'row'}
+`;
+
+const MinimapContainer = styled.div`
+  display: flex;
+  flex-direction: row;
+  margin-bottom: 0.5rem;
+  align-self: flex-end;
+  outline: 1px solid #000000;
+`;
 
 const monthTitles = {
   [EMonth.JANUARY]: 'January',
@@ -161,9 +176,9 @@ const MapCellsView = (props: IWorldMapContainerChildProps) => {
   )
 }
 
-export class MapControls extends Component<IWorldMapContainerChildProps> {
+export class MapControls extends Component<IWorldMapContainerChildProps & { game: GameManager }> {
   render() {
-    const { viewOptions, onChangeField, onChangeMapMode } = this.props;
+    const { viewOptions, onChangeField, onChangeMapMode, game } = this.props;
     const menu = (
       <Menu>
         {Object.entries(mapModeDesc).map(([name, title]) => (
@@ -179,46 +194,56 @@ export class MapControls extends Component<IWorldMapContainerChildProps> {
 
     return (
       <GameViewPos.Bottom.Right>
-        <Popover content={menu}>
-          <Button minimal small rightIcon="chevron-up">
-            Map Mode: <b>{mapModeDesc[viewOptions.mapMode]}</b>
-          </Button>
-        </Popover>
-        <Divider />
-        <ButtonGroup minimal>
-          <Tooltip content="Toggle grid" hoverOpenDelay={1000} position={Position.TOP}>
-            <Button
-              small
-              icon="grid"
-              onClick={onChangeField('drawGrid')}
-              intent={viewOptions.drawGrid ? Intent.PRIMARY : null}
+        <Flex direction="column">
+          <MinimapContainer>
+            <Minimap
+              worldMap={this.props.game.worldMap}
+              mapMode={viewOptions.mapMode}
             />
-          </Tooltip>
-          <Tooltip content="Toggle developer mode" hoverOpenDelay={1000} position={Position.TOP}>
-            <Button
-              small
-              icon="info-sign"
-              onClick={onChangeField('showFlowArrows')}
-              intent={viewOptions.showFlowArrows ? Intent.PRIMARY : null}
-            />
-          </Tooltip>
-          <Tooltip content="Toggle coastal borders" hoverOpenDelay={1000} position={Position.TOP}>
-            <Button
-              small
-              icon="horizontal-distribution"
-              onClick={onChangeField('drawCoastline')}
-              intent={viewOptions.drawCoastline ? Intent.PRIMARY : null}
-            />
-          </Tooltip>
-          <Tooltip content="Toggle regions" hoverOpenDelay={1000} position={Position.TOP}>
-            <Button
-              small
-              icon="vertical-distribution"
-              onClick={onChangeField('showRegions')}
-              intent={viewOptions.showRegions ? Intent.PRIMARY : null}
-            />
-          </Tooltip>
-        </ButtonGroup>
+          </MinimapContainer>
+          <Flex>
+            <Popover content={menu}>
+              <Button minimal small rightIcon="chevron-up">
+                Map Mode: <b>{mapModeDesc[viewOptions.mapMode]}</b>
+              </Button>
+            </Popover>
+            <Divider />
+            <ButtonGroup minimal>
+              <Tooltip content="Toggle grid" hoverOpenDelay={1000} position={Position.TOP}>
+                <Button
+                  small
+                  icon="grid"
+                  onClick={onChangeField('drawGrid')}
+                  intent={viewOptions.drawGrid ? Intent.PRIMARY : null}
+                />
+              </Tooltip>
+              <Tooltip content="Toggle developer mode" hoverOpenDelay={1000} position={Position.TOP}>
+                <Button
+                  small
+                  icon="info-sign"
+                  onClick={onChangeField('showFlowArrows')}
+                  intent={viewOptions.showFlowArrows ? Intent.PRIMARY : null}
+                />
+              </Tooltip>
+              <Tooltip content="Toggle coastal borders" hoverOpenDelay={1000} position={Position.TOP}>
+                <Button
+                  small
+                  icon="horizontal-distribution"
+                  onClick={onChangeField('drawCoastline')}
+                  intent={viewOptions.drawCoastline ? Intent.PRIMARY : null}
+                />
+              </Tooltip>
+              <Tooltip content="Toggle regions" hoverOpenDelay={1000} position={Position.TOP}>
+                <Button
+                  small
+                  icon="vertical-distribution"
+                  onClick={onChangeField('showRegions')}
+                  intent={viewOptions.showRegions ? Intent.PRIMARY : null}
+                />
+              </Tooltip>
+            </ButtonGroup>
+          </Flex>
+        </Flex>
       </GameViewPos.Bottom.Right>
     )
   }
@@ -243,7 +268,7 @@ export default class GameViewer extends Component<IGameViewerProps> {
           {(props: IWorldMapContainerChildProps) => (
             <Fragment>
               <GameMenu />
-              <MapControls {...props} />
+              <MapControls {...props} game={game} />
               <MapCellsView {...props} />
             </Fragment>
           )}
