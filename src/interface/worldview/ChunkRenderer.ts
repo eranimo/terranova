@@ -239,8 +239,8 @@ export class ChunkRenderer {
     // console.log(`Render Chunk: (${chunkX}, ${chunkY})`);
 
     const chunk = new Container();
-    chunk.width = chunkWidth;
-    chunk.height = chunkHeight;
+    chunk.width = chunkWidth * cellWidth;
+    chunk.height = chunkHeight * cellHeight;
     chunk.x = chunkX * this.chunkWorldWidth;
     chunk.y = chunkY * this.chunkWorldHeight;
     this.chunkContainer.addChild(chunk);
@@ -304,6 +304,21 @@ export class ChunkRenderer {
     coastlineBorder.cacheAsBitmap = true;
     coastlineBorder.interactive = false;
     chunk.addChild(coastlineBorder);
+
+    // CHUNK BORDERS
+
+    // const rectG = new PIXI.Graphics(true)
+    // rectG.lineWidth = 1;
+    // rectG.moveTo(0, 0);
+    // rectG.lineColor = 0x000;
+    // rectG.lineTo(this.chunkWorldWidth, 0);
+    // rectG.lineTo(this.chunkWorldWidth, this.chunkWorldHeight);
+    // rectG.lineTo(0, this.chunkWorldHeight);
+    // rectG.lineTo(0, 0);
+    // const rect = new Sprite(rectG.generateCanvasTexture());
+    // rect.width = this.chunkWorldWidth;
+    // rect.height = this.chunkWorldHeight;
+    // chunk.addChild(rect);
 
     // regions
     const chunkRegions = new Container();
@@ -505,6 +520,8 @@ function drawCellBorders(
   lineWidth: number = 2,
 ): PIXI.Sprite {
   const g = new PIXI.Graphics(true);
+  g.width = chunkWidth * cellWidth;
+  g.height = chunkHeight * cellHeight;
 
   g.beginFill(color, 0);
   g.drawRect(0, 0, 1, 1);
@@ -513,9 +530,6 @@ function drawCellBorders(
   g.beginFill(color, 1);
   g.lineColor = color;
   g.lineWidth = lineWidth * 0.75;
-  g.lineAlignment = 1;
-
-  // g.hitArea = new PIXI.Rectangle(0, 0, chunkWidth, chunkHeight);
 
   for (const cell of chunkCells) {
     const cx = Math.round((cell.x * cellWidth) - chunkPosition.x);
