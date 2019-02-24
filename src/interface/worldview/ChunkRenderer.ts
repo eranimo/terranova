@@ -26,7 +26,8 @@ export interface IChunkData {
   container: Container;
   position: Point,
   location: Point,
-  mapModes: Record<EMapMode, Sprite>;
+  mapModeSprite: Sprite;
+  mapMode: EMapMode;
   grid: Sprite;
   flowArrows: Container;
   regions: Container;
@@ -79,13 +80,14 @@ export class ChunkRenderer {
     this.chunkWorldHeight = this.options.chunkHeight * this.options.cellHeight
 
     this.mapModes = {};
+    console.log('[ChunkRenderer] init map modes');
     for (const [name, factory] of Object.entries(mapModes)) {
-      const mapMode = factory(worldMap);
+      const mapMode = factory(worldMap, this.options);
 
       // map mode data update
       if (mapMode.update$) {
         mapMode.update$.subscribe(() => {
-          this.updateMapMode(name as EMapMode);
+          // this.updateMapMode();
         });
       }
       this.mapModes[name] = mapMode;
@@ -100,6 +102,7 @@ export class ChunkRenderer {
       this.options.cellHeight * this.options.chunkHeight,
     );
 
+    console.log('[ChunkRenderer] draw regions');
     this.chunkCellsMap = new Array2D(this.world.size.width, this.world.size.height);
     for (let x = 0; x < this.chunkColumns; x++) {
       for (let y = 0; y < this.chunkRows; y++) {
@@ -174,20 +177,29 @@ export class ChunkRenderer {
     }
   }
 
-  updateMapMode(mapMode: EMapMode) {
-    const mapModeInst = this.mapModes[mapMode];
-    // update mapMode in all rendered chunks
-    console.time('update map mode');
-    let updateCount = 0;
-    for (const [x, y, chunk] of this.mapRenderedChunks()) {
-      let chunkCells = this.getCellsInChunk(x, y);
-      mapModeInst.updateChunk(this.options, chunkCells, chunk.position);
-      // chunk.mapModes[mapMode].texture.update();
-      chunk.mapModes[mapMode].texture.baseTexture.update();
-      updateCount++;
-    }
-    console.log(`Chunks updated: ${updateCount}`);
-    console.timeEnd('update map mode');
+  updateChunkMapMode(chunkX: number, chunkY: number) {
+    const chunk = this.renderedChunks.get(chunkX, chunkY);
+    this.renderChunkMapMode(chunkX, chunkY);
+    const mapMode = this.mapModes[this.viewOptions.mapMode];
+    chunk.mapModeSprite.texture = mapMode.chunkTextures.get(chunkX, chunkY);
+  }
+
+  /**
+   * Renders the current map mode for the given chunk
+   */
+  private renderChunkMapMode(chunkX: number, chunkY: number) {
+    const mapMode = this.mapModes[this.viewOptions.mapMode];
+    const chunkCells = this.getCellsInChunk(chunkX, chunkY);
+    const { cellWidth, cellHeight, chunkWidth, chunkHeight } = this.options;
+    const chunkPosition = new Point(
+      chunkX * chunkWidth * cellWidth,
+      chunkY * chunkHeight * cellHeight,
+    );
+    mapMode.updateChunk(
+      chunkX, chunkY,
+      chunkCells,
+      chunkPosition,
+    );
   }
 
   private renderChunk(chunkX: number, chunkY: number): IChunkData {
@@ -212,19 +224,15 @@ export class ChunkRenderer {
     this.chunkContainer.addChild(chunk);
 
     // render map modes
-    const mapModeLayers = {};
-    for (const [name, mapMode] of Object.entries(this.mapModes)) {
-      const mapModeSprite: Sprite = mapMode.renderChunk(
-        this.options,
-        chunkCells,
-        chunkPosition,
-      );
-      mapModeSprite.interactive = false;
-      mapModeSprite.cacheAsBitmap = true;
-      chunk.addChild(mapModeSprite);
+    const mapModeSprite = new Sprite();
 
-      mapModeLayers[name] = mapModeSprite;
-    }
+    this.renderChunkMapMode(chunkX, chunkY);
+    const mapMode = this.mapModes[this.viewOptions.mapMode];
+    mapModeSprite.texture = mapMode.chunkTextures.get(chunkX, chunkY);
+    mapModeSprite.texture.update();
+
+    mapModeSprite.interactive = false;
+    chunk.addChild(mapModeSprite);
 
     const gridSprite: Sprite = drawGridLines(
       this.chunkWorldWidth,
@@ -283,7 +291,8 @@ export class ChunkRenderer {
       regions: chunkRegions,
       position: chunkPosition,
       location: new Point(chunkX, chunkY),
-      mapModes: mapModeLayers as Record<EMapMode, Sprite>,
+      mapModeSprite,
+      mapMode: this.viewOptions.mapMode,
       grid: gridSprite,
       flowArrows,
       coastlineBorder,
@@ -415,9 +424,8 @@ export class ChunkRenderer {
     chunk.flowArrows.visible = this.viewOptions.showFlowArrows;
     chunk.coastlineBorder.visible = this.viewOptions.drawCoastline;
     chunk.regions.visible = this.viewOptions.showRegions;
-
-    for (const [mapMode, sprite] of Object.entries(chunk.mapModes)) {
-      sprite.visible = this.viewOptions.mapMode === mapMode;
+    if (chunk.mapMode !== this.viewOptions.mapMode) {
+      this.updateChunkMapMode(chunk.location.x, chunk.location.y);
     }
   }
 
@@ -425,10 +433,8 @@ export class ChunkRenderer {
     if (viewOptions) {
       this.viewOptions = viewOptions;
     }
-    for (const [x, y, chunk] of this.mapChunks()) {
-      if (chunk) {
-        this.updateChunk(chunk);
-      }
+    for (const [x, y, chunk] of this.mapRenderedChunks()) {
+      this.updateChunk(chunk);
     }
   }
 

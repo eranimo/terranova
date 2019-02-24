@@ -55,36 +55,36 @@ export class Minimap extends Component<IMinimapProps> {
   }
 
   _draw() {
-    const { worldMap, mapMode } = this.props;
-    const mapModeInst = mapModes[mapMode](worldMap);
-    const { width, height } = worldMap.world.size;
-    const containerElement = this._container.current;
-    const mapElement = this._map.current;
-    const frameElement = this._frame.current;
-    const imgWidth = 200 * (width / height);
-    const imgHeight = 200 * (height / width);
-    if (mapElement === null) return;
-    mapElement.width = width;
-    mapElement.height = height;
-    frameElement.width = width;
-    frameElement.height = height;
-    this.widthRatio = width / imgWidth;
-    this.heightRatio = height / imgHeight;
-    containerElement.style.width = `${imgWidth}px`;
-    containerElement.style.height = `${imgHeight}px`;
-    mapElement.style.width = `${imgWidth}px`;
-    mapElement.style.height = `${imgHeight}px`;
-    frameElement.style.width = `${imgWidth}px`;
-    frameElement.style.height = `${imgHeight}px`;
-    const ctx = mapElement.getContext('2d');
+    // const { worldMap, mapMode } = this.props;
+    // // const mapModeInst = mapModes[mapMode](worldMap);
+    // const { width, height } = worldMap.world.size;
+    // const containerElement = this._container.current;
+    // const mapElement = this._map.current;
+    // const frameElement = this._frame.current;
+    // const imgWidth = 200 * (width / height);
+    // const imgHeight = 200 * (height / width);
+    // if (mapElement === null) return;
+    // mapElement.width = width;
+    // mapElement.height = height;
+    // frameElement.width = width;
+    // frameElement.height = height;
+    // this.widthRatio = width / imgWidth;
+    // this.heightRatio = height / imgHeight;
+    // containerElement.style.width = `${imgWidth}px`;
+    // containerElement.style.height = `${imgHeight}px`;
+    // mapElement.style.width = `${imgWidth}px`;
+    // mapElement.style.height = `${imgHeight}px`;
+    // frameElement.style.width = `${imgWidth}px`;
+    // frameElement.style.height = `${imgHeight}px`;
+    // const ctx = mapElement.getContext('2d');
 
-    for (let x = 0; x < width; x++) {
-      for (let y = 0; y < height; y++) {
-        const cell = worldMap.world.getCell(x, y);
-        ctx.fillStyle = `#${getHexColor(mapModeInst.getCellColor(cell))}`;
-        ctx.fillRect(x, y, 1, 1);
-      }
-    }
+    // for (let x = 0; x < width; x++) {
+    //   for (let y = 0; y < height; y++) {
+    //     const cell = worldMap.world.getCell(x, y);
+    //     ctx.fillStyle = `#${getHexColor(mapModeInst.getCellColor(cell))}`;
+    //     ctx.fillRect(x, y, 1, 1);
+    //   }
+    // }
   }
 
   _drawFrame() {

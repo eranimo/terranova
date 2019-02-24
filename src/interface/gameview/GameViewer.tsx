@@ -12,8 +12,6 @@ import { gameMapModes } from './gameMapModes';
 import { useObservable } from '../../utils/hooks';
 import { GameStateContainer } from './GameView';
 import { IWorldRegionView } from '../../simulation/WorldRegion';
-import { useChannel } from '../../utils/workers';
-import { getHexColor } from '../../utils/color';
 
 
 const GameViewContainer = styled.div`

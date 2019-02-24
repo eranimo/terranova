@@ -10,11 +10,8 @@ import colormap from 'colormap';
 import { mapEnum } from '../../utils/enums';
 import { Observable } from 'rxjs';
 import Array2D from '../../utils/Array2D';
+import { getHexColor, hexToNumber } from '../../utils/color';
 
-
-function rgbToNumber(r: number, g: number, b: number): number {
-  return 0x1000000 + b + 0x100 * g + 0x10000 * r;
-}
 
 export enum EMapMode {
   CLIMATE = "climate",
@@ -79,33 +76,56 @@ export const moistureZoneColors: Record<string, number> = {
 }
 
 export class MapMode {
-  title: string;
-  worldMap: WorldMap;
   showLegend?: boolean;
   update$?: Observable<void>;
+  chunkCanvases: Array2D<HTMLCanvasElement>;
+  chunkContext: Array2D<CanvasRenderingContext2D>;
+  chunkTextures: Array2D<Texture>;
+  chunkWidth: number; // in px
+  chunkHeight: number; // in px
 
-  constructor() {
+  constructor(
+    public title: string,
+    public worldMap: WorldMap,
+    public renderOptions: IWorldRendererOptions,
+  ) {
     this.update$ = new Observable();
+    const { width, height } = worldMap.world.size;
+    const chunkColumns = width / renderOptions.chunkHeight;
+    const chunkRows = height / renderOptions.chunkWidth;
+
+    this.chunkWidth = renderOptions.cellWidth * renderOptions.chunkWidth;
+    this.chunkHeight = renderOptions.cellHeight * renderOptions.chunkHeight;
+
+    this.chunkCanvases = new Array2D(chunkColumns, chunkRows, () => {
+      const canvas = document.createElement('canvas');
+      document.body.appendChild(canvas);
+      canvas.hidden = true;
+      canvas.width = this.chunkWidth;
+      canvas.height = this.chunkHeight;
+      return canvas;
+    });
+    this.chunkContext = new Array2D(chunkColumns, chunkRows, (x, y) => (
+      this.chunkCanvases.get(x, y).getContext('2d')
+    ));
+
+    this.chunkTextures = new Array2D(chunkColumns, chunkRows, (x, y) => (
+      Texture.fromCanvas(this.chunkCanvases.get(x, y))
+    ));
   }
-  renderChunk(
-    renderOptions: IWorldRendererOptions,
-    cells: IWorldCell[],
-    chunkPosition: Point,
-  ): Sprite {
-    throw new Error('Not implemented');
-  }
+
+  renderLegend?(): Container;
 
   updateChunk(
-    renderOptions: IWorldRendererOptions,
+    chunkX: number,
+    chunkY: number,
     cells: IWorldCell[],
     chunkPosition: Point,
-  ): Graphics {
+  ): void {
     throw new Error('Not implemented');
   }
-  renderLegend?(): Container {
-    throw new Error('Not implemented');
-  };
-  getCellColor(cell: IWorldCell): number {
+
+  getCellColor(cell: IWorldCell): string {
     throw new Error('Not implemented');
   };
 }
@@ -121,7 +141,6 @@ interface IGroupDef {
 class GroupedCellsMapMode extends MapMode {
   title: string;
   groups: IGroupDef[];
-  worldMap: WorldMap;
   showLegend: boolean;
   color: number;
 
@@ -132,11 +151,11 @@ class GroupedCellsMapMode extends MapMode {
       showLegend?: boolean,
       color?: number,
     },
-    worldMap: WorldMap
+    worldMap: WorldMap,
+    renderOptions: IWorldRendererOptions,
   ) {
-    super();
+    super(options.title, worldMap, renderOptions);
     this.title = options.title;
-    this.worldMap = worldMap;
     this.groups = options.groups;
     this.showLegend = options.showLegend || false;
     this.color = options.color || 0x000000;
@@ -196,42 +215,45 @@ class GroupedCellsMapMode extends MapMode {
     for (const group of this.groups) {
       const color = group.getCellColor(cell);
       if (color !== null) {
-        return color;
+        return `#${getHexColor(color)}`;
       }
     }
   }
 
-  renderChunk(
-    renderOptions: IWorldRendererOptions,
+  updateChunk(
+    chunkX: number,
+    chunkY: number,
     cells: IWorldCell[],
     chunkPosition: Point,
-  ): Sprite {
-    const { cellWidth, cellHeight } = renderOptions;
-    const g = new PIXI.Graphics(true);
+  ) {
+    console.log('update chunk', chunkX, chunkY, this.title)
+    const { cellWidth, cellHeight } = this.renderOptions;
+    const g = this.chunkContext.get(chunkX, chunkY);
+
+    g.clearRect(0, 0, this.chunkWidth, this.chunkHeight)
+
     const groupedCells: Record<string, IWorldCell[]> = {};
 
     for (const group of this.groups) {
       groupedCells[group.name] = [];
     }
 
+    let x: number;
+    let y: number;
+    const cx = cells[0].x;
+    const cy = cells[0].y;
     for (const cell of cells) {
       for (const group of this.groups) {
         const color = group.getCellColor(cell);
         if (color) {
-          g.beginFill(color);
-          g.drawRect(
-            (cell.x * cellWidth) - chunkPosition.x,
-            (cell.y * cellHeight) - chunkPosition.y,
-            cellWidth,
-            cellHeight
-          );
-          g.endFill();
+          g.fillStyle = `#${getHexColor(color)}`;
+          x = (cell.x - cx) * cellWidth;
+          y = (cell.y - cy) * cellHeight;
+          g.fillRect(x, y, cellWidth, cellHeight);
           break;
         }
       }
     }
-
-    return new Sprite(g.generateCanvasTexture());
   }
 }
 export interface IColormapMapModeOptions {
@@ -248,28 +270,27 @@ export class ColormapMapMode extends MapMode {
   mapData: {
     min: number,
     max: number,
-    colors: [number, number, number, number][],
+    colors: string[],
     quantiles: { [quantile: number]: number},
   };
-  worldMap: WorldMap;
   showLegend = true;
-  chunkGraphics: Record<string, Graphics>;
+  chunkGraphics: Record<string, HTMLCanvasElement>;
 
   constructor(
     options: IColormapMapModeOptions,
-    worldMap: WorldMap
+    worldMap: WorldMap,
+    renderOptions: IWorldRendererOptions,
   ) {
-    super();
+    super(options.title, worldMap, renderOptions);
     this.title = options.title;
-    this.worldMap = worldMap;
     this.options = options;
     if (this.options.update$) {
       this.update$ = this.options.update$();
     }
 
-    const colors: [number, number, number, number][] = colormap({
+    const colors: string[] = colormap({
       nshades: 101,
-      format: 'rba',
+      format: 'hex',
       colormap: this.options.colormap
     });
     let item: number;
@@ -298,11 +319,11 @@ export class ColormapMapMode extends MapMode {
     const { min, max, colors } = this.mapData;
     const value = this.options.getData(this.worldMap, cell);
     const index = Math.round(((value - min) / (max - min)) * 100);
-    let color: number[] = [0, 0, 0];
+    let color: string = '#000000';
     if (!isNaN(index)) {
       color = colors[index];
     }
-    return rgbToNumber(color[0], color[1], color[2]);
+    return color;
   }
 
   renderLegend() {
@@ -325,7 +346,7 @@ export class ColormapMapMode extends MapMode {
     const barY = V_PADDING * 2;
     for (let i = 0; i < this.mapData.colors.length; i++) {
       const color = this.mapData.colors[i];
-      g.beginFill(rgbToNumber(color[0], color[1], color[2]));
+      g.beginFill(hexToNumber(color));
       g.drawRect(barX + (i * barWidth), barY, barWidth, barHeight)
       g.endFill();
     }
@@ -374,20 +395,17 @@ export class ColormapMapMode extends MapMode {
   }
 
   updateChunk(
-    renderOptions: IWorldRendererOptions,
+    chunkX: number,
+    chunkY: number,
     cells: IWorldCell[],
     chunkPosition: Point,
-  ): Graphics {
-    const { cellWidth, cellHeight } = renderOptions;
-    const key = `${chunkPosition.x},${chunkPosition.y}`;
-    if (!this.chunkGraphics[key]) {
-      this.chunkGraphics[key] = new Graphics(true);
-    }
-    const g = this.chunkGraphics[key];
+  ) {
+    const { cellWidth, cellHeight } = this.renderOptions;
+    const g = this.chunkContext.get(chunkX, chunkY);
     const { min, max, colors } = this.mapData;
     let index: number;
     let value: number;
-    let color: number[];
+    let color: string;
     const cellsByColor: Record<any, IWorldCell[]> = {};
     for (const cell of cells) {
       value = this.options.getData(this.worldMap, cell);
@@ -406,38 +424,28 @@ export class ColormapMapMode extends MapMode {
         cellsByColor[index] = [cell];
       }
     }
+
+    let x: number;
+    let y: number;
+    const cx = cells[0].x;
+    const cy = cells[0].y;
     for (const [index, colorCells] of Object.entries(cellsByColor)) {
       color = colors[index];
-      g.beginFill(rgbToNumber(color[0], color[1], color[2]));
+      g.fillStyle = color;
       for (const cell of colorCells) {
-        g.drawRect(
-          (cell.x * cellWidth) - chunkPosition.x,
-          (cell.y * cellHeight) - chunkPosition.y,
-          cellWidth,
-          cellHeight,
-        );
+        x = (cell.x - cx) * cellWidth;
+        y = (cell.y - cy) * cellHeight;
+        g.fillRect(x, y, cellWidth, cellHeight);
       }
-      g.endFill();
     }
-    return g;
-  }
-
-  renderChunk(
-    renderOptions: IWorldRendererOptions,
-    cells: IWorldCell[],
-    chunkPosition: Point,
-  ): Sprite {
-    const graphics = this.updateChunk(renderOptions, cells, chunkPosition);
-    const sprite = new Sprite(graphics.generateCanvasTexture());
-    return sprite;
   }
 }
 
-export type MapModeDef = (worldMap: WorldMap) => MapMode
+export type MapModeDef = (worldMap: WorldMap, renderOptions: IWorldRendererOptions) => MapMode
 export type MapModeMap = Partial<Record<EMapMode, MapModeDef>>;
 
 export const mapModes: MapModeMap = {
-  [EMapMode.CLIMATE]: (worldMap: WorldMap) => (
+  [EMapMode.CLIMATE]: (worldMap: WorldMap, renderOptions: IWorldRendererOptions) => (
     new GroupedCellsMapMode({
       title: 'Climate',
       groups: [
@@ -479,9 +487,9 @@ export const mapModes: MapModeMap = {
         }))
       ]
     },
-    worldMap)
+    worldMap, renderOptions)
   ),
-  [EMapMode.FEATURES]: (worldMap: WorldMap) => (
+  [EMapMode.FEATURES]: (worldMap: WorldMap, renderOptions: IWorldRendererOptions) => (
     new GroupedCellsMapMode({
       title: 'Features',
       showLegend: true,
@@ -494,9 +502,9 @@ export const mapModes: MapModeMap = {
             : null
         )
       })),
-    }, worldMap)
+    }, worldMap, renderOptions)
   ),
-  [EMapMode.TERRAIN]: (worldMap: WorldMap) => (
+  [EMapMode.TERRAIN]: (worldMap: WorldMap, renderOptions: IWorldRendererOptions) => (
     new GroupedCellsMapMode({
       title: 'Terrain',
       showLegend: true,
@@ -509,9 +517,9 @@ export const mapModes: MapModeMap = {
             : null
         )
       }))
-    }, worldMap)
+    }, worldMap, renderOptions)
   ),
-  [EMapMode.DRAINAGE_BASINS]: (worldMap: WorldMap) => (
+  [EMapMode.DRAINAGE_BASINS]: (worldMap: WorldMap, renderOptions: IWorldRendererOptions) => (
     new GroupedCellsMapMode({
       title: 'Drainage Basins',
       groups: [
@@ -524,37 +532,37 @@ export const mapModes: MapModeMap = {
           )
         }
       ]
-    }, worldMap)
+    }, worldMap, renderOptions)
   ),
-  [EMapMode.HEIGHT]: (worldMap: WorldMap) => (
+  [EMapMode.HEIGHT]: (worldMap: WorldMap, renderOptions: IWorldRendererOptions) => (
     new ColormapMapMode({
       title: 'Height',
       getData: (worldMap, cell) => cell.height,
       colormap: 'bathymetry',
-    }, worldMap)
+    }, worldMap, renderOptions)
   ),
-  [EMapMode.TEMPERATURE]: (worldMap: WorldMap) => (
+  [EMapMode.TEMPERATURE]: (worldMap: WorldMap, renderOptions: IWorldRendererOptions) => (
     new ColormapMapMode({
       title: 'Temperature',
       getData: (worldMap, cell) => cell.temperature,
       colormap: 'jet',
-    }, worldMap)
+    }, worldMap, renderOptions)
   ),
-  [EMapMode.MOISTURE]: (worldMap: WorldMap) => (
+  [EMapMode.MOISTURE]: (worldMap: WorldMap, renderOptions: IWorldRendererOptions) => (
     new ColormapMapMode({
       title: 'Moisture',
       getData: (worldMap, cell) => cell.moisture,
       colormap: 'viridis',
-    }, worldMap)
+    }, worldMap, renderOptions)
   ),
-  [EMapMode.UPSTREAM_COUNT]: (worldMap: WorldMap) => (
+  [EMapMode.UPSTREAM_COUNT]: (worldMap: WorldMap, renderOptions: IWorldRendererOptions) => (
     new ColormapMapMode({
       title: 'Upstream Count',
       getData: (worldMap, cell) => cell.upstreamCount,
       colormap: 'velocity-blue',
-    }, worldMap)
+    }, worldMap, renderOptions)
   ),
-  [EMapMode.MOISTURE_ZONES]: (worldMap: WorldMap) => (
+  [EMapMode.MOISTURE_ZONES]: (worldMap: WorldMap, renderOptions: IWorldRendererOptions) => (
     new GroupedCellsMapMode({
       title: 'Moisture Zones',
       showLegend: true,
@@ -567,9 +575,9 @@ export const mapModes: MapModeMap = {
             : null
         )
       }))
-    }, worldMap)
+    }, worldMap, renderOptions)
   ),
-  [EMapMode.TEMPERATURE_ZONES]: (worldMap: WorldMap) => (
+  [EMapMode.TEMPERATURE_ZONES]: (worldMap: WorldMap, renderOptions: IWorldRendererOptions) => (
     new GroupedCellsMapMode({
       title: 'Temperature Zones',
       showLegend: true,
@@ -582,13 +590,13 @@ export const mapModes: MapModeMap = {
             : null
         )
       }))
-    }, worldMap)
+    }, worldMap, renderOptions)
   ),
-  [EMapMode.TERRAIN_ROUGHNESS]: (worldMap: WorldMap) => (
+  [EMapMode.TERRAIN_ROUGHNESS]: (worldMap: WorldMap, renderOptions: IWorldRendererOptions) => (
     new ColormapMapMode({
       title: 'Terrain Roughness',
       getData: (worldMap, cell) => cell.terrainRoughness,
       colormap: 'greens'
-    }, worldMap)
+    }, worldMap, renderOptions)
   ),
 }
