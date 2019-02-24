@@ -87,7 +87,7 @@ export class ChunkRenderer {
       // map mode data update
       if (mapMode.update$) {
         mapMode.update$.subscribe(() => {
-          // this.updateMapMode();
+          this.updateMapMode(name as EMapMode);
         });
       }
       this.mapModes[name] = mapMode;
@@ -174,6 +174,23 @@ export class ChunkRenderer {
       for (let y = 0; y < this.chunkRows; y++) {
         yield [x, y, this.renderedChunks.get(x, y)];
       }
+    }
+  }
+
+  getChunkPosition(chunkX: number, chunkY: number) {
+    const { cellWidth, cellHeight, chunkWidth, chunkHeight } = this.options;
+    return new Point(
+      chunkX * chunkWidth * cellWidth,
+      chunkY * chunkHeight * cellHeight,
+    );
+  }
+
+  updateMapMode(mapMode: EMapMode) {
+    const mapModeInst = this.mapModes[mapMode];
+    for (const [x, y, chunk] of this.mapRenderedChunks()) {
+      const chunkCells = this.getCellsInChunk(x, y);
+      mapModeInst.updateChunk(x, y, chunkCells, this.getChunkPosition(x, y));
+      chunk.mapModeSprite.texture.update();
     }
   }
 
