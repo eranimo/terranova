@@ -13,6 +13,7 @@ import { Subject, concat } from 'rxjs';
 import { IViewOptions } from './WorldRendererContainer';
 import { IWorldRegionView } from '../../simulation/WorldRegion';
 import hash from 'hash.js';
+import { measure } from '../../utils/timing';
 
 const directionAngles = {
   [EDirection.NONE]: 0,
@@ -185,6 +186,7 @@ export class ChunkRenderer {
     );
   }
 
+  @measure('ChunkRenderer.updateMapMode')
   updateMapMode(mapMode: EMapMode) {
     const mapModeInst = this.mapModes[mapMode];
     for (const [x, y, chunk] of this.mapRenderedChunks()) {
@@ -194,6 +196,7 @@ export class ChunkRenderer {
     }
   }
 
+  @measure('ChunkRenderer.updateChunkMapMode')
   updateChunkMapMode(chunkX: number, chunkY: number) {
     const chunk = this.renderedChunks.get(chunkX, chunkY);
     this.renderChunkMapMode(chunkX, chunkY);
@@ -204,6 +207,7 @@ export class ChunkRenderer {
   /**
    * Renders the current map mode for the given chunk
    */
+  @measure('ChunkRenderer.renderChunkMapMode')
   private renderChunkMapMode(chunkX: number, chunkY: number) {
     const mapMode = this.mapModes[this.viewOptions.mapMode];
     const chunkCells = this.getCellsInChunk(chunkX, chunkY);
@@ -219,6 +223,7 @@ export class ChunkRenderer {
     );
   }
 
+  @measure('ChunkRenderer.renderChunk')
   private renderChunk(chunkX: number, chunkY: number): IChunkData {
     if (this.renderedChunks.has(chunkX, chunkY)) {
       return this.renderedChunks.get(chunkX, chunkY);
@@ -319,6 +324,7 @@ export class ChunkRenderer {
     return chunkData;
   }
 
+  @measure('ChunkRenderer.renderChunkRegions')
   private renderChunkRegions(chunkX: number, chunkY: number) {
     const chunkCells = this.getCellsInChunk(chunkX, chunkY);
     const { cellWidth, cellHeight } = this.options;
@@ -371,6 +377,7 @@ export class ChunkRenderer {
     }
   }
 
+  @measure('ChunkRenderer.renderVisibleChunks')
   private renderVisibleChunks(): void {
     const { chunkX: x1, chunkY: y1 } = this.getChunkAtPoint(
       Math.max(0, this.viewport.left - this.overpaint.x),
@@ -436,6 +443,7 @@ export class ChunkRenderer {
     }
   }
 
+  @measure('ChunkRenderer.updateChunk')
   updateChunk(chunk: IChunkData) {
     chunk.grid.visible = this.viewOptions.drawGrid;
     chunk.flowArrows.visible = this.viewOptions.showFlowArrows;
@@ -446,6 +454,7 @@ export class ChunkRenderer {
     }
   }
 
+  @measure('ChunkRenderer.update')
   public update(viewOptions?: IViewOptions) {
     if (viewOptions) {
       this.viewOptions = viewOptions;
@@ -455,6 +464,7 @@ export class ChunkRenderer {
     }
   }
 
+  @measure('ChunkRenderer.render')
   public render() {
     this.hideAllChunks();
     this.renderVisibleChunks();
