@@ -273,6 +273,7 @@ export default class WorldRenderer {
     if (!this.state) {
       throw new Error('Must call onStateChange() before update()');
     }
+    this.labelContainer.visible = this.state.viewOptions.showRegions;
     this.chunkRenderer.update(this.state.viewOptions);
     for (const [mapMode, sprite] of Object.entries(this.chunkRenderer.mapModes)) {
       const visible = this.state.viewOptions.mapMode === mapMode;
