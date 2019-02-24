@@ -33,6 +33,7 @@ export interface IChunkData {
   flowArrows: Container;
   regions: Container;
   coastlineBorder: Sprite;
+  chunkGrid: Sprite;
 }
 
 interface IChunkRef {
@@ -307,18 +308,18 @@ export class ChunkRenderer {
 
     // CHUNK BORDERS
 
-    // const rectG = new PIXI.Graphics(true)
-    // rectG.lineWidth = 1;
-    // rectG.moveTo(0, 0);
-    // rectG.lineColor = 0x000;
-    // rectG.lineTo(this.chunkWorldWidth, 0);
-    // rectG.lineTo(this.chunkWorldWidth, this.chunkWorldHeight);
-    // rectG.lineTo(0, this.chunkWorldHeight);
-    // rectG.lineTo(0, 0);
-    // const rect = new Sprite(rectG.generateCanvasTexture());
-    // rect.width = this.chunkWorldWidth;
-    // rect.height = this.chunkWorldHeight;
-    // chunk.addChild(rect);
+    const rectG = new PIXI.Graphics(true)
+    rectG.lineWidth = 1;
+    rectG.moveTo(0, 0);
+    rectG.lineColor = 0x000;
+    rectG.lineTo(this.chunkWorldWidth, 0);
+    rectG.lineTo(this.chunkWorldWidth, this.chunkWorldHeight);
+    rectG.lineTo(0, this.chunkWorldHeight);
+    rectG.lineTo(0, 0);
+    const chunkGrid = new Sprite(rectG.generateCanvasTexture());
+    chunkGrid.width = this.chunkWorldWidth;
+    chunkGrid.height = this.chunkWorldHeight;
+    chunk.addChild(chunkGrid);
 
     // regions
     const chunkRegions = new Container();
@@ -333,6 +334,7 @@ export class ChunkRenderer {
       grid: gridSprite,
       flowArrows,
       coastlineBorder,
+      chunkGrid,
     };
     this.renderedChunks.set(chunkX, chunkY, chunkData);
     this.renderChunkRegions(chunkX, chunkY);
@@ -464,6 +466,7 @@ export class ChunkRenderer {
     chunk.flowArrows.visible = this.viewOptions.showFlowArrows;
     chunk.coastlineBorder.visible = this.viewOptions.drawCoastline;
     chunk.regions.visible = this.viewOptions.showRegions;
+    chunk.chunkGrid.visible = this.viewOptions.showFlowArrows;
     if (chunk.mapMode !== this.viewOptions.mapMode) {
       chunk.mapMode = this.viewOptions.mapMode;
       this.updateChunkMapMode(chunk.location.x, chunk.location.y);

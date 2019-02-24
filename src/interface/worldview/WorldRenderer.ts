@@ -42,19 +42,25 @@ interface IWorldRendererState {
 
 class MapController {
   private callbacks: Array<(renderer: WorldRenderer) => void>;
+  _renderer: WorldRenderer;
 
   constructor() {
     this.callbacks = [];
   }
 
   init(renderer: WorldRenderer) {
+    this._renderer = renderer;
     for (const cb of this.callbacks) {
       cb(renderer);
     }
   }
 
   onInit(callback: (renderer: WorldRenderer) => void) {
-    this.callbacks.push(callback);
+    if (this._renderer) {
+      callback(this._renderer);
+    } else {
+      this.callbacks.push(callback);
+    }
   }
 }
 

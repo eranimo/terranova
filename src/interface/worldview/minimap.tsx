@@ -5,6 +5,7 @@ import { getHexColor } from "../../utils/color";
 import Viewport from 'pixi-viewport';
 import { throttle } from "@blueprintjs/core/lib/esm/common/utils";
 import WorldRenderer, { IWorldRendererOptions, mapController } from "./WorldRenderer";
+import { Subscription } from "rxjs";
 
 
 interface IMinimapProps {
@@ -21,6 +22,7 @@ export class Minimap extends Component<IMinimapProps> {
   widthRatio: number;
   heightRatio: number;
   renderer: WorldRenderer;
+  subscriptions: Subscription[];
 
   constructor(props) {
     super(props);
@@ -29,20 +31,28 @@ export class Minimap extends Component<IMinimapProps> {
     this._frame = createRef();
     this.draw = throttle(this._draw.bind(this));
     this.drawFrame = throttle(this._drawFrame.bind(this));
+    this.subscriptions = [];
 
     mapController.onInit(renderer => {
       this.renderer = renderer;
       console.log('minimap setup');
       for (const mapMode of Object.values(renderer.chunkRenderer.mapModes)) {
-        mapMode.update$.subscribe(() => {
+        const subs = mapMode.update$.subscribe(() => {
           this.draw();
           this.drawFrame();
         });
+        this.subscriptions.push(subs);
       }
       renderer.viewport.on('moved', () => {
         this.drawFrame();
       });
     });
+  }
+
+  componentWillUnmount() {
+    for (const sub of this.subscriptions) {
+      sub.unsubscribe();
+    }
   }
 
   get viewport(): Viewport {
@@ -65,6 +75,7 @@ export class Minimap extends Component<IMinimapProps> {
 
   _draw() {
     const { worldMap, mapMode } = this.props;
+    if (!this.renderer) return;
     const mapModeInst = this.renderer.chunkRenderer.mapModes[mapMode];
     const { width, height } = worldMap.world.size;
     const containerElement = this._container.current;
