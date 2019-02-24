@@ -35,13 +35,12 @@ Entities:
 
 
 ## Components
-- HasPopulation
+- Pop
   - value: number
   - class: EPopClass
-- HasPops
+- GameCell
   - Array<HasPopulation>
-- HasBuildings
-  - Map<Building, number>
+  - Map<BuildingType, number>
 ## Systems
 - PopSystem
   - updates population

@@ -146,7 +146,7 @@ const MapCellsView = (props: IWorldMapContainerChildProps) => {
     return (
       <GameViewPos.Bottom.Left>
         {regions.map(region => (
-          <div>
+          <div key={region.name}>
             {region.name} ({region.cells.length}) <br />
           </div>
         ))}

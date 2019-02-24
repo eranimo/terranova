@@ -450,6 +450,7 @@ export class ChunkRenderer {
     chunk.coastlineBorder.visible = this.viewOptions.drawCoastline;
     chunk.regions.visible = this.viewOptions.showRegions;
     if (chunk.mapMode !== this.viewOptions.mapMode) {
+      chunk.mapMode = this.viewOptions.mapMode;
       this.updateChunkMapMode(chunk.location.x, chunk.location.y);
     }
   }
