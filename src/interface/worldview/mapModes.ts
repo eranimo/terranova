@@ -226,7 +226,6 @@ class GroupedCellsMapMode extends MapMode {
     cells: IWorldCell[],
     chunkPosition: Point,
   ) {
-    console.log('update chunk', chunkX, chunkY, this.title)
     const { cellWidth, cellHeight } = this.renderOptions;
     const g = this.chunkContext.get(chunkX, chunkY);
 
@@ -306,6 +305,8 @@ export class ColormapMapMode extends MapMode {
         max = item;
       }
     }
+    min = min === Infinity ? 0 : min;
+    max = max === -Infinity ? 1 : max;
     const quantiles = {};
     for (let i = 0; i <= 100; i+= 1) {
       quantiles[i] = Math.round(min + ((i / 100) * (max - min)));

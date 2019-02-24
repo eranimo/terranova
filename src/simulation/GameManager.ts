@@ -112,6 +112,11 @@ export default class GameManager {
       .subscribe(({ key, value }) => {
         this.state.set(key, value);
       });
+
+
+    this.worker.on('population').subscribe((payload) => {
+      this.worldMap.setPopulation(payload.population as SharedArrayBuffer)
+    });
   }
 
   pause() {

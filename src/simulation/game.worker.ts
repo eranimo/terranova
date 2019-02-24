@@ -56,16 +56,16 @@ function gameInit() {
   }
   console.log('game init', game);
 
-  // const populationData = new SharedArrayBuffer(width * height * Uint32Array.BYTES_PER_ELEMENT);
-  // const population = ndarray(new Uint32Array(populationData), [width, height]);
+  const populationData = new SharedArrayBuffer(width * height * Uint32Array.BYTES_PER_ELEMENT);
+  const populationArray = ndarray(new Uint32Array(populationData), [width, height]);
 
-  // worker.send('population', { population: populationData });
+  worker.send('population', { population: populationData });
 
-  // game.gameCells.add$.subscribe((gameCell) => {
-  //   gameCell.gameCellState$.subscribe(() => {
-
-  //   });
-  // });
+  game.gameCells.add$.subscribe((gameCell) => {
+    gameCell.gameCellState$.subscribe(() => {
+      populationArray.set(gameCell.worldCell.x, gameCell.worldCell.y, Math.round(gameCell.populationSize));
+    });
+  });
 
   channelFromObservableSet(
     game.world.regions,
@@ -109,6 +109,7 @@ const worker = new ReactiveWorker(ctx, false)
 
     await game.init();
     gameInit();
+    game.testData();
 
     const timeEnd = performance.now();
     return timeEnd - timeStart;

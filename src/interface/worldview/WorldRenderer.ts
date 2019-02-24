@@ -122,7 +122,7 @@ export default class WorldRenderer {
     this.viewport.zoomPercent(1/3);
 
     // create chunk renderer
-    console.log('init chunk render');
+    console.log('[WorldRenderer] init chunk render');
     this.chunkRenderer = new ChunkRenderer(worldMap, this.viewport, this.options, mapModes);
     this.viewport.addChild(this.chunkRenderer.chunkContainer);
 
@@ -132,7 +132,7 @@ export default class WorldRenderer {
 
     // create map mode legends
     this.legends = {};
-    console.log('create legends');
+    console.log('[WorldRenderer] create legends');
     const legendContainer = new PIXI.Container();
     this.app.stage.addChild(legendContainer);
     for (const [name, mapMode] of Object.entries(this.chunkRenderer.mapModes)) {
@@ -146,7 +146,7 @@ export default class WorldRenderer {
     }
 
     // region labels
-    console.log('create region labels');
+    console.log('[WorldRenderer] create region labels');
     this.labelContainer = new PIXI.Container();
     this.viewport.addChild(this.labelContainer);
     this.labels = {};
@@ -169,7 +169,6 @@ export default class WorldRenderer {
     this.setupEvents();
     this.resize();
 
-    console.log('chunk render start');
     console.time('initial chunk render time');
     this.chunkRenderer.render();
     console.timeEnd('initial chunk render time');

@@ -218,7 +218,7 @@ export default class GameCell {
   id: number;
 
   constructor(
-    readonly worldCell: IWorldCell,
+    public worldCell: IWorldCell,
   ) {
     this.id = gameCellIDs++;
     this.newPop$ = new ReplaySubject();

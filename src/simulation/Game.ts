@@ -49,9 +49,12 @@ export default class Game extends GameLoop {
 
     // initialize world
     this.world = await worldStore.load(this.params.worldSaveName);
-
     this.newRegion$ = new ReplaySubject();
+    this.gameCells = new ObservableSet();
+    this.gameCellMap = new Array2D(this.world.size.width, this.world.size.height);
+  }
 
+  testData() {
     // create regions
     const cells = [
       this.world.getCell(79, 135),
@@ -115,9 +118,6 @@ export default class Game extends GameLoop {
     //   onTick: (ticksElapsed: number) => console.log('ticks', ticksElapsed),
     //   onFinished: () => console.log('timer done!'),
     // });
-
-    this.gameCells = new ObservableSet();
-    this.gameCellMap = new Array2D(this.world.size.width, this.world.size.height);
 
     console.log('GAME: add game cell');
     const gc1 = this.populateCell(81, 135);

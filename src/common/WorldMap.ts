@@ -32,20 +32,23 @@ export class WorldMap {
     this.gameCellMap = new Array2D(width, height);
 
     this.populationMap = ndarray(new Uint32Array(width * height), [width, height]);
-    this.populationMap.set(113, 86, 1000);
-    this.populationMap.set(112, 86, 5000);
-    this.populationMap.set(112, 85, 15000);
-    this.populationMap.set(112, 84, 20000);
+    // these go away when setPopulation is called
+    // TODO: better way to set min / max map mode (maybe new map mode type)
+    this.populationMap.set(0, 0, 0);
+    this.populationMap.set(0, 1, 2000);
     this.populationMapUpdate$ = new Subject();
 
+
+    // TODO: update map mode when data changes
     setInterval(() => {
-      const x = random(width);
-      const y = random(height);
-      const num = random(20000);
-      console.log(`Setting population at ${x},${y} to ${num.toLocaleString()}`);
-      this.populationMap.set(x, y, num);
       this.populationMapUpdate$.next();
     }, 2000);
+  }
+
+  setPopulation(buffer: SharedArrayBuffer) {
+    const { width, height } = this.world.size;
+    this.populationMap = ndarray(new Uint32Array(buffer), [width, height]);
+    this.populationMapUpdate$.next();
   }
 
   addRegion(region: IWorldRegionView) {
