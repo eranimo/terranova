@@ -1,8 +1,8 @@
-import React, { Component, Fragment, SFC, useContext } from 'react';
+import React, { Component, Fragment, SFC, useContext, useState } from 'react';
 import styled from 'styled-components';
 import WorldMapContainer, { IWorldMapContainerChildProps } from '../worldview/WorldMapContainer';
 import { FullSizeBlock } from '../components/layout';
-import { Button, Colors, ButtonGroup, Tooltip, Position, Intent, Popover, Menu, Classes, Divider, Icon } from '@blueprintjs/core';
+import { Button, Colors, ButtonGroup, Tooltip, Position, Intent, Popover, Menu, Classes, Divider, Icon, HTMLTable } from '@blueprintjs/core';
 import { mapModeDesc, EMapMode, mapModes, MapModeMap } from '../worldview/mapModes';
 import { Link } from 'react-router-dom';
 import classnames from 'classnames';
@@ -14,6 +14,7 @@ import { GameStateContainer } from './GameView';
 import { IWorldRegionView } from '../../simulation/WorldRegion';
 import Game from '../../simulation/Game';
 import { Minimap } from '../worldview/minimap';
+import { IGameCellView, IGameCellDetail } from '../../simulation/GameCell';
 
 
 const GameViewContainer = styled.div`
@@ -152,19 +153,78 @@ const GameMenu = () => {
   )
 }
 
+const GameCellView = ({ id }: { id: number }) => {
+  const game = useContext(GameStateContainer.Context);
+  const gamecell: IGameCellDetail = useObservable(game.worker.channel$<IGameCellDetail>(`gamecell/${id}`), null);
+
+  if (!gamecell) {
+    return <div>Game Cell not known</div>;
+  }
+
+  return (
+    <div>
+      Population: {gamecell.populationSize}
+    </div>
+  );
+}
+
 const MapCellsView = (props: IWorldMapContainerChildProps) => {
   const { selectedCell } = props;
   const game = useContext(GameStateContainer.Context);
-  const regions = useObservable(game.worker.channel$<IWorldRegionView[]>('regions'), []);
+  const gamecells = useObservable(game.worker.channel$<IGameCellView[]>('gamecells'), []);
+  const [selected, setSelected] = useState<number>(null);
+
+  const gameCellList = (
+    <HTMLTable interactive condensed>
+      <thead>
+        <th>ID</th>
+        <th>Location</th>
+        <th>Actions</th>
+      </thead>
+      <tbody>
+        {gamecells.map(gamecell => (
+          <tr key={gamecell.id}>
+            <td>
+              {gamecell.id}
+            </td>
+            <td>({gamecell.xCoord}, {gamecell.yCoord})</td>
+            <td>
+              <a onClick={() => setSelected(gamecell.id)}>
+                View
+              </a>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </HTMLTable>
+  );
 
   if (selectedCell === null) {
     return (
       <GameViewPos.Bottom.Left>
-        {regions.map(region => (
-          <div key={region.name}>
-            {region.name} ({region.cells.length}) <br />
+        <div style={{
+          width: 300,
+          height: 200,
+          overflowY: 'auto',
+        }}>
+          <div>
+            {selected === null ? gameCellList : (
+              <div>
+                <div>
+                  <Button
+                    icon="arrow-left"
+                    onClick={() => setSelected(null)}
+                  >
+                    Back
+                  </Button>
+                  {selected}
+                </div>
+                <br />
+                <GameCellView id={selected} />
+              </div>
+            )}
           </div>
-        ))}
+        </div>
       </GameViewPos.Bottom.Left>
     )
   }

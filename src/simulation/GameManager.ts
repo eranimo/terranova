@@ -96,13 +96,10 @@ export default class GameManager {
 
         this.worker.channel('gamecells', (gameCell) => {
           console.log('gamecells channel', gameCell);
-          // if (gameCell) {
-          //   console.log('Pop Info', gameCell.pops.reduce((prev, next) => prev + next.population, 0));
-          //   this.worldMap.addGameCell(gameCell);
-          // }
         });
 
-        this.worker.channel('gamecell/0', (gamecell) => {
+        this.worker.channel('gamecell/0');
+        this.worker.channel$('gamecell/0').subscribe((gamecell) => {
           console.log('gamecell channel', gamecell);
         });
       });

@@ -201,8 +201,17 @@ const requiredBuilding: Record<EBuildingType, EPopClass | null> = {
 };
 
 export interface IGameCellView {
+  id: number;
   xCoord: number,
   yCoord: number
+}
+
+export interface IGameCellDetail {
+  id: number;
+  xCoord: number,
+  yCoord: number,
+  pops: IPopView[];
+  populationSize: number;
 }
 
 let gameCellIDs = 0;
@@ -251,7 +260,7 @@ export default class GameCell {
     }
   }
 
-  private getState() {
+  private getState(): IGameCellDetail {
     const popViews = new Array<IPopView>();
     for (const pop of this.pops) {
       popViews.push({population: pop.population, socialClass: pop.class})
@@ -265,6 +274,7 @@ export default class GameCell {
 
   getReference(): IGameCellView {
     return {
+      id: this.id,
       xCoord: this.worldCell.x,
       yCoord: this.worldCell.y
     };
