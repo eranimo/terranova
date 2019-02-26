@@ -35,13 +35,15 @@
 
 ## Implementation
 - each entity stores its data in a SharedArrayBuffer-backed ObservableDict
-  - this means we have a max number of entities in the system
-
+  - this means we have a max number of each entity type
 - Render thread reads, Game thread writes
 - event system for handling UI updates
-  - add-entity: (type, id)
-  - update-entity: (type, id) - when entity fields update
-  - remove-entity: (type, id)
+- relationships
+
+*Entity events*:
+- add-entity: (type, id)
+- update-entity: (type, id) - when entity fields update
+- remove-entity: (type, id)
 
 ## Example
 
@@ -63,7 +65,8 @@ Entities:
 - GameCell
   - data:
     - location: WorldCell
-  - Relationship<Pop>
+  - relationships
+    - one-to-many with Pop
   - Map<BuildingType, number>
 ## Systems
 - PopSystem
