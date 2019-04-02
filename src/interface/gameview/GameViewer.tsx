@@ -9,7 +9,7 @@ import classnames from 'classnames';
 import GameManager from '../../simulation/GameManager';
 import { EGameSpeed, gameSpeedTitles, EMonth, IGameDate } from '../../simulation/GameLoop';
 import { gameMapModes } from './gameMapModes';
-import { useObservable } from '../../utils/hooks';
+import { useObservable, useChannel } from '../../utils/hooks';
 import { GameStateContainer } from './GameView';
 import { IWorldRegionView } from '../../simulation/WorldRegion';
 import Game from '../../simulation/Game';
@@ -155,6 +155,8 @@ const GameMenu = () => {
 
 const GameCellView = ({ id }: { id: number }) => {
   const game = useContext(GameStateContainer.Context);
+  const isLoading = useChannel(game.worker, `gamecell/${id}`);
+  if (isLoading) return <span>Loading...</span>;
   const gamecell: IGameCellDetail = useObservable(game.worker.channel$<IGameCellDetail>(`gamecell/${id}`), null);
 
   if (!gamecell) {
@@ -171,6 +173,8 @@ const GameCellView = ({ id }: { id: number }) => {
 const MapCellsView = (props: IWorldMapContainerChildProps) => {
   const { selectedCell } = props;
   const game = useContext(GameStateContainer.Context);
+  const isLoading = useChannel(game.worker, 'gamecells');
+  if (isLoading) return <span>Loading...</span>;
   const gamecells = useObservable(game.worker.channel$<IGameCellView[]>('gamecells'), []);
   const [selected, setSelected] = useState<number>(null);
 

@@ -95,9 +95,10 @@ function gameInit() {
     (gameCell: GameCell) => `gamecell/${gameCell.id}`,
     (gameCell: GameCell) => gameCell.gameCellState$.asObservable()
   );
+
 }
 
-const worker = new ReactiveWorker(ctx, false)
+const worker = new ReactiveWorker(ctx, true)
   .on(EGameEvent.INIT, async ({ params }) => {
     const timeStart = performance.now();
     console.log('game params', params);

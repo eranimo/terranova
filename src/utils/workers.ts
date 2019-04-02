@@ -108,6 +108,7 @@ export interface IWorkerMessage {
 export class ReactiveWorkerClient {
   workerEvents$: Observable<IWorkerMessage>;
   workerErrors$: Subject<string>;
+  channelCache: Record<string, any>;
 
   constructor(public worker: Worker, debug: boolean = false) {
     this.workerEvents$ = fromEvent<MessageEvent>(this.worker, 'message')
@@ -116,13 +117,21 @@ export class ReactiveWorkerClient {
     this.workerErrors$ = new Subject();
 
     if (debug) {
-      this.workerEvents$.subscribe(msg => console.log('[worker client: in]', msg));
+      this.workerEvents$.subscribe(msg => console.debug('[worker client: in]', msg));
     }
 
     this.workerEvents$.pipe(
       filter(x => x.error),
       map(msg => msg.reason)
     ).subscribe(this.workerErrors$);
+
+    this.channelCache = {};
+    this.workerEvents$.pipe(
+      filter(x => typeof x.channel == 'string'),
+      map(msg => {
+        this.channelCache[msg.channel] = msg.payload;
+      })
+    );
   }
 
   /**
@@ -135,32 +144,29 @@ export class ReactiveWorkerClient {
       .pipe(map(msg => msg.payload));
   }
 
+  /**
+   * Returns an observable of channel events.
+   * @param name Channel identifier
+   */
   channel$<T>(name: string): Observable<T> {
-    const sub = new Subject<T>();
-    this.workerEvents$.pipe(
+    return this.workerEvents$.pipe(
       filter(x => x.channel === name),
       map(msg => msg.payload)
-    ).subscribe(sub);
-
-    return sub.asObservable();
+    );
   }
 
-  channel(name: string, handler?: (payload) => void) {
-    this.worker.postMessage({
-      channel: name,
-      channelEnabled: true,
-    });
+  channelSetActive(channel: string, channelEnabled: boolean = true) {
+    this.worker.postMessage({ channel, channelEnabled });
+  }
+
+  onChannel(name: string, handler?: (payload) => void) {
+    this.channelSetActive(name, true);
     this.workerEvents$.pipe(
       filter(x => x.channel === name),
       map(msg => msg.payload)
     ).subscribe(handler);
 
-    return () => {
-      this.worker.postMessage({
-        channel: name,
-        channelEnabled: false,
-      });
-    }
+    return () => this.channelSetActive(name, false);
   }
 
   /**
@@ -235,7 +241,7 @@ export class ReactiveWorker {
 
 
     if (debug) {
-      this.incomingMessages$.subscribe(msg => console.log('[worker: in]', msg));
+      this.incomingMessages$.subscribe(msg => console.debug('[worker: in]', msg));
     }
 
     // channel logic

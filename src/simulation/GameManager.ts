@@ -50,7 +50,7 @@ export default class GameManager {
     this.params = await gameStore.load(this.saveName);
 
     // start game worker
-    this.worker = new ReactiveWorkerClient(new GameWorker(), false);
+    this.worker = new ReactiveWorkerClient(new GameWorker(), true);
 
     this.date$ = new Subject();
     this.worker.on<IGameDate>(EGameEvent.DATE)
@@ -80,7 +80,7 @@ export default class GameManager {
         console.log(`Startup time: ${startupTime}`);
         this.loading$.next(true);
 
-        this.worker.channel('regions');
+        this.worker.onChannel('regions');
 
         this.worker.channel$<IWorldRegionView[]>('regions')
           .subscribe((regions) => {
@@ -90,17 +90,17 @@ export default class GameManager {
             }
           });
 
-        this.worker.channel('region/Alpha', (cells) => {
+        this.worker.onChannel('region/Alpha', (cells) => {
           console.log('alpha cells', cells);
         });
 
-        this.worker.channel('gamecells', (gameCell) => {
-          console.log('gamecells channel', gameCell);
-        });
+        // this.worker.onChannel('gamecells', (gameCell) => {
+        //   console.log('gamecells channel', gameCell);
+        // });
 
-        this.worker.channel('gamecell/0');
+        // this.worker.channelSetActive('gamecell/0');
         this.worker.channel$('gamecell/0').subscribe((gamecell) => {
-          console.log('gamecell channel', gamecell);
+          console.info('gamecell channel', gamecell);
         });
       });
 
