@@ -16,7 +16,7 @@
     ],
     "jsx": "react",
     "sourceMap": true,
-    "noUnusedLocals": false
+    "noUnusedLocals": false,
   },
   "exclude": [
     "node_modules"

@@ -104,7 +104,7 @@ class GlobeViewer {
       this.scene.add(sphere);
     }
 
-    const pointsLatLong = fibonacciSpherePoints.map(({ x, y, z }) => Coordinate.cart([x, y, z]).spherical());
+    const pointsLatLong = fibonacciSpherePoints.map(({ x, y, z }) => Coordinate.Coordinate.cartesian([x, y, z]).spherical());
     const voronoi = geoDelaunay(pointsLatLong);
     console.log(voronoi);
 
@@ -121,7 +121,7 @@ class GlobeViewer {
     const centerMaterial = new THREE.PointsMaterial({ size: .05, color: 0x0000FF });
     const centerPositions = [];
     for (const center of voronoi.centers) {
-      const centerPoint = Coordinate.spherical([radius, center[0], center[1]]).cartesian();
+      const centerPoint = Coordinate.Coordinate.spherical([radius, center[0], center[1]]).cartesian();
       centerPositions.push(centerPoint[0], centerPoint[1], centerPoint[2]);
     }
     centerGeometry.addAttribute('position', new THREE.Float32BufferAttribute(centerPositions, 3));

@@ -1,6 +1,5 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
-const { CheckerPlugin } = require('awesome-typescript-loader');
 const webpack = require('webpack');
 const package = require('./package.json');
 const VERSION = package.version;
@@ -34,25 +33,7 @@ module.exports = {
         test: /\.tsx?$/,
         use: [
           {
-            loader: 'awesome-typescript-loader',
-            options: {
-              useBabel: true,
-              useCache: true,
-              babelOptions: {
-                babelrc: false,
-                presets: [
-                  [
-                    "@babel/preset-env",
-                    {
-                      "targets": "last 2 versions, ie 11",
-                      "modules": false,
-                      useBuiltIns: 'usage',
-                    }
-                  ]
-                ]
-              },
-              babelCore: "@babel/core",
-            },
+            loader: 'ts-loader',
           }
         ],
       },
@@ -97,7 +78,6 @@ module.exports = {
     new webpack.DefinePlugin({
       VERSION: JSON.stringify(VERSION)
     }),
-    new CheckerPlugin(),
     new HtmlWebpackPlugin({
       title: 'Terranova'
     }),
@@ -107,6 +87,11 @@ module.exports = {
     historyApiFallback: true,
     watchOptions: {
       ignored: /node_modules/,
+    },
+    // using headers to enable again SharedArrayBuffer
+    headers: {
+      'Cross-Origin-Opener-Policy': 'same-origin',
+      'Cross-Origin-Embedder-Policy': 'require-corp',
     }
   }
 };

@@ -50,7 +50,6 @@ interface IWorldMapContainerState {
   selectedCell: IWorldCell | null;
 }
 
-@HotkeysTarget
 export default class WorldMapContainer extends Component<IWorldMapContainerProps, IWorldMapContainerState> {
   constructor(props) {
     super(props);
@@ -114,42 +113,6 @@ export default class WorldMapContainer extends Component<IWorldMapContainerProps
     return true;
   }
 
-  renderHotkeys() {
-    return (
-      <Hotkeys>
-        <Hotkey
-          global
-          combo="esc"
-          label="Deselect current cell"
-          onKeyDown={this.deselect}
-        />
-        <Hotkey
-          global
-          combo="shift + g"
-          label="Toggle grid"
-          onKeyDown={this.onChangeField('drawGrid')}
-        />
-        <Hotkey
-          global
-          combo="shift + c"
-          label="Toggle cursor"
-          onKeyDown={this.onChangeField('showCursor')}
-        />
-        <Hotkey
-          global
-          combo="shift + f"
-          label="Toggle flow directions"
-          onKeyDown={this.onChangeField('showFlowArrows')}
-        />
-        <Hotkey
-          global
-          combo="shift + o"
-          label="Toggle coastline border"
-          onKeyDown={this.onChangeField('drawCoastline')}
-        />
-      </Hotkeys>
-    )
-  }
 
   render() {
     const { worldMap, isLoading, children, mapModes } = this.props;
